@@ -454,7 +454,7 @@ public sealed class Monika : RoleBase, ILNKiller
     }
 }
 
-[HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
+// [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
 public static class MonikaTrashedVoteBlockPatch
 {
     public static bool Prefix([HarmonyArgument(0)] byte srcPlayerId)

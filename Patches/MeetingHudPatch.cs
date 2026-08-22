@@ -98,7 +98,7 @@ public static class MeetingHudPatch
 
 
 
-    [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CheckForEndVoting))]
+    // [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CheckForEndVoting))]
 
     class CheckForEndVotingPatch
 
@@ -118,7 +118,7 @@ public static class MeetingHudPatch
 
     }
 
-    [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
+    // [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
 
     public static class CastVotePatch
 

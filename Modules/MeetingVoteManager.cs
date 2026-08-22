@@ -222,7 +222,7 @@ public class MeetingVoteManager
             }
         }
         Main.CanUseAbility = false;
-        if (!AntiBlackout.OverrideExiledPlayer())
+        if (AntiBlackout.OverrideExiledPlayer())
         {
             _ = new LateTask(() =>
             {
