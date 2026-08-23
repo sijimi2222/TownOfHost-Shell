@@ -302,7 +302,7 @@ namespace TownOfHost
 
                 {
 
-                    ErrorText.Instance.AddError(ErrorCode.OptionIDDuplicate);
+                    // ErrorText.Instance.AddError(ErrorCode.OptionIDDuplicate);
 
                 }
 
