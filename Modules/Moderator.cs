@@ -66,6 +66,10 @@ public static class Moderator
 
         switch (command)
         {
+            case "/kill":
+                HandleKill(player, args);
+                break;
+               
             case "/kick":
                 HandleKickOrBan(player, args, false);
                 break;
@@ -140,7 +144,7 @@ public static class Moderator
     }
 
     private static bool IsManagedCommand(string command)
-        => command is "/kick" or "/ban" or "/say" or "/fe" or "/forceend" or "/sw" or "/start" or "/kf" or "/mf" or "/ms" or "/cs" or "/fm" or "/ma" or "/mn";
+        => command is "/kick" or "/ban" or "/kill" or "/say" or "/fe" or "/forceend" or "/sw" or "/start" or "/kf" or "/mf" or "/ms" or "/cs" or "/fm" or "/ma" or "/mn";
 
     private static bool CanUseModeratorCommand(PlayerControl player)
         => IsHostPlayer(player) || IsModerator(player);
@@ -275,6 +279,45 @@ public static class Moderator
         {
             SendMessage($"モデレーターが見つかりません: {key}", sender.PlayerId);
         }
+    }
+
+    private static void HandleKill(PlayerControl sender, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            SendMessage("使い方: /cmd kill <色>", sender.PlayerId);
+            return;
+        }
+
+        if (!TryFindTargetByArg(args[1], out var target))
+        {
+            SendMessage("対象プレイヤーが見つかりません。", sender.PlayerId);
+            return;
+        }
+
+        if (target.PlayerId == sender.PlayerId)
+        {
+            SendMessage("自分自身は処刑できません。", sender.PlayerId);
+            return;
+        }
+
+        var state = PlayerState.GetByPlayerId(target.PlayerId);
+
+        state.DeathReason = CustomDeathReason.Execution;
+        state.SetDead();
+
+        var data = GameData.Instance.AllPlayers
+            .ToArray()
+            .Where(a => a.PlayerId == target.PlayerId)
+            .FirstOrDefault();
+
+        if (data is not null)
+            data.Disconnected = true;
+
+        SendMessage(
+            $"{target.GetRealName()} を処刑しました。",
+            sender.PlayerId
+        );
     }
 
     private static void HandleKickOrBan(PlayerControl sender, string[] args, bool ban)
