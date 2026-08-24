@@ -3442,13 +3442,13 @@ namespace TownOfHost
 
             OptionGameChatHideChat = BooleanOptionItem.Create(1_300_390, "GameChatHideChat", false, TabGroup.Other2, true)
 
-                      .SetParent(OptionGameChatSetting)
+                      
 
                       .SetHeader(true)
 
                       .SetColorcode("#00c1ff")
 
-                      .SetOptionName(() => "秘匿チャットを有効にする(未完成)");
+                      .SetOptionName(() => "個人メッセージを有効にする");
 
 
 

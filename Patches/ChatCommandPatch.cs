@@ -1051,6 +1051,72 @@ namespace TownOfHost
             switch (args[0])
 
             {
+                case "/pm":
+                    {
+                        canceled = true;
+                        if (!Options.OptionGameChatHideChat.GetBool())
+                        {
+                            SendMessage("個人メッセージは現在OFFです。", PlayerControl.LocalPlayer.PlayerId);
+                            break;
+                        }
+
+                        if (args.Length < 3)
+                        {
+                            SendMessage("使い方: /cmd pm <色> <メッセージ>", PlayerControl.LocalPlayer.PlayerId);
+                            break;
+                        }
+
+                        int colorId = args[1].ToLowerInvariant() switch
+                        {
+                            "red" or "赤" or "レッド" => 0,
+                            "blue" or "青" or "ブルー" => 1,
+                            "green" or "緑" or "グリーン" => 2,
+                            "pink" or "ピンク" => 3,
+                            "orange" or "オレンジ" => 4,
+                            "yellow" or "黄" or "イエロー" => 5,
+                            "black" or "黒" or "ブラック" => 6,
+                            "white" or "白" or "ホワイト" => 7,
+                            "purple" or "紫" or "パープル" => 8,
+                            "brown" or "ブラウン" => 9,
+                            "cyan" or "シアン" => 10,
+                            "lime" or "ライム" => 11,
+                            "maroon" or "マルーン" => 12,
+                            "rose" or "ローズ" => 13,
+                            "banana" or "バナナ" => 14,
+                            "gray" or "grey" or "グレー" => 15,
+                            "tan" or "タン" => 16,
+                            "coral" or "コーラル" => 17,
+                            _ => -1
+                        };
+
+                        if (colorId < 0)
+                        {
+                            SendMessage("色が正しくありません。例: red / blue / 赤 / 青", PlayerControl.LocalPlayer.PlayerId);
+                            break;
+                        }
+
+                        var target = PlayerCatch.AllPlayerControls
+                            .FirstOrDefault(pc => pc.Data != null && pc.Data.DefaultOutfit.ColorId == colorId);
+
+                        if (target == null)
+                        {
+                            SendMessage("その色のプレイヤーが見つかりません。", PlayerControl.LocalPlayer.PlayerId);
+                            break;
+                        }
+
+                        var message = string.Join(" ", args.Skip(2));
+
+                        if (string.IsNullOrWhiteSpace(message))
+                        {
+                            SendMessage("メッセージを入力してください。", PlayerControl.LocalPlayer.PlayerId);
+                            break;
+                        }
+
+                        SendMessage($"[個人] {PlayerControl.LocalPlayer.GetRealName()} : {message}", target.PlayerId);
+                        SendMessage($"[個人→{target.GetRealName()}] {message}", PlayerControl.LocalPlayer.PlayerId);
+
+                        break;
+                    }
 
                 case "/dump":
 
@@ -5737,6 +5803,83 @@ namespace TownOfHost
                         SendMessage("使用方法:\n/vo 音質(id) 音量 速度 音程\n\n音質の一覧表示:\n /vo get\n /vo g", player.PlayerId);
 
                     break;
+                case "/pm":
+                    {
+                        canceled = true;
+                        if (!Options.OptionGameChatHideChat.GetBool())
+                        {
+                            SendMessage("個人メッセージは現在OFFです。", player.PlayerId);
+                            break;
+                        }
+
+                        if (args.Length < 3)
+                        {
+                            SendMessage("使い方: /cmd pm <色> <メッセージ>", player.PlayerId);
+                            break;
+                        }
+
+                        var colorText = args[1].ToLowerInvariant();
+
+                        int colorId = colorText switch
+                        {
+                            "red" or "赤" or "レッド" => 0,
+                            "blue" or "青" or "ブルー" => 1,
+                            "green" or "緑" or "グリーン" => 2,
+                            "pink" or "ピンク" => 3,
+                            "orange" or "オレンジ" => 4,
+                            "yellow" or "黄" or "イエロー" => 5,
+                            "black" or "黒" or "ブラック" => 6,
+                            "white" or "白" or "ホワイト" => 7,
+                            "purple" or "紫" or "パープル" => 8,
+                            "brown" or "ブラウン" => 9,
+                            "cyan" or "シアン" => 10,
+                            "lime" or "ライム" => 11,
+                            "maroon" or "マルーン" => 12,
+                            "rose" or "ローズ" => 13,
+                            "banana" or "バナナ" => 14,
+                            "gray" or "grey" or "グレー" => 15,
+                            "tan" or "タン" => 16,
+                            "coral" or "コーラル" => 17,
+                            _ => -1
+                        };
+
+                        if (colorId < 0)
+                        {
+                            SendMessage("その色は認識できません。", player.PlayerId);
+                            break;
+                        }
+
+                        var target = PlayerCatch.AllPlayerControls
+                            .FirstOrDefault(pc =>
+                                pc.Data != null &&
+                                pc.Data.DefaultOutfit.ColorId == colorId);
+
+                        if (target == null)
+                        {
+                            SendMessage("その色のプレイヤーが見つかりません。", player.PlayerId);
+                            break;
+                        }
+
+                        var message = string.Join(" ", args.Skip(2));
+
+                        if (string.IsNullOrWhiteSpace(message))
+                        {
+                            SendMessage("メッセージを入力してください。", player.PlayerId);
+                            break;
+                        }
+
+                        SendMessage(
+                            $"[個人] {player.GetRealName()} : {message}",
+                            target.PlayerId
+                        );
+
+                        SendMessage(
+                            $"[個人→{target.GetRealName()}] {message}",
+                            player.PlayerId
+                        );
+
+                        break;
+                    }
 
                 case "/secretchat":
 
