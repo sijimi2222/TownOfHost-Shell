@@ -31,7 +31,8 @@ public enum From
     Speyrp,
     RevolutionaryHostRoles,
     Love_Couple_Mod,
-    TownOfHost_hamo
+    TownOfHost_hamo,
+    TownOfHost_Shell
 }
 public class SimpleRoleInfo
 {

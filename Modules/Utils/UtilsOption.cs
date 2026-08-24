@@ -2012,6 +2012,8 @@ namespace TownOfHost
 
                 case From.TownOfHost_hamo: Fromtext += $"<#fb85ff>TownOfHost_hamo</color>"; break;
 
+                case From.TownOfHost_Shell: Fromtext += $"<#aa00ff>TownOfHost_Shell</color>"; break;
+
             }
 
             if (role is CustomRoles.MadSuicide) Fromtext += "  <#000000>(<#ff1919>崇拝者</color>)</color>";

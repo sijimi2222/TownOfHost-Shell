@@ -2084,6 +2084,9 @@ public enum CustomRoles
 
     Nautilus,
 
+    //TOH-Shell
+    Lethe,
+
     //DEBUG only Crewmate
 
     Analyzer,

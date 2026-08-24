@@ -260,6 +260,8 @@
 
 "Bait","Bait","ベイト","诱饵","誘餌","Приманка","Isca","Isca"
 
+"Lethe","Lethe","レテ","诱饵","誘餌","Приманка","Isca","Isca"
+
 "Lighter","Lighter","ライター","执灯人","持燈人","Фонарь","Lanterneiro","Isqueiro"
 
 "Mayor","Mayor","メイヤー","市长","市長","Мэр","Prefeito","Prefeito"
@@ -1080,6 +1082,8 @@
 
 "BaitInfo","Trap your enemies","敵を罠にはめよう","引诱敌人落入你的陷阱当中","誘捕你的敵人","Ловите своих врагов","Prenda os seus inimigos","Prenda os seus inimigos"
 
+"LetheInfo","Don't touch the river","触らぬ川に祟りなし","引诱敌人落入你的陷阱当中","誘捕你的敵人","Ловите своих врагов","Prenda os seus inimigos","Prenda os seus inimigos"
+
 "LighterInfo","Light 'em up","すべてを照らそう","驱散黑暗，照亮前路","夜空中最亮的星","Увеличьте свой обзор выполнив свои задания","Luz para todo lado","Luz para todo lado"
 
 "MayorInfo","Your vote has more influence","自分の票が何倍もの力を持っている","你的投票更有分量","你的票數更多更有料","У вас больше голосов","O seu voto tem mais influência","O seu voto tem mais influência"
@@ -1791,6 +1795,8 @@
 "# 特殊クルー役職"
 
 "BaitInfoLong","When you are killed, you force your killer to immediately self-report.","キルされた時に、自身をキルした人に\n強制的にセルフレポートさせる事ができる。","(船员阵营):\n诱饵被击杀时，击杀诱饵的凶手将被迫报告。","(船員):\n當被殺時,兇手將強制自行舉報","(Член Экипажа):\nКогда Приманку убивают, он заставляет убившего игрока \nмоментально зарепортить ваш труп.","(Tripulantes):\nQuando morrer, você força o seu assassino a reportar o seu corpo imediatamente.",""
+
+"LetheInfoLong","When Lethe is killed, the enabled debuff attributes are applied to the killer.","レテがキルされると、キルしてきた対象に設定で有効になっているデバフ属性を付与する。","(船员阵营):\n诱饵被击杀时，击杀诱饵的凶手将被迫报告。","(船員):\n當被殺時,兇手將強制自行舉報","(Член Экипажа):\nКогда Приманку убивают, он заставляет убившего игрока \nмоментально зарепортить ваш труп.","(Tripulantes):\nQuando morrer, você força o seu assassino a reportar o seu corpo imediatamente.",""
 
 "LighterInfoLong","Your vision will increase.","条件を満たすと、自分の視界を広げることができる。","(船员阵营):\n执灯人完成任务后，视野会扩大，且不受照明破坏影响。","(船員):\n當做完所有任務時可以增大視野且不受關燈影響","(Член Экипажа):\nПосле выполнения всех заданий Фонарик сможет увеличить свое поле зрения.","(Tripulantes):\nQuando você terminar todas as suas tarefas, sua visão irá aumentar.",""
 
