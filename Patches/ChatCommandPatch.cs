@@ -5806,6 +5806,12 @@ namespace TownOfHost
                 case "/pm":
                     {
                         canceled = true;
+
+                        if (!player.IsAlive())
+                        {
+                            SendMessage("霊界から個人メッセージは送信できません。", player.PlayerId);
+                            break;
+                        }
                         if (!Options.OptionGameChatHideChat.GetBool())
                         {
                             SendMessage("個人メッセージは現在OFFです。", player.PlayerId);
