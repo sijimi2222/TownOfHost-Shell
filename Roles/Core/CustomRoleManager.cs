@@ -1664,6 +1664,8 @@ public enum CustomRoles
 
     //Impostor
 
+    Destroyer,
+
     BountyHunter,
 
     FireWorks,
@@ -2478,6 +2480,7 @@ public enum CustomRoles
 
     IceOni,
 
+   
 }
 
 public enum CustomRoleTypes
