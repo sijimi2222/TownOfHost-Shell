@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using Hazel;
+using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using UnityEngine;
@@ -29,7 +30,7 @@ public sealed class Destroyer : RoleBase, IKiller
 
     static OptionItem OptKillCooldown;
     static OptionItem OptShowKillFlash;
-    static OptionItem OptShowCrushMark;
+    
     static OptionItem OptCrushTime;
     static OverrideKilldistance KillDistanceOption;
 
@@ -100,8 +101,14 @@ public sealed class Destroyer : RoleBase, IKiller
             // 押し潰し成功
             Player.RpcMurderPlayerV2(target);
 
+            // 押し潰された人の色でマークを置く
+            var markPos = target.GetTruePosition();
+            byte markColorId = (byte)target.Data.DefaultOutfit.ColorId;
+            _ = new DestroyerCrushMark(markPos, markColorId);
+
             _ = new LateTask(() =>
             {
+                
                 Main.AllPlayerSpeed[Player.PlayerId] = destroyerOldSpeed;
                 Main.AllPlayerSpeed[target.PlayerId] = targetOldSpeed;
 
@@ -111,9 +118,13 @@ public sealed class Destroyer : RoleBase, IKiller
 0.2f,
 "Destroyer.RestoreSpeed");
 
+            // 押し潰し成功
+            Player.RpcMurderPlayerV2(target);
+
+            // 全員にキルフラッシュ
             if (OptShowKillFlash.GetBool())
             {
-                target.KillFlash();
+                Utils.AllPlayerKillFlash();
             }
 
             CreateCrushMark(target);
@@ -231,8 +242,7 @@ OptCrushTime.GetFloat(),
 
     private void CreateCrushMark(PlayerControl target)
     {
-        if (!OptShowCrushMark.GetBool())
-            return;
+        
 
         if (target == null)
             return;
@@ -345,13 +355,7 @@ OptCrushTime.GetFloat(),
     false
 ).SetOptionName(() => "押し潰しが成功した場合キルフラッシュを鳴らす");
 
-        OptShowCrushMark = BooleanOptionItem.Create(
-    RoleInfo,
-    12,
-    GeneralOption.TaskAwakening,
-    true,
-    false
-).SetOptionName(() => "押し潰した地点にマークを付ける");
+        OverrideKilldistance.Create(RoleInfo, 12);
 
         OptCrushTime = FloatOptionItem.Create(
     RoleInfo,
@@ -364,5 +368,50 @@ OptCrushTime.GetFloat(),
  .SetOptionName(() => "押し潰すのに必要な時間");
 
 
+    }
+
+    private sealed class DestroyerCrushMark : CustomNetObject
+    {
+        private readonly Vector2 _pos;
+        private readonly byte _colorId;
+
+        public DestroyerCrushMark(Vector2 position, byte colorId)
+        {
+            _pos = position;
+            _colorId = colorId;
+            CreateNetObject(position);
+        }
+
+        protected override void OnCreated()
+        {
+            if (PlayerControl == null)
+                return;
+
+            PlayerControl.RpcSetColor(_colorId);
+            PlayerControl.RawSetColor(_colorId);
+
+            try
+            {
+                PlayerControl.cosmetics.currentBodySprite.BodySprite.color = Color.clear;
+            }
+            catch { }
+
+            PlayerControl.cosmetics.colorBlindText.color = Color.clear;
+
+            PlayerControl.RpcSetHat("");
+            PlayerControl.RpcSetSkin("");
+            PlayerControl.RpcSetVisor("");
+            PlayerControl.RpcSetPet("");
+
+            string markColor =
+    "#" + ColorUtility.ToHtmlStringRGB(Palette.PlayerColors[_colorId]);
+
+            SetName(
+    $"<voffset=-3.5em><size=720%><color={markColor}>●</color></size></voffset>"
+);
+            SnapToPosition(_pos);
+
+
+        }
     }
 }
