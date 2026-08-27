@@ -256,6 +256,8 @@ namespace TownOfHost
 
         public static OptionItem EnableGM;
 
+        public static OptionItem ShowDeadPet;
+
         public static float DefaultKillCooldown = Main.NormalOptions?.KillCooldown ?? 20;
 
         public static OptionItem DoubleTriggerThreshold;
@@ -1411,6 +1413,8 @@ namespace TownOfHost
 
 
             var sortedRoleInfo = CustomRoleManager.AllRolesInfo.Values.OrderBy(role => role.ConfigId);
+
+            
 
             // GM
 
@@ -2580,6 +2584,15 @@ namespace TownOfHost
 
                 .SetParent(ConvenientOptions);
 
+            ShowDeadPet = BooleanOptionItem.Create(
+    102,
+    "ShowDeadPet",
+    true,
+    TabGroup.Game,
+    false
+)
+.SetOptionName(() => "死亡時にペットの残骸を表示する")
+.SetParent(ConvenientOptions);
 
 
             OptionBatchSetting = BooleanOptionItem.Create(113000, "OptionBatchSetting", false, TabGroup.Game, false)

@@ -44,6 +44,8 @@
 
 "# 特殊インポスター役職"
 
+"Destroyer","Destroyer","デストロイヤー","毁灭者","毀滅者","Разрушитель","Destruidor","Destructor"
+
 "BountyHunter","Bounty Hunter","バウンティハンター","赏金猎人","賞金獵人","Охотник за головами","Caçador de Recompensas","Caçador de Recompensas"
 
 "Mare","Mare","メアー","梦魇","獵夢者","Ночной","Mare","Mare"
@@ -860,6 +862,8 @@
 
 "# 特殊インポスター役職"
 
+"DestroyerInfo","Crush your enemies","その力で敵を押しつぶせ","","","","",""
+
 "BountyHunterInfo","Eliminate your target","標的を確実に仕留めよう","猎杀你的赏金目标","拿下你的目標","Охотьтесь за своей целью","Elimine o seu alvo","Elimine o seu alvo"
 
 "MareInfo","Darkness aids you. Kill","闇の世界で暗殺せよ","在黑暗中作案","你恐懼黑暗嗎?","Убивайте в темноте","A escuridão está do seu lado. Mate!","O escuro está do seu lado. Mate"
@@ -1589,6 +1593,8 @@
 
 
 "# 特殊インポスター役職"
+
+"DestroyerInfoLong","Grab a target with the kill button and crush them for a certain amount of time to kill them. \nWhile crushing, both you and the target move very slowly.","キルボタンで対象を掴み、一定時間押し潰すことでキルできる。\n押し潰している間は自身と対象の移動が出来なくなる。","","","","",""
 
 "BountyHunterInfoLong","If you kill your indicated target, your next kill cooldown will be greatly reduced.\nIf you kill anyone other than your target, your next kill cooldown will increase.\nThe target swaps after a configurable amount of time.","表示されたターゲットをキルした場合、次のキルクールがとても短くなる。\nターゲットではないプレイヤーをキルした場合は、キルクールが伸びてしまう。\nターゲットは一定時間ごとに変更される。","(内鬼阵营):\n如果赏金猎人击杀了赏金目标，击杀冷却缩短。\n反之，则冷却增加。","(偽裝者陣營):\n如果賞金獵人殺了賞金目標，下一次的殺人冷卻會變得非常的短\n如果賞金獵人殺了非賞金目標，下一次的殺人冷卻將會被延長或不變\n目標將會重置在時間結束或殺死賞金目標後。","(Предатель):\nЕсли Охотник за головами убьет назначенную ему цель, время отката убийства будет намного меньше чем обычно. \n При убийстве игрока который не является его целью, приводит к стандартному времени отката убийства. \nЦели меняются спустя какое-то время","(Impostores):\nSe você matar o seu alvo, o tempo de recarga (abate) será mais rápido.\nMatar um jogador que não seja seu alvo, resulta em um tempo de recarga (abate) maior.\nOs alvos são alterados em intervalos regulares."," (Impostores):\nSe você matar o seu alvo, o tempo de morte será mais rápido.\nMatar um jogador que não seja seu alvo, resulta em um tempo de morte maior.\nOs alvos são alterados em intervalos regulares."
 

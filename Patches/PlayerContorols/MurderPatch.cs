@@ -175,6 +175,12 @@ namespace TownOfHost
             //以降ホストしか処理しない
             // 処理は全てCustomRoleManager側で行う
             CustomRoleManager.OnMurderPlayer(__instance, target);
+
+            // 死亡したプレイヤーのペットを消す
+            if (!Options.ShowDeadPet.GetBool())
+            {
+                target.RpcSetPet("");
+            }
         }
     }/*
     [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.ProtectPlayer))]

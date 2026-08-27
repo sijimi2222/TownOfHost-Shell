@@ -16,7 +16,7 @@ public sealed class Destroyer : RoleBase, IKiller
             typeof(Destroyer),
             player => new Destroyer(player),
             CustomRoles.Destroyer,
-            () => RoleTypes.Phantom,
+            () => RoleTypes.Impostor,
             CustomRoleTypes.Impostor,
             39991,
             SetupOptionItem,
