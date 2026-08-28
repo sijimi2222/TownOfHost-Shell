@@ -128,7 +128,7 @@ namespace TownOfHost
 
         public const string PluginVersion = "4.00.00.21";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "4.00.00.21";
+        public const string PluginShowVersion = "1.0.0";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
