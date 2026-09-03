@@ -6688,7 +6688,7 @@
 
 "ERR-000-930-3","Test Error Lv.3","テストエラーLv3","测试错误Lv3","測試錯誤Lv3","Ошибка теста - Lv3","Erro de Teste Nvl.3",""
 
-"ERR-000-804-1","TOWNOFHOST-hm does not support the Vanilla HnS, so unloaded.","現在バニラのHide And Seekはサポートされていません。modを無効化しました。","TOh-s不支持原版躲猫猫, mod因此失效","Town Of Host模組尚未支援原版的Hide And Seek模式，所以模組將暫時卸載。","Мод не поддерживает обычные Прятки. Мод был отключён","TOWNOFHOST-hm não suporta o Esconde-Esconde padrão, então foi descarregado.",""
+"ERR-000-804-1","TOWNOFHOST-SHELL does not support the Vanilla HnS, so unloaded.","現在バニラのHide And Seekはサポートされていません。modを無効化しました。","TOh-s不支持原版躲猫猫, mod因此失效","Town Of Host模組尚未支援原版的Hide And Seek模式，所以模組將暫時卸載。","Мод не поддерживает обычные Прятки. Мод был отключён","TOWNOFHOST-SHELL não suporta o Esconde-Esconde padrão, então foi descarregado.",""
 
 "#### 001 Main"
 
@@ -6836,7 +6836,7 @@
 
 "MessageFromTheHost","【Message From The Host】","【ホストからの伝言】","【房主消息】","【房主訊息】","【Сообщение от Хоста】","【Mensagem do Anfitrião】",""
 
-"TabGroup.MainSettings","<#00c1ff><b>Main Settings","<#00c1ff><b>TOWNOFHOST-hm Setting</color>","<#00c1ff>主要设置</color>","<#00c1ff>主要設定</color>","Основная настройка","Configurações Principais",""
+"TabGroup.MainSettings","<#00c1ff><b>Main Settings","<#00c1ff><b>TOWNOFHOST-SHELL Setting</color>","<#00c1ff>主要设置</color>","<#00c1ff>主要設定</color>","Основная настройка","Configurações Principais",""
 
 "TabGroup.CrewmateRoles","<#8cffff><b>Crewmate Roles</color>","<#8cffff><b>Crewmate Roles</color>","<#8cffff>船员阵营职业</color>","<#8cffff>船員職業</color>","Роли Членов Экипажа","Classes de Tripulante",""
 
@@ -7058,7 +7058,7 @@
 
 "Deadbody","DEAD","死体","","","Труп","MORTO",""
 
-"Message.AnnounceTOh-s","This room uses TOWNOFHOST-hm v{0}.","この部屋はTOWNOFHOST-hm v{0}を使用しています。","这个房间使用 TOWNOFHOST-hm v{0}.","這個房間使用 TOWNOFHOST-hm v{0}.","В этой комнате используется TOWNOFHOST-hm v{0}.","Esta sala usa TOWNOFHOST-hm v{0}.",""
+"Message.AnnounceTOh-s","This room uses TOWNOFHOST-SHELL v{0}.","この部屋はTOWNOFHOST-SHELL v{0}を使用しています。","这个房间使用 TOWNOFHOST-SHELL v{0}.","這個房間使用 TOWNOFHOST-SHELL v{0}.","В этой комнате используется TOWNOFHOST-SHELL v{0}.","Esta sala usa TOWNOFHOST-SHELL v{0}.",""
 
 "Message.AnnounceTOH-P","This room uses TOWNOFHOST-P v{0}.","この部屋はTOWNOFHOST-P v{0}を使用しています。","这个房间使用 TOWNOFHOST-P v{0}.","這個房間使用 TOWNOFHOST-P v{0}.","В этой комнате используется TOWNOFHOST-P v{0}.","Esta sala usa TOWNOFHOST-P v{0}.",""
 

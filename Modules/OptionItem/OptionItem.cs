@@ -1030,7 +1030,7 @@ namespace TownOfHost
 
         GhostRoles,
 
-        // ===== TOWNOFHOST-HM SETTING配下のGAME/OTHERページ =====
+        // ===== TOWNOFHOST-SHELL SETTING配下のGAME/OTHERページ =====
 
         // MainSettingsタブに雑多に並んでいた「ゲームモード別設定/タスク勝利無効化」と
 

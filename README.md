@@ -8,18 +8,18 @@
 この Mod は非公式のものであり、この Mod の開発に関して Among Us の開発元である"Innersloth"は一切関与していません。<br>
 この Mod の問題などに関して公式に問い合わせないでください。<br>
 
-この Mod はTOH,TOHK,TOHPkoに役職や機能など追加したModです
+この Mod はTownOfHost-hamoをベースに、役職や機能などを追加・変更したModです。<br>
 TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTOH-Shellに報告してください。<br>
 
-また、TOH-Shellに関する質問、バグ報告は基本、[DiscordServer](https://discord.gg/Bv8XRBvCXW)でのみ受け付けております。<br>
+また、TOH-Shellに関する質問、バグ報告は基本、[DiscordServer](https://discord.gg/kYk5QDJyrq)でのみ受け付けております。 <br>
 
 [本家TOHはこちら](https://github.com/tukasa0001/TownOfHost)<br>
-[TOHPkoはこちら](https://github.com/satokazoku/TownOfHost-Pko)<br>
+[TOHhamoはこちら](https://github.com/rar006/TownOfHost-hamo)<br>
 
 
 
-**最新版は[こちら]()**<re>
-過去バージョンは[こちら]()<re>
+**最新版は[]()**<re>
+過去バージョンは[]()<re>
 
 ## 公開ルームについて
 > [!Note]
@@ -86,8 +86,8 @@ Modが使えなくなるよ!<br>
 ってことです。
 
 **TownOfHost-Shellの開発者**<br>
-　haru<br>
-　　[Youtube](https://youtube.com/@harudayo1210?si=XFtImV4TE2FO9o-U)<br>
+　sijimi<br>
+　　[Youtube](https://youtube.com/channel/UCTm40eponkyVVJHLbkkpMSA?si=78s2Lr3T5c-Q6kpD)<br>
 
 ※本家TownOfHost,TownOfHost_PKO様の開発者はここでは省略させていただきます
 #### クレジット
@@ -98,7 +98,11 @@ Modが使えなくなるよ!<br>
 　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
 
 [Town Of Host_PKO](https://github.com/satokazoku/TownOfHost-Pko)<br>
-フォーク元です。TownOfHost_PKO様にある機能もTownOfHost-Shellにはだいたい実装されています。<br>
+TownOfHost-hamoのフォーク元の一つです。TownOfHost_PKO様にある機能もTOH-Shellに多数引き継がれています。<br>
+
+[Town Of Host-hamo](https://github.com/rar006/TownOfHost-hamo)<br>
+TOH-Shellの直接のフォーク元・ベースとなったModです。<br>
+開発者: haru<br>
 
 [Town Of Host_Y](https://github.com/Yumenopai/TownOfHost_Y)<br>
 　会議時の役職表示、会議拡張、ワーカホリック,ラビット,チェイサー,ニムロッド,鬼,決闘者,海賊,属性名、一部役職を参考/移植させて頂きました！<br>
@@ -132,7 +136,7 @@ TOR_GM_Haoming_Edition<br>
 　イビルトラッカー、シュレディンガーの猫等を参考/移植させていただきました<br>
 
 [Nebula On The Ship](https://github.com/Dolly1016/Nebula/)<br>
-　ナイストラッパー、イビルトラッパー、ドクター、スナイパーを参考/移植させていただきました<br>
+ナイストラッパー、イビルトラッパー、ドクター、スナイパーを参考/移植、デストロイヤーを参考にさせて頂きました！<br>
 
 [au.libhalt.net](https://au.libhalt.net/)<br>
 　マッドジェスターの参考/移植させていただきました<br>
