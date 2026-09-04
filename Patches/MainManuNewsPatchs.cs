@@ -51,80 +51,11 @@ public class ModNewsHistory
                 var news = new ModNews
                 {
                     Number = 100001,
-                    Title = "新リリースだよ",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.00</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.00</color>",
-                    Date = "2026-07-15T19:00:00Z",
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100002,
-                    Title = "アプデしたよー",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.01</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.01</color>",
-                    Date = "2026-7-18"
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100003,
-                    Title = "色々したから忘れちゃった★",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.10</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.10</color>",
-                    Date = "2026-8-1"
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100004,
-                    Title = "Pkoアプデ対応。後は色々...",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.11</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.11</color>",
-                    Date = "2026-7-18"
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100005,
-                    Title = "バグ修正したよん！",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.12</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.12</color>",
-                    Date = "2026-7-19"
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100006,
-                    Title = "大型アプデだー！夏暑いね！",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.20</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.20</color>",
-                    Text = "・TOHPkoのアプデに対応\r\n・新UI解放\r\n・プロフェショナル追加\r\n・マッドカウント追加\r\n・リバーサル追加\r\n・アステル追加\r\n・ダークシェリフ追加\r\n・アライグマ追加\r\n・シンボル追加\r\n・ラストクルーメイト追加\r\n・/cmd n rで部屋が落ちてしまうバグを修正\r\n・コマンド説明タブのバグ修正\r\n・設定画面が2回目開かなくなるバグ修正\r\n・GMの詳細設定追加\r\n"
-                    ,
-                    Date = "2026-8-19"
-                };
-                AllModNews.Add(news);
-            }
-            {
-                var news = new ModNews
-                {
-                    Number = 100007,
-                    Title = "公式のアプデ来たね！猿の準備だ！",
-                    SubTitle = "<color=#fb85ff>Town Of host-shell v4.00.00.21</color>",
-                    ShortTitle = "<color=#fb85ff>●TOH-Shell v4.00.00.21</color>",
-                    Text = "・TOHPkoのアプデに対応\r\n・TOHKのアプデ対応\r\n"
-                    ,
-                    Date = "2026-8-20"
+                    Title = "TOH-Shell v1.0.0 リリース！",
+                    SubTitle = "<color=#b85fff>TownOfHost-Shell v1.0.0</color>",
+                    ShortTitle = "<color=#b85fff>●TOH-Shell v1.0.0</color>",
+                    Text = "バグ大量だけどとりあえずリリースしたぜ！",
+                    Date = "2026-09-03"
                 };
                 AllModNews.Add(news);
             }

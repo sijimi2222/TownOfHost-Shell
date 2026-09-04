@@ -1000,7 +1000,7 @@ namespace TownOfHost
 
                 + progressLine
 
-                + $"使用MODバージョン: {Main.ModName} v{Main.PluginVersion}\n"
+                + $"使用MODバージョン:{Main.ModName} v{Main.PluginShowVersion}\n"
 
                 + $"♥最終更新♥: **{updatedAtText}**\n"
 

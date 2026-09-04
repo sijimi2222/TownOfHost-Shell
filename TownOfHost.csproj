@@ -54,6 +54,8 @@
 
 		<EmbeddedResource Include=".\Resources\**" />
 
+		
+
 		<!-- WatchdogLauncherが固定名で取り出すPowerShellを、ビルド環境差に左右されず必ず埋め込む。 -->
 
 		<EmbeddedResource Update=".\Resources\TOHhamoWatchdog.ps1">

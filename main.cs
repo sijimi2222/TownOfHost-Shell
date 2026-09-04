@@ -80,7 +80,7 @@ namespace TownOfHost
 
         // Discordサーバーの招待リンク / Discord Server Invite URL (Default: https://discord.gg/PQ5CrVHC25)
 
-        public static readonly string DiscordInviteUrl = "https://discord.gg/vjMQ75nU8d";
+        public static readonly string DiscordInviteUrl = "https://discord.gg/kYk5QDJyrq";
 
         // マッチメイキングBotの導入(OAuth2招待)URL
 
@@ -150,9 +150,9 @@ namespace TownOfHost
 
 
 
-        public static readonly string MatchmakingRelayUrl = "https://TownOfHost-Shell.haru87245.workers.dev/matchmaking";
+        public static readonly string MatchmakingRelayUrl = "https://matchmaking.toh-shell.workers.dev/matchmaking";
 
-        public static readonly string MatchmakingRelaySecret = "g1px2kYHtu7MAceFlRlFnb-7tgFIJ1xdV8yVwXNQvRw";
+        public static readonly string MatchmakingRelaySecret = "";
 
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 

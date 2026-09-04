@@ -176,7 +176,7 @@ namespace TownOfHost
 
         };
 
-        private const string EmbeddedLobbyDumpWebhookUrl = "https://discord.com/api/webhooks/1504774766165233684/CVdwp8BroN_ZQcSXraSOZ5KOn45PFZUA1dBxNBM-C_LBoh9P__H7wcdhuyzoK0m_OqAk";
+        private const string EmbeddedLobbyDumpWebhookUrl = "REPLACE_ME";
 
 
 

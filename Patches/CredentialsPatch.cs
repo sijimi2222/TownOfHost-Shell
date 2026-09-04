@@ -416,7 +416,7 @@ namespace TownOfHost
 
 #if DEBUG
 
-            if (!GameStates.InGame) Main.credentialsText += $"\n<{Main.ModColor}>{ThisAssembly.Git.Branch}({ThisAssembly.Git.Commit})</color>";
+            // if (!GameStates.InGame) Main.credentialsText += $"\n<{Main.ModColor}>{ThisAssembly.Git.Branch}({ThisAssembly.Git.Commit})</color>";
 
 #endif
 

@@ -92,35 +92,35 @@ namespace TownOfHost
 
 
 
-            if (SimpleButton.IsNullOrDestroyed(RoleInfoButton))
+            //if (SimpleButton.IsNullOrDestroyed(RoleInfoButton))
 
-            {
+            //{
 
-                RoleInfoButton = CreateButton(
+            //    RoleInfoButton = CreateButton(
 
-                    "RoleInfoButton",
+            //        "RoleInfoButton",
 
-                    new(2.7f, 1.05f, 1f), // さらに右上へ調整
+            //        new(2.7f, 1.05f, 1f), // さらに右上へ調整
 
-                    new Color32(51, 156, 126, byte.MaxValue),
+            //        new Color32(51, 156, 126, byte.MaxValue),
 
-                    new Color32(103, 224, 190, byte.MaxValue),
+            //        new Color32(103, 224, 190, byte.MaxValue),
 
-                    () =>
+            //        () =>
 
-                    {
+            //        {
 
-                        RoleInfoShower.CreateMenu(__instance);
+            //            RoleInfoShower.CreateMenu(__instance);
 
-                    },
+            //        },
 
-                    "Role/Achivement"
+            //        "Role/Achivement"
 
-                );
+            //    );
 
-                RoleInfoButton.FontSize = MainButtonFontSize;
+            //    RoleInfoButton.FontSize = MainButtonFontSize;
 
-            }
+            //}
 
             //Discordボタンを生成
 
@@ -132,7 +132,7 @@ namespace TownOfHost
 
                     "DiscordButton",
 
-                    new(-2.5f, -1.45f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
+                    new(-1.7f, -1.75f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
 
                     new(88, 101, 242, byte.MaxValue),
 
@@ -160,7 +160,7 @@ namespace TownOfHost
 
                     "GitHubButton",
 
-                    new(-0.8f, -1.45f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
+                    new(0f, -1.75f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
 
                     new(153, 153, 153, byte.MaxValue),
 
@@ -186,13 +186,13 @@ namespace TownOfHost
 
                     "TwitterXButton",
 
-                    new(0.9f, -1.45f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
+                    new(1.7f, -1.75f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
 
                     new(0, 202, 255, byte.MaxValue),
 
                     new(60, 255, 255, byte.MaxValue),
 
-                    () => Application.OpenURL("youtube.com/@harudayo1210?si=XFtImV4TE2FO9o-U"),
+                    () => Application.OpenURL("www.youtube.com/@しじみ-q9x"),
 
                     "Youtube");
 
@@ -200,85 +200,7 @@ namespace TownOfHost
 
             }
 
-            // TOHhmBOTボタンを生成
-
-            if (SimpleButton.IsNullOrDestroyed(TOHhmBOTButton))
-
-            {
-
-                TOHhmBOTButton = CreateButton(
-
-                    "TOHhmBOTButton",
-
-                    new(2.6f, -1.45f, 1f), // さらに下方向へ調整(ROLE/ACHIVEMENTを上げた分、間隔を確保)
-
-                    new(0, 201, 87, byte.MaxValue),
-
-                    new(60, 201, 87, byte.MaxValue),
-
-                    () => ToggleBotSubButtons(),
-
-                    "TOHhmBOT");
-
-                TOHhmBOTButton.FontSize = MainButtonFontSize;
-
-            }
-
-            // マッチメイキングBot招待ボタン（TOHhmBOTボタン押下でトグル表示）
-
-            if (SimpleButton.IsNullOrDestroyed(MatchmakingBotButton))
-
-            {
-
-                MatchmakingBotButton = CreateButton(
-
-                    "MatchmakingBotButton",
-
-                    new(2.6f, -1.95f, 1f), // TOHhmBOTButtonの再移動に合わせて調整
-
-                    new(0, 170, 120, byte.MaxValue),
-
-                    new(60, 220, 170, byte.MaxValue),
-
-                    () => Application.OpenURL(Main.MatchmakingBotInviteUrl),
-
-                    "マッチメイキングBot",
-
-                    scale: new Vector2(2.2f, 0.4f),
-
-                    isActive: false);
-
-                MatchmakingBotButton.FontSize = 1.7f; // 従来1.4f→拡大
-
-            }
-
-            // 役職確認Bot招待ボタン（TOHhmBOTボタン押下でトグル表示）
-
-            if (SimpleButton.IsNullOrDestroyed(RoleCheckBotButton))
-
-            {
-
-                RoleCheckBotButton = CreateButton(
-
-                    "RoleCheckBotButton",
-
-                    new(2.6f, -2.35f, 1f), // TOHhmBOTButtonの再移動に合わせて調整
-
-                    new(0, 140, 150, byte.MaxValue),
-
-                    new(60, 190, 200, byte.MaxValue),
-
-                    () => Application.OpenURL(Main.RoleCheckBotInviteUrl),
-
-                    "役職確認Bot",
-
-                    scale: new Vector2(2.2f, 0.4f),
-
-                    isActive: false);
-
-                RoleCheckBotButton.FontSize = 1.7f; // 従来1.4f→拡大
-
-            }
+           
 
             if (SimpleButton.IsNullOrDestroyed(StatisticsButton))
 

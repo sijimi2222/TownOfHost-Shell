@@ -742,7 +742,7 @@ public static class SurveyRemoteConfig
 
     /// </summary>
 
-    public static string ApiKey = "dgsaq4F_lucbOtfcbeIHmJDZ5KNZA2xgVm6OMCDc0qI";
+    public static string ApiKey = "";
 
 }
 
