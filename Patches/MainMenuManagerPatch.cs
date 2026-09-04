@@ -166,7 +166,7 @@ namespace TownOfHost
 
                     new(209, 209, 209, byte.MaxValue),
 
-                    () => Application.OpenURL("https://github.com/rar006/TownOfHost-Shell"),
+                    () => Application.OpenURL("https://github.com/sijimi2222/TownOfHost-Shell"),
 
                     "GitHub");
 
