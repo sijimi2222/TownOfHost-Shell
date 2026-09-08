@@ -150,7 +150,7 @@ namespace TownOfHost
 
 
 
-        public static readonly string MatchmakingRelayUrl = "https://matchmaking.toh-shell.workers.dev/matchmaking";
+        public static readonly string MatchmakingRelayUrl = "";
 
         public static readonly string MatchmakingRelaySecret = "";
 

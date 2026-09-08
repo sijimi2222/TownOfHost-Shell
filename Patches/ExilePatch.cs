@@ -260,7 +260,21 @@ namespace TownOfHost
             {
                 role = role.IsCrewmate() ? RoleTypes.CrewmateGhost : RoleTypes.ImpostorGhost;
             }
+            Logger.Info($"Before Local SetRole: Player={PlayerControl.LocalPlayer.GetRealName()} Alive={PlayerControl.LocalPlayer.IsAlive()} Current={PlayerControl.LocalPlayer.Data.Role.Role} SetTo={role}", "LocalRoleDebug");
             RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, role);
+            RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, role);
+            _ = new LateTask(() =>
+            {
+                foreach (var pc in PlayerCatch.AllPlayerControls)
+                {
+                    Logger.Info($"Before SpawnCheck: {pc.GetRealName()} Id={pc.PlayerId} Role={pc.Data.Role.Role} Alive={pc.IsAlive()}", "SpawnStateDebug");
+                    Logger.Info($"5sec SpawnCheck: {pc.GetRealName()} Id={pc.PlayerId} HasSpawned={PlayerState.GetByPlayerId(pc.PlayerId).HasSpawned}", "SpawnCheck");
+                    if (!PlayerState.GetByPlayerId(pc.PlayerId).HasSpawned && pc.IsAlive() && !pc.IsModClient())
+                    {
+                        
+                    }
+                }
+            }, 5f, "SpawnCheck", null);
             //ここで処刑処理を入れると暗転が起こる?
 
             _ = new LateTask(() => GameStates.ExiledAnimate = false, 3f + Main.LagTime, "Tuihoufin");

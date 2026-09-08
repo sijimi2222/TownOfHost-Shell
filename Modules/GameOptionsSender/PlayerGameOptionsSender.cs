@@ -648,6 +648,10 @@ namespace TownOfHost.Modules
 
                 AURoleOptions.EngineerCooldown = Mathf.Max(1.2f, AURoleOptions.EngineerCooldown);
 
+                Logger.Info(
+     $"[VisionDebug] {player.Data?.PlayerName} Alive={player.IsAlive()} BlackOut={state.IsBlackOut} CrewLight={opt.GetFloat(FloatOptionNames.CrewLightMod)} ImpLight={opt.GetFloat(FloatOptionNames.ImpostorLightMod)}",
+     "VisionDebug"
+ );
                 opt.BlackOut(state.IsBlackOut);
 
             }

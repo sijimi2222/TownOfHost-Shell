@@ -1273,14 +1273,36 @@ public static class MeetingHudPatch
             if (AmongUsClient.Instance.AmHost)
 
             {
+                Logger.Info($"Override={AntiBlackout.OverrideExiledPlayer()}, IsCached={AntiBlackout.IsCached}", "AntiBlackoutDebug");
 
-                if (!AntiBlackout.IsCached) AntiBlackout.SetIsDead();
+                if (AntiBlackout.OverrideExiledPlayer() && !AntiBlackout.IsCached)
+                {
+                    AntiBlackout.SetIsDead();
+                }
+
+                if (Main.NormalOptions.MapId == 4)
+                {
+                    _ = new LateTask(() =>
+                    {
+                        if (!GameStates.IsInGame || GameData.Instance == null) return;
+
+                        AntiBlackout.SetRole();
+                    }, 4f, "LateAntiBlackoutSetRoleVanilla", null);
+                }
 
                 foreach (var data in SelfVoteManager.CheckVote)
 
                     SelfVoteManager.CheckVote[data.Key] = false;
 
             }
+
+            _ = new LateTask(() =>
+            {
+                foreach (var player in PlayerCatch.AllPlayerControls)
+                {
+                    player.SyncSettings();
+                }
+            }, 1f, "AfterMeetingSyncSettings");
 
             // MeetingVoteManagerを通さずに会議が終了した場合の後処理
 

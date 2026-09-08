@@ -169,6 +169,10 @@ namespace TownOfHost
                     return true;
 
                 }
+                Logger.Info($"RPC ENTER: Player={__instance.myPlayer?.GetRealName()} Id={__instance.myPlayer?.PlayerId} Call={(RpcCalls)callId}", "RpcDebug");
+
+                if ((RpcCalls)callId == RpcCalls.SnapTo && (MapNames)Main.NormalOptions.MapId == MapNames.Airship)
+                    Logger.Info($"SnapTo ENTER: PlayerId={__instance.myPlayer?.PlayerId} Active={__instance.isActiveAndEnabled}", "SnapToDebug");
 
                 if (AntiBlackout.isRoleCache.Contains(__instance?.myPlayer?.PlayerId ?? byte.MaxValue) && (MapNames)Main.NormalOptions.MapId is MapNames.Airship && (RpcCalls)callId == RpcCalls.SnapTo)
 
@@ -201,6 +205,8 @@ namespace TownOfHost
                     var player = __instance.myPlayer;
 
                     var state = PlayerState.GetByPlayerId(player.PlayerId);
+
+                    Logger.Info($"SnapToCheck: {player.GetRealName()} HasSpawned={state.HasSpawned}", "RandomSpawn");
 
                     // プレイヤーがまだ湧いていない
 
@@ -406,6 +412,8 @@ namespace TownOfHost
 
             Logger.Info($"Spawn: {player.GetRealName()}", "RandomSpawn");
 
+            Logger.Info($"AirshipSpawn ENTER: {player.GetRealName()} Id={player.PlayerId} Local={PlayerControl.LocalPlayer.PlayerId}", "AirshipSpawnDebug");
+
             if (AmongUsClient.Instance.AmHost)
 
             {
@@ -493,6 +501,7 @@ namespace TownOfHost
                 //}
 
             }
+            Logger.Info($"AirshipSpawn EXIT: {player.GetRealName()} Id={player.PlayerId} HasSpawnedBefore={PlayerState.GetByPlayerId(player.PlayerId).HasSpawned}", "AirshipSpawnDebug");
 
             PlayerState.GetByPlayerId(player.PlayerId).HasSpawned = true;
 

@@ -43,6 +43,8 @@ namespace TownOfHost
         ///</summary>
         public static bool OverrideExiledPlayer()
         {
+            
+
             if (MustPlayerCount <= PlayerCatch.AllPlayerControls.Count()) return false;
             if (ModClientOnly is true) return false;
             return (Options.NoGameEnd.GetBool() || GetA()) && (Main.DebugAntiblackout || !DebugModeManager.EnableDebugMode.GetBool());
@@ -207,6 +209,7 @@ namespace TownOfHost
 
         public static void ResetSetRole(PlayerControl Player, int retryCount = 0)
         {
+            Logger.Info($"ResetSetRole ENTER: {Player?.GetRealName()} Id={Player?.PlayerId}", "ResetSetRoleDebug");
             dummyImpostorPlayer = byte.MaxValue;
             if (CustomWinnerHolder.WinnerTeam is not CustomWinner.Default && !Main.DontGameSet) return;
             if (Player) isRoleCache.Remove(Player.PlayerId);
@@ -298,6 +301,11 @@ namespace TownOfHost
                     }
                     var setrole = (IDesycImpostor && Player != pc) ? (!isalive ? RoleTypes.CrewmateGhost : RoleTypes.Crewmate) : role;
 
+                    Logger.Info(
+    $"ResetSetRole: Viewer={Player.GetRealName()} Target={pc.GetRealName()} ActualRole={role} SendRole={setrole} IsAlive={isalive} Desync={IDesycImpostor}",
+    "RoleDebug"
+);
+
                     if (pc.PlayerId == Player.PlayerId)
                     {
                         if (pc.GetRoleClass()?.AfterMeetingRole is not null && pc.IsAlive()
@@ -315,6 +323,8 @@ namespace TownOfHost
                     {
                         setrole = RoleTypes.GuardianAngel;
                     }
+
+                    Logger.Info($"[RoleDebug] ResetSetRole Target={Player?.Data?.PlayerName} pc={pc?.Data?.PlayerName} CustomRole={pc.GetCustomRole()} Alive={pc.IsAlive()} SendRole={setrole}", "RoleDebug");
 
                     sender.StartRpc(pc.NetId, RpcCalls.SetRole)
                     .Write((ushort)setrole)

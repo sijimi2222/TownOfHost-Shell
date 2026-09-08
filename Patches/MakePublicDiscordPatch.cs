@@ -190,7 +190,7 @@ namespace TownOfHost
 
             {
 
-                var message = "Discordマッチメイキング中継が未設定です。main.csのMatchmakingRelayUrlを設定してください。";
+                var message = "現在マッチメイキング機能を使うことができません。";
 
                 Logger.Info(message, nameof(DiscordMatchmakingRelayService));
 

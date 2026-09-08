@@ -170,6 +170,7 @@ public class MeetingVoteManager
     /// </summary>
     public void CheckAndEndMeeting()
     {
+        Logger.Info("CheckAndEndMeeting ENTER", "MeetingDebug");
         if (meetingHud.discussionTimer - (float)Main.NormalOptions.DiscussionTime >= Main.NormalOptions.VotingTime ||
         AllVotes.Values.All(vote => vote.HasVoted))
         {
@@ -239,26 +240,29 @@ public class MeetingVoteManager
         }
         else
         {
+            Logger.Info($"DeMeetingEndRpc branch: OverrideExiledPlayer=false, Exiled={(result.Exiled == null ? "null" : result.Exiled.PlayerId.ToString())}, Tie={result.IsTie}", "MeetingDebug");
             foreach (var player in PlayerCatch.AllPlayerControls)
-            {
-                if (player.GetClient() is null ||/* player.IsModClient() ||*/ player.PlayerId == PlayerControl.LocalPlayer.PlayerId) continue;
-                var sender = CustomRpcSender.Create("DeMeetingEndRpc");
-                sender.StartMessage(player.GetClientId());
-                sender.StartRpc(meetingHud.NetId, RpcCalls.VotingComplete)
+{
+    if (player.GetClient() is null || /* player.IsModClient() ||*/
+            player.PlayerId == PlayerControl.LocalPlayer.PlayerId) continue;
+            var sender = CustomRpcSender.Create("DeMeetingEndRpc");
+            sender.StartMessage(player.GetClientId());
+            sender.StartRpc(meetingHud.NetId, RpcCalls.VotingComplete)
                 .WritePacked(states.ToArray().Length);
-                foreach (MeetingHud.VoterState voterState in states)
-                {
-                    voterState.Serialize(sender.stream);
-                }
-                if (result.Exiled == null)
-                    sender.Write(byte.MaxValue);
-                else
-                    sender.Write(result.Exiled.PlayerId);
-                sender.Write(result.IsTie);
-                sender.EndRpc();
-                sender.SendMessage();
+            foreach (MeetingHud.VoterState voterState in states)
+            {
+                voterState.Serialize(sender.stream);
             }
-            meetingHud.VotingComplete(states.ToArray(), null, true, false, 0);
+            if (result.Exiled == null)
+                sender.Write(byte.MaxValue);
+            else
+                sender.Write(result.Exiled.PlayerId);
+            sender.Write(result.IsTie);
+            sender.EndRpc();
+            sender.SendMessage();
+        }
+        
+                    meetingHud.VotingComplete(states.ToArray(), null, true, false, 0);
         }
         if (result.Exiled != null)
         {
