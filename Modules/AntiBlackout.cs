@@ -83,7 +83,7 @@ namespace TownOfHost
                 if (info == null) continue;
                 if (isDeadCache.TryGetValue(info.PlayerId, out var val))
                 {
-                    info.IsDead = val.isDead;
+                    info.IsDead = info.IsDead || val.isDead;
                     info.Disconnected = val.Disconnected || SelectRolesPatch.Disconnected.Contains(info.PlayerId);
                 }
             }

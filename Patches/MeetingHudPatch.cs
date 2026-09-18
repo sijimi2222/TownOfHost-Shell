@@ -118,7 +118,7 @@ public static class MeetingHudPatch
 
     }
 
-    // [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
+     [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
 
     public static class CastVotePatch
 
@@ -127,6 +127,11 @@ public static class MeetingHudPatch
         public static bool Prefix(MeetingHud __instance, [HarmonyArgument(0)] InnerNet.PlayerId srcPlayerId /* 投票した人 */ , [HarmonyArgument(1)] InnerNet.PlayerId suspectPlayerId /* 投票された人 */ )
 
         {
+
+            Logger.Info(
+    $"RAW CastVote src={srcPlayerId} suspect={suspectPlayerId}",
+    "VoteRawDebug"
+);
 
             if (AmongUsClient.Instance.AmHost is false) return true;
 
@@ -142,17 +147,36 @@ public static class MeetingHudPatch
 
             var voter = PlayerCatch.GetPlayerById(srcPlayerId);
 
+            if (voter == null)
+            {
+                Logger.Warn($"投票者が見つからないため投票を無視します: {srcPlayerId}", nameof(CastVotePatch));
+                return false;
+            }
+
+            if (Monika.IsTrashed(voter.PlayerId))
+            {
+                __instance.RpcClearVote(voter.PlayerId);
+                Logger.Info($"[Monika] ゴミ箱プレイヤー {voter.PlayerId} の投票をブロック", nameof(CastVotePatch));
+                return false;
+            }
+
             if (voter.isDummy)
 
             {
 
                 MeetingVoteManager.Instance?.SetVote(srcPlayerId, suspectPlayerId);
-
                 return true;
 
             }
 
             var votefor = PlayerCatch.GetPlayerById(suspectPlayerId);
+
+            if (votefor == null && suspectPlayerId != 253 && suspectPlayerId != 254)
+            {
+                Logger.Warn($"投票先が見つからないため投票を無視します: {suspectPlayerId}", nameof(CastVotePatch));
+                __instance.RpcClearVote(voter.PlayerId);
+                return false;
+            }
 
 
 
@@ -168,7 +192,7 @@ public static class MeetingHudPatch
 
 
 
-                if (roleClass?.CheckVoteAsVoter(suspectPlayerId, voter) == false || (!votefor.IsAlive() && suspectPlayerId != 253 && suspectPlayerId != 254 && !Assassin.NowUse))
+                if (roleClass?.CheckVoteAsVoter(suspectPlayerId, voter) == false || (suspectPlayerId != 253 && suspectPlayerId != 254 && votefor != null && !votefor.IsAlive() && !Assassin.NowUse))
 
                 {
 
@@ -1275,7 +1299,7 @@ public static class MeetingHudPatch
             {
                 Logger.Info($"Override={AntiBlackout.OverrideExiledPlayer()}, IsCached={AntiBlackout.IsCached}", "AntiBlackoutDebug");
 
-                if (AntiBlackout.OverrideExiledPlayer() && !AntiBlackout.IsCached)
+                if (!AntiBlackout.IsCached)
                 {
                     AntiBlackout.SetIsDead();
                 }

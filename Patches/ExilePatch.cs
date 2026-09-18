@@ -262,7 +262,7 @@ namespace TownOfHost
             }
             Logger.Info($"Before Local SetRole: Player={PlayerControl.LocalPlayer.GetRealName()} Alive={PlayerControl.LocalPlayer.IsAlive()} Current={PlayerControl.LocalPlayer.Data.Role.Role} SetTo={role}", "LocalRoleDebug");
             RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, role);
-            RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, role);
+           
             _ = new LateTask(() =>
             {
                 foreach (var pc in PlayerCatch.AllPlayerControls)
