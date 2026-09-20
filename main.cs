@@ -32,9 +32,9 @@ using static Unity.Services.LevelPlay.LevelPlayBannerPosition;
 
 
 
-[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.PluginVersion)]
+[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.PluginShowVersion)]
 
-[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginVersion)]
+[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginShowVersion)]
 
 namespace TownOfHost
 
@@ -128,7 +128,7 @@ namespace TownOfHost
 
         public const string PluginVersion = "4.00.00.21";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "1.0.0";
+        public const string PluginShowVersion = "1.0.1";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 

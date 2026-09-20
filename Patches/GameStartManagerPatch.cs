@@ -26,6 +26,7 @@ namespace TownOfHost
         public static TextMeshPro HideName;
         private static TextMeshPro GameMaster;
         private static bool privacyLabelRenamed;
+        private static bool lowPlayerCountWarningSent;
 
         private static void RenamePrivacyLabel(GameStartManager gameStartManager)
         {
@@ -62,6 +63,7 @@ namespace TownOfHost
         {
             public static void Postfix(GameStartManager __instance)
             {
+                lowPlayerCountWarningSent = false;
                 __instance.MinPlayers = 1;
                 privacyLabelRenamed = false;
                 RenamePrivacyLabel(__instance);
@@ -254,6 +256,15 @@ namespace TownOfHost
         {
             public static bool Prefix(GameStartManager __instance)
             {
+                // 同じ開始操作では一度だけ警告し、開始処理自体はそのまま続行する。
+                if (AmongUsClient.Instance.AmHost && !lowPlayerCountWarningSent
+                    && PlayerCatch.AllPlayerControls.Count(pc => pc.Data != null && !pc.Data.Disconnected
+                        && !pc.IsTestBot() && !pc.isDummy) <= 3)
+                {
+                    lowPlayerCountWarningSent = true;
+                    Utils.SendMessage("⚠️ このMODは4人以上でのプレイを推奨しています。\n3人以下で開始すると、会議後に画面が暗転する場合があります。");
+                }
+
                 TestBotManager.SpawnPendingLegacySnrBots("GameStartManager.BeginGame.Prefix");
 
                 // 試合が始まる = ロビーを離れるので、「〇分後に立て直す」タイマーは無効化する。
@@ -465,6 +476,7 @@ namespace TownOfHost
         {
             public static bool Prefix()
             {
+                lowPlayerCountWarningSent = false;
                 if (GameStates.IsCountDown)
                 {
                     Main.NormalOptions.KillCooldown = Options.DefaultKillCooldown;

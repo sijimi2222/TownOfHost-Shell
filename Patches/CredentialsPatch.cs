@@ -122,7 +122,7 @@ namespace TownOfHost
 
 
 
-                    sb.Append("\r\n").Append($"<color=#aa00ff>TownOfHost-Shell</color> v1.0.0");
+                    sb.Append("\r\n").Append($"<color=#aa00ff>TownOfHost-Shell</color> v{Main.PluginShowVersion}");
 
                     if (Main.DebugVersion) sb.Append($"<{Main.ModColor}>☆Debug☆</color>");
 
@@ -412,7 +412,7 @@ namespace TownOfHost
 
             Subver = "";
 
-            Main.credentialsText = $"<{Main.ModColor}>{Main.ModName}</color> v1.0.0" + Debugver;
+            Main.credentialsText = $"<{Main.ModColor}>{Main.ModName}</color> v{Main.PluginShowVersion}" + Debugver;
 
 #if DEBUG
 

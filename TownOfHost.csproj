@@ -12,13 +12,13 @@
 
 		     生成し NETSDK1018 でビルドが失敗するため、明示的に固定バージョンを指定して上書きする -->
 
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 
-		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<AssemblyVersion>1.0.1.0</AssemblyVersion>
 
-		<FileVersion>1.0.0.0</FileVersion>
+		<FileVersion>1.0.1.0</FileVersion>
 
-		<InformationalVersion>1.0.0-local</InformationalVersion>
+		<InformationalVersion>1.0.1</InformationalVersion>
 
 		<Description>fork by Town Of Host</Description>
 

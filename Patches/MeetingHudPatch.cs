@@ -98,7 +98,7 @@ public static class MeetingHudPatch
 
 
 
-    // [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CheckForEndVoting))]
+    [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CheckForEndVoting))]
 
     class CheckForEndVotingPatch
 
@@ -1320,6 +1320,8 @@ public static class MeetingHudPatch
 
             }
 
+            // 比較テスト用：正常hamoにないAfterMeetingSyncSettingsの予約だけを無効化する。
+            /*
             _ = new LateTask(() =>
             {
                 foreach (var player in PlayerCatch.AllPlayerControls)
@@ -1327,6 +1329,7 @@ public static class MeetingHudPatch
                     player.SyncSettings();
                 }
             }, 1f, "AfterMeetingSyncSettings");
+            */
 
             // MeetingVoteManagerを通さずに会議が終了した場合の後処理
 

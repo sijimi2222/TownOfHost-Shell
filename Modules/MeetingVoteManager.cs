@@ -223,7 +223,7 @@ public class MeetingVoteManager
             }
         }
         Main.CanUseAbility = false;
-        if (AntiBlackout.OverrideExiledPlayer())
+        if (!AntiBlackout.OverrideExiledPlayer())
         {
             _ = new LateTask(() =>
             {
@@ -234,7 +234,12 @@ public class MeetingVoteManager
 
         if (AntiBlackout.OverrideExiledPlayer())
         {
-            meetingHud.RpcVotingComplete(states.ToArray(), null, true, false, 0);
+            // 比較テスト用：全員の投票先がSkipで追放者がいない場合だけ、送信するtieをfalseにする。
+            bool allSkipTieTest = result.Exiled == null && !result.IsTie
+                && AllVotes.Count > 0 && AllVotes.Values.All(vote => vote.VotedFor == Skip);
+            if (allSkipTieTest)
+                logger.Info("AntiBlackoutTieTest: exiled=null tie=false wasOverruled=false overruleNonce=0");
+            meetingHud.RpcVotingComplete(states.ToArray(), null, !allSkipTieTest, false, 0);
             ExileControllerWrapUpPatch.AntiBlackout_LastExiled = result.Exiled;
             PlayerCatch.AllPlayerControls.Do(pc => AntiBlackout.isRoleCache.Add(pc.PlayerId));
         }
@@ -258,6 +263,8 @@ public class MeetingVoteManager
             else
                 sender.Write(result.Exiled.PlayerId);
             sender.Write(result.IsTie);
+            sender.Write(false);       // wasOverruled
+            sender.Write((ushort)0);   // overruleNonce
             sender.EndRpc();
             sender.SendMessage();
         }
