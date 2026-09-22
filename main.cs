@@ -683,6 +683,11 @@ namespace TownOfHost
 
             Harmony.PatchAll(Assembly.GetExecutingAssembly());
 
+            if (!OperatingSystem.IsAndroid())
+            {
+                Harmony.PatchAll(typeof(ShellTextBoxPatch));
+            }
+
             Application.quitting += new Action(UtilsOutputLog.SaveNowLog);
 
             Application.quitting += new Action(SaveStatistics.Save);
