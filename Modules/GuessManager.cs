@@ -748,7 +748,7 @@ public static class GuessManager
 
         }
 
-        else if (result.Contains("イエロー") || result.Contains("黄") || result.ToLower().Contains("yellow"))
+        else if (result.Contains("イエロー") || result.Contains("黄色") || result.ToLower().Contains("yellow"))
 
         {
 

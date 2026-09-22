@@ -880,6 +880,17 @@ namespace TownOfHost
 
             var text = __instance.freeChatField.textArea.text;
 
+            // Shell AIの質問は通常チャットやチャット履歴へ流さない。
+            if (ShellAI.TryParseCommand(text, out var aiQuestion))
+            {
+                if (AmongUsClient.Instance.AmHost)
+                    SendMessage(ShellAI.GetReply(aiQuestion), PlayerControl.LocalPlayer.PlayerId, "Shell AI");
+                else
+                    RequestCommandProcessingFromHost("/cmd ai " + aiQuestion);
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
+
             if (ChatHistory.Count == 0 || ChatHistory[^1] != text) ChatHistory.Add(text);
 
             ChatControllerUpdatePatch.CurrentHistorySelection = ChatHistory.Count;
@@ -1073,7 +1084,7 @@ namespace TownOfHost
                             "green" or "緑" or "グリーン" => 2,
                             "pink" or "ピンク" => 3,
                             "orange" or "オレンジ" => 4,
-                            "yellow" or "黄" or "イエロー" => 5,
+                            "yellow" or "黄色" or "イエロー" => 5,
                             "black" or "黒" or "ブラック" => 6,
                             "white" or "白" or "ホワイト" => 7,
                             "purple" or "紫" or "パープル" => 8,
@@ -1566,7 +1577,7 @@ namespace TownOfHost
 
                             "オレンジ" or "orange" => "#ffa500",
 
-                            "イエロー" or "黄" or "yellow" => "#ffff00",
+                            "イエロー" or "黄色" or "yellow" => "#ffff00",
 
                             "パープル" or "紫" or "purple" => "#800080",
 
@@ -4628,6 +4639,15 @@ namespace TownOfHost
 
             }
 
+            // Vanillaは既存の/cmd経由のみ対応。質問を再送せず、回答は送信者だけへ返す。
+            if (ShellAI.TryParseCommand(text, out var aiQuestion))
+            {
+                canceled = true;
+                if (player != null && (Isclient || StartsWithCmdPrefix(text)))
+                    SendMessage(ShellAI.GetReply(aiQuestion), player.PlayerId, "Shell AI");
+                return;
+            }
+
             NormalizeLegacyCommandInput(ref text);
 
 
@@ -5284,7 +5304,7 @@ namespace TownOfHost
 
                         "オレンジ" or "orange" => "#ffa500",
 
-                        "イエロー" or "黄" or "yellow" => "#ffff00",
+                        "イエロー" or "黄色" or "yellow" => "#ffff00",
 
                         "パープル" or "紫" or "purple" => "#800080",
 
@@ -5833,7 +5853,7 @@ namespace TownOfHost
                             "green" or "緑" or "グリーン" => 2,
                             "pink" or "ピンク" => 3,
                             "orange" or "オレンジ" => 4,
-                            "yellow" or "黄" or "イエロー" => 5,
+                            "yellow" or "黄色" or "イエロー" => 5,
                             "black" or "黒" or "ブラック" => 6,
                             "white" or "白" or "ホワイト" => 7,
                             "purple" or "紫" or "パープル" => 8,

@@ -899,7 +899,7 @@ public static class Moderator
             "green" or "緑" or "グリーン" => 2,
             "pink" or "ピンク" => 3,
             "orange" or "オレンジ" => 4,
-            "yellow" or "黄" or "イエロー" => 5,
+            "yellow" or "黄色" or "イエロー" => 5,
             "black" or "黒" or "ブラック" => 6,
             "white" or "白" or "ホワイト" => 7,
             "purple" or "紫" or "パープル" => 8,

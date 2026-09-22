@@ -50,7 +50,7 @@ namespace TownOfHost
 
         {
 
-            var folder = Directory.CreateDirectory($"{Application.persistentDataPath}/TownOfHost_hamo/Logs");
+            var folder = Directory.CreateDirectory($"{Application.persistentDataPath}/TownOfHost-Shell/Logs");
 
             if (auto)
 
@@ -156,7 +156,7 @@ namespace TownOfHost
 
             if (subver != "") subver = $"({subver})";
 
-            string fileName = $"{path}/TownOfHost_hamo-v{Main.PluginVersion}{subver}-{t}.log";
+            string fileName = $"{path}/TownOfHost-Shell-v{Main.PluginShowVersion}{subver}-{t}.log";
 
             FileInfo file = new(@$"{Environment.CurrentDirectory}/BepInEx/LogOutput.log");
 

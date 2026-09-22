@@ -246,7 +246,7 @@ public static class PreviousSessionDetector
             "green" or "グリーン" or "緑" => 2,
             "pink" or "ピンク" => 3,
             "orange" or "オレンジ" => 4,
-            "yellow" or "イエロー" or "黄" => 5,
+            "yellow" or "イエロー" or "黄色" => 5,
             "black" or "ブラック" or "黒" => 6,
             "white" or "ホワイト" or "白" => 7,
             "purple" or "パープル" or "紫" => 8,
