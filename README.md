@@ -92,7 +92,7 @@ Modが使えなくなるよ!<br>
 ※本家TownOfHost,TownOfHost_PKO,<br>TownOfHosthamo様の開発者はここでは省略させていただきます
 #### クレジット
 [Town Of Host](https://github.com/tukasa0001/TownOfHost)<br>
-　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Pkoでも大体実装されています<br>
+　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Shellでも大体実装されています<br>
 
 [Town Of Host_K](https://github.com/KYMario/TownOfHost-K)<br>
 　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
