@@ -762,6 +762,7 @@ namespace TownOfHost.Modules
 
                 }
 
+                if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tiger) speed *= tiger.SpeedMultiplier;
                 if (state.CanMove is false) speed = Main.MinSpeed;
 
                 AURoleOptions.PlayerSpeedMod = Mathf.Clamp(speed, Main.MinSpeed, 10f);
@@ -793,6 +794,7 @@ namespace TownOfHost.Modules
             MeetingTimeManager.ApplyGameOptions(opt);
 
             Ruler.ApplyVisionRule(player, opt);
+            if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tigerVision) tigerVision.ApplyPredationVision(opt);
 
 
 

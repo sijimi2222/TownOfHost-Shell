@@ -59,6 +59,23 @@ public class ModNewsHistory
                 };
                 AllModNews.Add(news);
             }
+            {
+                var news = new ModNews
+                {
+                    Number = 100002,
+                    Title = "TOH-Shell v1.1.0 リリース！",
+                    SubTitle = "<color=#b85fff>TownOfHost-Shell v1.1.0</color>",
+                    ShortTitle = "<color=#b85fff>●TOH-Shell v1.1.0</color>",
+                    Text = "新役職「Tiger」を追加！\n\n"
+                        + "捕食モード中は移動速度が上昇し、\n"
+                        + "キルクールが即座に解除されます。\n\n"
+                        + "その間にキルすると死体を残さず倒せますが、\n"
+                        + "時間内にキルできなかった場合は自滅します。\n\n"
+                        + "その他、Tiger関連の修正や細かい不具合修正を行いました！",
+                    Date = "2026-09-24"
+                };
+                AllModNews.Add(news);
+            }
             AnnouncementPopUp.UpdateState = AnnouncementPopUp.AnnounceState.NotStarted;
         }
     }

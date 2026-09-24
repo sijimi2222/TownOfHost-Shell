@@ -1398,7 +1398,8 @@ namespace TownOfHost
 
                 {
 
-                    list2.Add(list[j].ParentId);
+                    if (!TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(list[j].ParentId))
+                        list2.Add(list[j].ParentId);
 
                 }
 

@@ -59,7 +59,7 @@ public static class AdminProvider
                 if (collider.CompareTag("DeadBody"))
                 {
                     var deadBody = collider.GetComponent<DeadBody>();
-                    if (deadBody != null && countedPlayers.Add(deadBody.ParentId))
+                    if (deadBody != null && !TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(deadBody.ParentId) && countedPlayers.Add(deadBody.ParentId))
                     {
                         totalPlayers++;
                         numDeadBodies++;

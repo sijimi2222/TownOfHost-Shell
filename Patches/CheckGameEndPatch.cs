@@ -471,6 +471,7 @@ namespace TownOfHost
                     Spelunker.CheckWin(ref reason);
 
                     Chatter.CheckWin(ref reason);
+                    TownOfHost.Roles.Neutral.Tiger.TryChooseWinner();
 
                     Zombie.TryTakeOverCrewWin(ref reason);
 

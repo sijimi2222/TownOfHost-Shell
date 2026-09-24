@@ -113,7 +113,7 @@ namespace TownOfHost
         public CustomRoles Role { get; private set; }
         public int IdStart { get; private set; }
         public OptionItem OptionWin;
-        public SoloWinOption(int idStart, TabGroup tab, CustomRoles role, CustomRoles RoleName = CustomRoles.NotAssigned, Func<bool> show = null, int defo = 0, OptionItem parent = null)
+        public SoloWinOption(int idStart, TabGroup tab, CustomRoles role, CustomRoles RoleName = CustomRoles.NotAssigned, Func<bool> show = null, int defo = 0, OptionItem parent = null, IntegerValueRule rule = null)
         {
             if (show == null)
             {
@@ -125,14 +125,14 @@ namespace TownOfHost
             Dictionary<string, string> replacementDic = new() { { "%role%", UtilsRoleText.GetCombinationName(rolename) } };
             if (tab is TabGroup.MainSettings)
             {
-                OptionWin = IntegerOptionItem.Create(IdStart, "SoloWinOption", new(0, 50, 1), defo, tab, false)
+                OptionWin = IntegerOptionItem.Create(IdStart, "SoloWinOption", rule ?? new(0, 50, 1), defo, tab, false)
                 .SetEnabled(show)
                 .SetColor(UtilsRoleText.GetRoleColor(role))
                 .SetTag(CustomOptionTags.Standard);
             }
             else
             {
-                OptionWin = IntegerOptionItem.Create(IdStart, "SoloWinOption", new(0, 50, 1), defo, tab, false)
+                OptionWin = IntegerOptionItem.Create(IdStart, "SoloWinOption", rule ?? new(0, 50, 1), defo, tab, false)
                 .SetParent(parent ?? CustomRoleSpawnChances[role])
                 .SetParentRole(parent?.ParentRole ?? role)
                 .SetEnabled(show);
@@ -144,9 +144,9 @@ namespace TownOfHost
             if (!AllData.ContainsKey(role)) AllData.Add(role, this);
             else Logger.Warn("重複したCustomRolesを対象とするSoloWinOptionが作成されました", "SoloWinOption");
         }
-        public static SoloWinOption Create(int idStart, TabGroup tab, CustomRoles role, Func<bool> show = null, int defo = 0, OptionItem parent = null)
+        public static SoloWinOption Create(int idStart, TabGroup tab, CustomRoles role, Func<bool> show = null, int defo = 0, OptionItem parent = null, IntegerValueRule rule = null)
         {
-            return new SoloWinOption(idStart, tab, role, show: show, defo: defo, parent: parent);
+            return new SoloWinOption(idStart, tab, role, show: show, defo: defo, parent: parent, rule: rule);
         }
         /// <summary>
         /// キルディスタンスの上書き設定。
@@ -155,9 +155,9 @@ namespace TownOfHost
         /// <param name="tab">タブ</param>
         /// <param name="role">設定に出すロール</param>
         /// <param name="RoleName">設定名(ユニット用)</param>
-        public static SoloWinOption Create(SimpleRoleInfo roleInfo, int idOffset, CustomRoles rolename = CustomRoles.NotAssigned, Func<bool> show = null, int defo = 0)
+        public static SoloWinOption Create(SimpleRoleInfo roleInfo, int idOffset, CustomRoles rolename = CustomRoles.NotAssigned, Func<bool> show = null, int defo = 0, IntegerValueRule rule = null)
         {
-            return new SoloWinOption(roleInfo.ConfigId + idOffset, roleInfo.Tab, roleInfo.RoleName, rolename, show, defo: defo);
+            return new SoloWinOption(roleInfo.ConfigId + idOffset, roleInfo.Tab, roleInfo.RoleName, rolename, show, defo: defo, rule: rule);
         }
     }
     public class WinOption

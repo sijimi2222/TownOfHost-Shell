@@ -914,7 +914,7 @@ namespace TownOfHost
 
             var Minfo = $"\n<line-height=0><voffset=17.5><#fc9003>Day.{UtilsGameLog.day}</color>" + Bakery.BakeryMark() + $"<voffset=15>\n{ExtendedMeetingText}";
 
-            secondpcMinfo += $"<voffset=17.5>\n<#999900><size=60%>{Translator.GetString("GuessInfoForVanilla").RemoveColorTags()}</size>";
+            secondpcMinfo += $"<voffset=17.5>\n<#999900><size=60%>AIコマンド:/cmd /ai 聞きたいこと</size></color>";
 
             //seer:ここで行われた変更を見ることができるプレイヤー
 

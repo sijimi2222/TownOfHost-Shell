@@ -144,7 +144,7 @@ public sealed class Oblivion : RoleBase, IKillFlashSeeable
         if (!Player.IsAlive() || hasTransformed) return false;
 
         var dead = info.AppearanceTarget;
-        if (dead == null) return false;
+        if (dead == null || Tiger.IsPredatedBody(dead.PlayerId)) return false;
 
         AddDeadBodyArrow(dead.PlayerId, dead.GetTruePosition());
         return false;

@@ -510,6 +510,8 @@ namespace TownOfHost
 
 
 
+            if (Tiger.TryChooseWinner()) return true;
+
             int Imp = 0;
 
             int Jackal = 0;
@@ -737,6 +739,9 @@ namespace TownOfHost
             }
 
 
+
+            // Tiger生存中は通常の人数勝利を保留。タスク/サボタージュ判定は継続。
+            if (Tiger.HasLivingTiger()) return false;
 
             if (Imp == 0 && FoxAndCrew == 0 && Jackal == 0 && Remotekiller == 0
 

@@ -7124,7 +7124,7 @@
 
 "GuessInfo","∮Guesser Command : /bt <#ffff00>ID</color> Role","∮ｹﾞｯｻｰｺﾏﾝﾄﾞ:/cmd /bt <#ffff00>ID<size=35%>(色名)</size></color> 役職名"
 
-"GuessInfoForVanilla","∮Guesse: /bt <#ffff00>ID</color> Role","∮推測ｺﾏﾝﾄﾞ:/cmd bt ID<size=35%>(色)</size> 役職"
+"GuessInfoForVanilla","§ Guess: /bt <#ffff00>ID</color> Role","§ 推測コマンド：/cmd bt ID<size=35%>(色)</size> 役職"
 
 "NowTime","Now","現在の"
 
@@ -8226,3 +8226,12 @@
 "HunterSpeedBoostTime","Time to Get Faster","足が速くなる時間"
 "HunterSpeedBoost","Speed when running fast","足が速い時の速度"
 "HunterDarkenRange","Darken Range","暗転する範囲"
+
+"Tiger","Tiger","タイガー"
+"TigerInfo","Devour everything","全てを喰らい尽くせ"
+"TigerInfoLong","Kill with a long cooldown. Use Phantom ability to enter Predation: move faster, see less, and immediately become ready to kill. A successful kill ends Predation and leaves its body outside the map. Fail to kill before time expires and you die. Meetings cancel Predation. Win alone when no other living player can use the kill button. Victory is armed after encountering another killer or completing a kill. Higher victory priority wins.","通常は長いクールダウンでキルする第三陣営。ファントム能力で捕食状態となり、移動速度が上がり視界が狭くなる。発動時にキルクールが解除され、捕食中のキルは死体をマップ外に残す。キル成功で捕食終了、時間内にキルできなければ自滅する。会議開始で捕食は解除。自分以外の生存キル可能者がいなくなると単独勝利。他のキル可能者を一度確認するか、自分がキル成功した後から判定する。勝利優先度は大きい数値ほど優先。"
+"TigerKillCooldown","Normal kill cooldown","通常キルクール"
+"TigerAbilityCooldown","Predation cooldown","Phantom能力クール"
+"TigerDuration","Time until suicide","自殺までの時間"
+"TigerSpeed","Predation speed multiplier","捕食中の移動速度倍率"
+"TigerVision","Predation vision multiplier","捕食中の視界倍率"

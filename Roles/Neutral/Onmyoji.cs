@@ -1488,7 +1488,7 @@ public sealed class Shikigami : RoleBase, IUsePhantomButton, IKillFlashSeeable
 
         var dead = info.AppearanceTarget;
 
-        if (dead == null) return false;
+        if (dead == null || Tiger.IsPredatedBody(dead.PlayerId)) return false;
 
         AddDeadBodyArrow(dead.PlayerId, dead.GetTruePosition());
 

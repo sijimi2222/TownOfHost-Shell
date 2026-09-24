@@ -362,6 +362,10 @@ public sealed class Vulture : RoleBase, IKillFlashSeeable, IAdditionalWinner
 
     {
 
+        // 捕食された死体は位置を知らせない。キルフラッシュの条件は維持する。
+        if (Tiger.IsPredatedBody(info.AppearanceTarget.PlayerId))
+            return OptKillflashTaskcount <= MyTaskState.CompletedTasksCount;
+
         //矢印の保存。万が一GetTruePositionがずれたことを考えてposで統一。
 
         var pos = info.AppearanceTarget.GetTruePosition();

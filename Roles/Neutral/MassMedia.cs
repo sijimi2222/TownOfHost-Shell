@@ -342,9 +342,11 @@ public sealed class MassMedia : RoleBase, IKiller, IKillFlashSeeable
 
         {
 
-            GetArrow.Add(Player.PlayerId, target.transform.position);
-
-            TargetPosition = target.transform.position;
+            if (!Tiger.IsPredatedBody(target.PlayerId))
+            {
+                GetArrow.Add(Player.PlayerId, target.transform.position);
+                TargetPosition = target.transform.position;
+            }
 
             Guees = killer.PlayerId;
 
@@ -428,7 +430,7 @@ public sealed class MassMedia : RoleBase, IKiller, IKillFlashSeeable
 
                 return "<color=#512513>" + TargetArrow.GetArrows(Player, Targetid) + "</color>";
 
-            else return "<color=#512513>" + GetArrow.GetArrows(Player, TargetPosition) + "</color>";
+            else return Tiger.IsPredatedBody(Targetid) ? "" : "<color=#512513>" + GetArrow.GetArrows(Player, TargetPosition) + "</color>";
 
         }
 

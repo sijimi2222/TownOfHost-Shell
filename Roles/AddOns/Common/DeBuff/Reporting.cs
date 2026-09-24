@@ -70,6 +70,7 @@ public static class Reporting
         {
             if (body == null || (UnityEngine.Object)(object)body.gameObject == null) continue;
 
+            if (TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(body.ParentId)) continue;
             var bodyPos = body.transform.position;
             if (Vector2.Distance(myPos, bodyPos) > reportDistance) continue;
 

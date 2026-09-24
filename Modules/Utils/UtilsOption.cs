@@ -2012,7 +2012,7 @@ namespace TownOfHost
 
                 case From.TownOfHost_hamo: Fromtext += $"<#fb85ff>TownOfHost_hamo</color>"; break;
 
-                case From.TownOfHost_Shell: Fromtext += $"<#aa00ff>TownOfHost_Shell</color>"; break;
+                case From.TownOfHost_Shell: Fromtext += $"<#aa00ff>{(role == CustomRoles.Tiger ? "Town Of Host Shell" : "TownOfHost_Shell")}</color>"; break;
 
             }
 

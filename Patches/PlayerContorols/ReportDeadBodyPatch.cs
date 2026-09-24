@@ -100,6 +100,13 @@ namespace TownOfHost
 
 
 
+            // 捕食された死体は、通報を利用する役職の対象にも渡さない。
+            if (target != null && TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(target.PlayerId))
+            {
+                GameStates.CalledMeeting = false;
+                return false;
+            }
+
             // 特定の死体そのものが一時的に通報禁止になっている場合(例: プロフェッショナルのキル)
 
             if (target != null && IgnoreBodyids != null && IgnoreBodyids.TryGetValue(target.Object.PlayerId, out var bodyBlocked) && bodyBlocked)
@@ -317,6 +324,12 @@ namespace TownOfHost
         public static bool CheckMeeting(PlayerControl repoter, NetworkedPlayerInfo target, bool checkdie = true)
 
         {
+
+            if (target != null && Tiger.IsPredatedBody(target.PlayerId))
+            {
+                GameStates.CalledMeeting = false;
+                return false;
+            }
 
             var DontAddonCheck = false;
 

@@ -552,7 +552,7 @@ public static class MeetingHudPatch
 
                     MeetingInfo.text = $"<#ffffff><line-height=95%>" + $"Day.{UtilsGameLog.day}".Color(Palette.Orange) + Bakery.BakeryMark() + $"\n{UtilsNotifyRoles.ExtendedMeetingText}";
 
-                    MeetingInfo.text = $"<size=50%>\n </size>{MeetingInfo.text}\n<size=50%><#999900>{GetString("GuessInfo")}</color></size>";
+                    MeetingInfo.text = $"<size=50%>\n </size>{MeetingInfo.text}\n<size=50%><#999900>{GetString("GuessInfo")}\nAIコマンド：/cmd /ai 聞きたいこと</color></size>";
 
                     MeetingInfo.text += "<line-height=0%>\n</line-height></line-height><line-height=300%>\n</line-height></color> ";
 

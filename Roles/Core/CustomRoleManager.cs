@@ -578,11 +578,19 @@ public static class CustomRoleManager
 
 
 
+            // Tigerの捕食だけ、防御判定通過後に見た目を対象自身のキルへ切り替える。
+            if (killerRole is Tiger tiger && tiger.PreparePredationKill(info))
+            {
+                appearanceKiller = info.AppearanceKiller;
+                appearanceTarget = info.AppearanceTarget;
+            }
+
             //MurderPlayer用にinfoを保存
 
             CheckMurderInfos[appearanceKiller.PlayerId] = info;
 
-            appearanceKiller.RpcMurderPlayer(appearanceTarget);
+            if (info.TigerPredation) Tiger.SendPredationKill(info);
+            else appearanceKiller.RpcMurderPlayer(appearanceTarget);
 
 
 
@@ -662,7 +670,8 @@ public static class CustomRoleManager
 
         }
 
-        var killerstate = appearanceKiller.GetPlayerState();
+        Tiger.RecordDeath(info);
+        var killerstate = (info.TigerPredation ? info.AttemptKiller : appearanceKiller).GetPlayerState();
 
         killerstate.LastKillPosition = info.killerpos;
 
@@ -766,7 +775,7 @@ public static class CustomRoleManager
 
         //あっ!死ぬ前にどこにいたかだけ教えてね!
 
-        var roomName = attemptTarget.GetShipRoomName();
+        var roomName = info.TigerPredation ? info.TigerKillRoom : attemptTarget.GetShipRoomName();
 
         targetState.KillRoom = roomName;
 
@@ -816,7 +825,8 @@ public static class CustomRoleManager
 
             UtilsGameLog.AddGameLog($"Kill", $"{UtilsName.GetPlayerColor(appearanceTarget, true)}({UtilsRoleText.GetTrueRoleName(appearanceTarget.PlayerId, false).RemoveSizeTags()}) [{Utils.GetVitalText(appearanceTarget.PlayerId, true)}]〔{roomName}〕");
 
-            if (appearanceKiller != appearanceTarget) UtilsGameLog.AddGameLogsub($"\n\t⇐ {UtilsName.GetPlayerColor(appearanceKiller, true)}({UtilsRoleText.GetTrueRoleName(appearanceKiller.PlayerId, false)})");
+            var logKiller = info.TigerPredation ? attemptKiller : appearanceKiller;
+            if (logKiller != appearanceTarget) UtilsGameLog.AddGameLogsub($"\n\t⇐ {UtilsName.GetPlayerColor(logKiller, true)}({UtilsRoleText.GetTrueRoleName(logKiller.PlayerId, false)})");
 
         }
 
@@ -1021,6 +1031,7 @@ public static class CustomRoleManager
         SubRoleRPCSender.RoleHandlers.Clear();
 
         CoLog.Reset();
+        Tiger.ResetPredatedBodies();
 
     }
 
@@ -1536,6 +1547,8 @@ public class MurderInfo
 
     public bool IsCanKilling => !CheckHasGuard() && !IsSuicide && !IsFakeSuicide && DoKill && CanKill && !IsAccident;
 
+    internal bool TigerPredation;
+    internal string TigerKillRoom;
     public CustomDeathReason DeathReason;
 
     public MurderInfo(PlayerControl attemptKiller, PlayerControl attemptTarget, PlayerControl appearanceKiller, PlayerControl appearancetarget, bool? DontRoleAbility = false, int Killpower = 1, int guardpower = 0, CustomDeathReason deathReason = CustomDeathReason.Kill)
@@ -2315,6 +2328,8 @@ public enum CustomRoles
     // リバーサルはクルー役職として扱う。組み合わせ役職の既存IDを変えず、
 
     // 属性の開始番号(500)直前にある未使用の499番を使用する。
+
+    Tiger = 498,
 
     Reversal = 499,
 

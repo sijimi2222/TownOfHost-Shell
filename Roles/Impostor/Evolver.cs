@@ -466,7 +466,7 @@ public sealed class Evolver : RoleBase, IImpostor, IUsePhantomButton
 
             var id = db.ParentId;
 
-            if (EatenBodies.Contains(id)) continue;
+            if (EatenBodies.Contains(id) || TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(id)) continue;
 
             var pos = (Vector2)db.TruePosition;
 
@@ -522,7 +522,8 @@ public sealed class Evolver : RoleBase, IImpostor, IUsePhantomButton
 
         => Object.FindObjectsOfType<DeadBody>().Any(b => b.ParentId == bodyId)
 
-        && !EatenBodies.Contains(bodyId);
+        && !EatenBodies.Contains(bodyId)
+        && !TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(bodyId);
 
 
 
