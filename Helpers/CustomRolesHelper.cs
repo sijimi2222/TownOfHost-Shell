@@ -32,7 +32,7 @@ namespace TownOfHost
 
         /// <summary>スタンダードモードで出現できるすべての役職</summary>
 
-        public static readonly CustomRoles[] AllStandardRoles = AllRoles.Where(role => role is not (CustomRoles.HASFox or CustomRoles.HASTroll or CustomRoles.TaskPlayerB)).ToArray();
+        public static readonly CustomRoles[] AllStandardRoles = AllRoles.Where(role => role is not (CustomRoles.HASFox or CustomRoles.HASTroll or CustomRoles.TaskPlayerB or CustomRoles.NDPlayer)).ToArray();
 
         /// <summary>HASモードで出現できるすべての役職</summary>
 

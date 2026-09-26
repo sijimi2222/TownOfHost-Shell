@@ -47,6 +47,7 @@ namespace TownOfHost
         DummyHunter,//= 0x08
 
         ShuffleRole,//= 0x09
+        NaturalDisasters,
 
         All = int.MaxValue
 
@@ -83,6 +84,7 @@ namespace TownOfHost
         GameOption,//ゲーム設定
 
         OtherOption,//その他の設定
+        NaturalDisasters,
 
 
 
@@ -214,7 +216,7 @@ namespace TownOfHost
 
             "Standard", "HideAndSeek", "TaskBattle", "StandardHAS", "SuddenDeath", "MurderMystery",
 
-            "DummyBattleRoyale", "DummyHunter", "ShuffleRole",
+            "DummyBattleRoyale", "DummyHunter", "ShuffleRole", "NaturalDisasters",
 
         };
 
@@ -1547,6 +1549,7 @@ namespace TownOfHost
             //ダミーハンター
 
             DummyHunter.SetupOptionItem();
+            NaturalDisasters.SetupOptionItem();
 
             //DummyBattleRoyaleManager.SetupOptionItem();
 
@@ -3609,7 +3612,7 @@ namespace TownOfHost
 
                     {
 
-                        if (info.RoleName is CustomRoles.AlienHijack) continue;
+                        if (info.RoleName is CustomRoles.AlienHijack or CustomRoles.NDPlayer) continue;
 
                         SetupRoleOptions(info);
 

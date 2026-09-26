@@ -861,6 +861,7 @@ namespace TownOfHost
         Retaliation,
 
         RuleViolation,
+        Meteor,
 
         etc = -1
 
@@ -883,6 +884,7 @@ namespace TownOfHost
         Crewmate = CustomRoles.Crewmate,
 
         Tiger = CustomRoles.Tiger,
+        NDPlayer = CustomRoles.NDPlayer,
 
         Jester = CustomRoles.Jester,
 

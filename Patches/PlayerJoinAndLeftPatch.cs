@@ -61,6 +61,7 @@ namespace TownOfHost
             if (!GameStates.IsInGame) return;
 
             if (!wasAlive) return;
+            if (NaturalDisasters.IsThisMode) return; // 災害モード専用Predicateで残り人数を判定する。
 
             if (!Options.OptionAutoForceEndOnDisconnect.GetBool()) return;
 

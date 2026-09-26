@@ -2329,6 +2329,8 @@ public enum CustomRoles
 
     // 属性の開始番号(500)直前にある未使用の499番を使用する。
 
+    NDPlayer = 497,
+
     Tiger = 498,
 
     Reversal = 499,

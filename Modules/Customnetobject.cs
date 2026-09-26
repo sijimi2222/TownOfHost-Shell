@@ -21,6 +21,7 @@ public class CustomNetObject
     public Vector2 Position;
 
     protected virtual bool IsDynamic => false;
+    protected virtual bool CanCreate => true;
 
     public void Despawn()
     {
@@ -91,7 +92,7 @@ public class CustomNetObject
         catch { }
     }
 
-    protected void SetAppearance(int colorId, string skinId = "", string hatId = "", string petId = "", string visorId = "")
+    protected void SetAppearance(int colorId, string skinId = "", string hatId = "", string petId = "", string visorId = "", string displayName = null)
     {
         if (PlayerControl == null) return;
 
@@ -108,7 +109,7 @@ public class CustomNetObject
         MessageWriter writer = sender.stream;
         sender.StartMessage();
 
-        outfit.PlayerName = origName;
+        outfit.PlayerName = displayName ?? origName;
         outfit.ColorId = colorId;
         outfit.HatId = hatId ?? "";
         outfit.SkinId = skinId ?? "";
@@ -180,7 +181,7 @@ public class CustomNetObject
         if (!AmongUsClient.Instance.AmHost) return;
         if (GameStates.IsLobby || GameStates.IsEnded) return;
 
-        SpawnQueue.Enqueue(() => DoCreate(position));
+        SpawnQueue.Enqueue(() => { if (CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
         ProcessQueue();
     }
 
@@ -262,6 +263,7 @@ public class CustomNetObject
 
         _ = new LateTask(() =>
         {
+            if (!capturedPC || !capturedSelf.CanCreate) return;
             foreach (var pc in PlayerCatch.AllPlayerControls)
             {
                 if (pc.AmOwner) continue;
@@ -296,7 +298,8 @@ public class CustomNetObject
         {
             try
             {
-                capturedSelf.OnCreated();
+                if (!capturedPC || !capturedSelf.CanCreate) capturedSelf.Despawn();
+                else capturedSelf.OnCreated();
             }
             catch (Exception e)
             {

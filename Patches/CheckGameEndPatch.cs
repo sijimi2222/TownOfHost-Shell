@@ -987,6 +987,9 @@ namespace TownOfHost
 
                     break;
 
+                case CustomGameMode.NaturalDisasters:
+                    SetPredicateToNaturalDisasters();
+                    break;
                 case CustomGameMode.TaskBattle:
 
                     SetPredicateToTaskBattle();
@@ -1014,6 +1017,7 @@ namespace TownOfHost
         public static void SetPredicateToMurderMystery() => predicate = new MurderMystery.MurderMysteryGameEndPredicate();
 
         public static void SetPredicateToDummyHunter() => predicate = new DummyHunter.DummyHunterGameEndPredicate();
+        public static void SetPredicateToNaturalDisasters() => predicate = new NaturalDisasters.NaturalDisastersGameEndPredicate();
 
 
 

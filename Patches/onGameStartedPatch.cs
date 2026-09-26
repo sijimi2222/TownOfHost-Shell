@@ -511,6 +511,17 @@ namespace TownOfHost
 
 
             RoleAssignManager.SelectAssignRoles();
+            if (NaturalDisasters.IsThisMode)
+            {
+                foreach (var pc in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsTestBot()))
+                    pc.RpcSetRole(RoleTypes.Crewmate);
+                if (Options.EnableGM.GetBool())
+                {
+                    PlayerControl.LocalPlayer.RpcSetCustomRole(CustomRoles.GM);
+                    PlayerControl.LocalPlayer.Data.IsDead = true;
+                }
+                return false;
+            }
 
 
 
@@ -970,6 +981,16 @@ namespace TownOfHost
 
             }
 
+            else if (NaturalDisasters.IsThisMode)
+            {
+                foreach (var pc in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsTestBot() && !pc.Is(CustomRoles.GM)))
+                    PlayerState.GetByPlayerId(pc.PlayerId).SetMainRole(CustomRoles.NDPlayer);
+                foreach (var pair in PlayerState.AllPlayerStates)
+                    ExtendedRpc.RpcSetCustomRole(pair.Key, pair.Value.MainRole);
+                CustomRoleManager.CreateInstance();
+                NaturalDisasters.OnGameStart();
+                GameEndChecker.SetPredicateToNaturalDisasters();
+            }
             else if (Options.CurrentGameMode == CustomGameMode.DummyHunter)
 
             {

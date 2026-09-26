@@ -15,6 +15,9 @@ class GameModeManager
 
         switch (gamemode)
         {
+            case CustomGameMode.NaturalDisasters:
+                result.Add(CustomOptionTags.NaturalDisasters);
+                break;
             case CustomGameMode.Standard:
                 result.Add(CustomOptionTags.Standard);
                 result.Add(CustomOptionTags.Role);

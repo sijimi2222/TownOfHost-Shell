@@ -35,6 +35,7 @@ public static class SabotageSystemTypeUpdateSystemPatch
     {
 
         var newReader = MessageReader.Get(msgReader);
+        if (NaturalDisasters.IsThisMode) { newReader.Recycle(); return false; }
 
         amount = newReader.ReadByte();
 

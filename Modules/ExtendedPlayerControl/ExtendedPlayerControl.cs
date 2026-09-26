@@ -509,6 +509,7 @@ namespace TownOfHost
         public static bool CanUseKillButton(this PlayerControl pc)
 
         {
+            if (NaturalDisasters.IsThisMode) return false;
 
             if (pc.PlayerId == PlayerControl.LocalPlayer.PlayerId && !Main.showkillbutton) return false;
 
@@ -543,6 +544,7 @@ namespace TownOfHost
         public static bool CanUseImpostorVentButton(this PlayerControl pc)
 
         {
+            if (NaturalDisasters.IsThisMode) return false;
 
             if (!pc.IsAlive()) return false;
 
@@ -565,6 +567,7 @@ namespace TownOfHost
         public static bool CanUseSabotageButton(this PlayerControl pc)
 
         {
+            if (NaturalDisasters.IsThisMode) return false;
 
             if (Options.CurrentGameMode is CustomGameMode.SuddenDeath or CustomGameMode.MurderMystery) return false;
 

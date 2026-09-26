@@ -82,7 +82,7 @@ namespace TownOfHost
 
 
 
-            if (Options.CurrentGameMode is CustomGameMode.HideAndSeek or CustomGameMode.TaskBattle or CustomGameMode.MurderMystery || Options.IsStandardHAS)
+            if (Options.CurrentGameMode is CustomGameMode.HideAndSeek or CustomGameMode.TaskBattle or CustomGameMode.MurderMystery or CustomGameMode.NaturalDisasters || Options.IsStandardHAS)
 
             {
 
@@ -324,6 +324,7 @@ namespace TownOfHost
         public static bool CheckMeeting(PlayerControl repoter, NetworkedPlayerInfo target, bool checkdie = true)
 
         {
+            if (NaturalDisasters.IsThisMode) return false;
 
             if (target != null && Tiger.IsPredatedBody(target.PlayerId))
             {

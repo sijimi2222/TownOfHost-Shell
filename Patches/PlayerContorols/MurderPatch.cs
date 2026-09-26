@@ -27,6 +27,7 @@ namespace TownOfHost
         public static bool Prefix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target)
         {
             if (!AmongUsClient.Instance.AmHost) return false;
+            if (NaturalDisasters.IsThisMode) return false;
 
             // 処理は全てCustomRoleManager側で行う
             if (!CustomRoleManager.OnCheckMurder(__instance, target))

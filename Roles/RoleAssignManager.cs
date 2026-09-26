@@ -222,6 +222,7 @@ namespace TownOfHost.Roles
         {
             AssignCount.Clear();
             AssignRoleList.Clear();
+            if (NaturalDisasters.IsThisMode) return;
 
             switch (AssignMode)
             {

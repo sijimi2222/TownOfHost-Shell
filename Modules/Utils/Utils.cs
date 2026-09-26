@@ -1273,6 +1273,7 @@ namespace TownOfHost
         public static void SetChatVisible(this PlayerControl pc, bool visible = true)
 
         {
+            if (NaturalDisasters.IsThisMode && visible && GameStates.InGame) return;
 
             if (!AmongUsClient.Instance.AmHost) return;
 
