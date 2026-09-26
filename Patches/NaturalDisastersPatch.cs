@@ -9,7 +9,7 @@ static class NaturalDisastersPatch
     [HarmonyPostfix, HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.FixedUpdate))]
     static void Tick(PlayerControl __instance)
     {
-        if (__instance.AmOwner) NaturalDisasters.FixedUpdate();
+        if (__instance == PlayerControl.LocalPlayer && !__instance.notRealPlayer) NaturalDisasters.FixedUpdate();
     }
 
     [HarmonyPostfix, HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.OnPlayerLeft))]

@@ -1,19 +1,20 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using UnityEngine;
 
 namespace TownOfHost;
 
-// Phase 1: Skeld / Meteor only. Based on EHR 56d510116d640fb63ee5192e71fd2f5377772840.
-public static class NaturalDisasters
+// Skeld disasters. Based on EHR 56d510116d640fb63ee5192e71fd2f5377772840.
+public static partial class NaturalDisasters
 {
     public static bool IsThisMode => Options.GameMode != null && Options.CurrentGameMode == CustomGameMode.NaturalDisasters;
     public static bool IsActive { get; private set; }
     public static bool ResolvingImpact { get; private set; }
     static OptionItem interval, warningTime;
-    static MeteorObject meteor;
+    static DisasterObject meteor;
     static float remaining;
     static bool impacted;
     static bool started;
@@ -21,8 +22,8 @@ public static class NaturalDisasters
     static int generation;
     static float spawnWait;
     // Match the actual registered Meteor object, not every dummy or player without role data.
-    public static bool IsMeteorDisplay(PlayerControl player) => player != null && player.PlayerId == 254
-        && CustomNetObject.AllObjects.Any(obj => obj is MeteorObject && obj.PlayerControl == player);
+    public static bool IsDisasterDisplay(PlayerControl player) => player != null && player.PlayerId == 254
+        && CustomNetObject.AllObjects.Any(obj => obj is DisasterObject && obj.PlayerControl == player);
     // Temporary Phase 1 diagnostics: state transitions and at most one timer line per second.
     static string lastWaitReason;
     static bool updateLogged;
@@ -45,6 +46,7 @@ public static class NaturalDisasters
     {
         ObjectOptionitem.Create(1_000_220, "NaturalDisasters", true, null, TabGroup.MainSettings)
             .SetColorcode("#03fc4a").SetTag(CustomOptionTags.NaturalDisasters);
+        SetupPhase2Options();
         interval = FloatOptionItem.Create(220000, "NDMeteorInterval", new(0.5f, 20f, 0.5f), 2f, TabGroup.MainSettings, false)
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
         warningTime = IntegerOptionItem.Create(220001, "NDMeteorWarning", new(1, 30, 1), 5, TabGroup.MainSettings, false)
@@ -64,6 +66,7 @@ public static class NaturalDisasters
         generation++;
         meteor?.Cancel(reason);
         meteor = null;
+        ClearAreaEffects();
         remaining = 0;
         impacted = false;
         lastWaitReason = null;
@@ -123,7 +126,7 @@ public static class NaturalDisasters
         if (!GameStates.InGame || GameStates.IsLobby || !GameStates.introDestroyed)
         { WaitFor("WaitingForIntro"); return; }
         if (!GameStates.IsInTask || GameStates.IsMeeting || ExileController.Instance)
-        { WaitFor($"TaskPhaseGate: task={GameStates.IsInTask}, meeting={GameStates.IsMeeting}, exile={ExileController.Instance != null}"); return; }
+        { if (meteor != null) CancelCurrentMeteor("Task phase interrupted"); WaitFor($"TaskPhaseGate: task={GameStates.IsInTask}, meeting={GameStates.IsMeeting}, exile={ExileController.Instance != null}"); return; }
         if (lastWaitReason == "WaitingForIntro" || lastWaitReason?.StartsWith("TaskPhaseGate:") == true)
             lastWaitReason = null;
         started = true;
@@ -135,14 +138,15 @@ public static class NaturalDisasters
             if (remaining > 0f) return;
             var players = LivingPlayers();
             if (players.Length < 2) { WaitFor($"LivingPlayers={players.Length}; need at least 2"); return; }
+            if (!TrySelectDisaster(out var kind)) { WaitFor("No enabled disasters"); remaining = interval.GetFloat(); return; }
             // Snapshot a living player's position, then allow everyone to escape during the warning.
             Vector2 position = players[IRandom.Instance.Next(players.Length)].GetTruePosition();
             impacted = false;
             lastCountdown = warningTime.GetInt();
             remaining = lastCountdown;
             spawnWait = 0f;
-            DebugLog($"StartMeteor position={position}, living={players.Length}, generation={generation}");
-            meteor = new MeteorObject(position, generation, lastCountdown);
+            DebugLog($"{kind} Start position={position}, living={players.Length}, generation={generation}");
+            meteor = new DisasterObject(position, generation, lastCountdown, kind);
             return;
         }
         // The spawn queue is asynchronous. Never kill before OnCreated displayed the warning.
@@ -169,8 +173,8 @@ public static class NaturalDisasters
             if (remaining > 0f) return;
             impacted = true;
             meteor.ShowImpact();
-            DebugLog($"Impact position={meteor.Position}");
-            remaining = 5f; // The impact remains hazardous for its entire visible lifetime.
+            DebugLog($"{meteor.Kind} Activated / Impact position={meteor.Position}");
+            remaining = GetDuration(meteor.Kind); // Hazard remains active for the visible lifetime.
         }
         else if (remaining <= 0f)
         {
@@ -181,12 +185,18 @@ public static class NaturalDisasters
         }
         // Check on impact and every active impact tick, including players who enter later.
         // Snapshot living victims and suppress the end predicate until this batch resolves.
-        var victims = LivingPlayers().Where(pc => Vector2.Distance(pc.GetTruePosition(), meteor.Position) <= 1.5f).ToArray();
+        UpdateDisasterEffects(meteor, GetDuration(meteor.Kind) - remaining);
+        if (meteor.Kind == DisasterKind.Earthquake || meteor.Kind == DisasterKind.SandStorm) return;
+        float radius = GetHazardRadius(meteor);
+        var victims = LivingPlayers().Where(pc => Vector2.Distance(pc.GetTruePosition(), meteor.Position) <= radius).ToArray();
         ResolvingImpact = true;
         try
         {
             foreach (var pc in victims)
-                CustomRoleManager.OnCheckMurder(pc, pc, pc, pc, true, true, 99, CustomDeathReason.Meteor);
+            {
+                DebugLog($"{meteor.Kind} Victim PlayerId={pc.PlayerId}, distance={Vector2.Distance(pc.GetTruePosition(), meteor.Position):F2}, radius={radius:F2}");
+                CustomRoleManager.OnCheckMurder(pc, pc, pc, pc, true, true, 99, GetDeathReason(meteor.Kind));
+            }
         }
         finally { ResolvingImpact = false; }
     }
@@ -207,8 +217,13 @@ public static class NaturalDisasters
         }
     }
 
-    sealed class MeteorObject : CustomNetObject
+    sealed class DisasterObject : CustomNetObject
     {
+        public readonly DisasterKind Kind;
+        public int LavaPhase = 1;
+        public float NextEffectCheck;
+        public readonly HashSet<byte> InsidePlayers = new();
+        public readonly List<byte> EffectPlayers = new(16);
         readonly int token;
         readonly int warning;
         bool cancelled;
@@ -229,8 +244,9 @@ public static class NaturalDisasters
             }
         }
 
-        public MeteorObject(Vector2 position, int token, int warning)
+        public DisasterObject(Vector2 position, int token, int warning, DisasterKind kind)
         {
+            Kind = kind;
             this.token = token;
             this.warning = warning;
             Position = position;
@@ -247,12 +263,12 @@ public static class NaturalDisasters
             ShowWarning(warning);
             SnapToPosition(Position); // Standard reliable SnapTo, including the local host.
             Ready = true;
-            DebugLog($"WarningCreated NetId={PlayerControl.NetId}, position={Position}");
+            DebugLog($"{Kind} WarningCreated NetId={PlayerControl.NetId}, position={Position}");
         }
 
-        public void ShowWarning(int seconds) => Show($"<size=250%>{seconds}</size>\n{Translator.GetString("DeathReason.Meteor")}");
+        public void ShowWarning(int seconds) => Show($"<size=250%>{seconds}</size>\n{Translator.GetString(Kind == DisasterKind.Meteor ? "DeathReason.Meteor" : "ND" + Kind)}");
         // Meteor rich-text sprite from the EHR commit cited at the top of this file.
-        public void ShowImpact() => Show("<size=160%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
+        public void ShowImpact() => Show(Kind != DisasterKind.Meteor ? GetDisasterSprite(Kind, LavaPhase) : "<size=120%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
 
         void Show(string text)
         {
@@ -267,7 +283,10 @@ public static class NaturalDisasters
 
         public void Cancel(string reason)
         {
-            if (!cancelled) DebugLog($"Cancel reason = {reason}; dummy NetId={PlayerControl?.NetId}, ready={Ready}");
+            if (cancelled) return; // Lifecycle hooks may cancel the same object more than once.
+            DebugLog($"Cancel reason = {reason}; dummy NetId={PlayerControl?.NetId}, ready={Ready}");
+            if (!cancelled) DebugLog($"{Kind} Expired reason={reason}");
+            RemoveEffectSource(this);
             cancelled = true;
             Ready = false;
             // A reset can happen before the base class's delayed OnCreated removes this entry.
@@ -278,9 +297,12 @@ public static class NaturalDisasters
                         && players[i].Object?.NetId == PlayerControl.NetId)
                         players.RemoveAt(i);
             if (AmongUsClient.Instance != null && AmongUsClient.Instance.AmHost) Despawn();
-            // Disconnection may prevent network despawn; always release the local object too.
+            // Despawn already destroys the host object. Only disconnected/non-host cleanup needs Destroy here.
             AllObjects.Remove(this);
-            if (PlayerControl != null) UnityEngine.Object.Destroy(PlayerControl.gameObject);
+            if (PlayerControl != null && (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost))
+                UnityEngine.Object.Destroy(PlayerControl.gameObject);
+            InsidePlayers.Clear();
+            EffectPlayers.Clear();
             PlayerControl = null;
         }
 

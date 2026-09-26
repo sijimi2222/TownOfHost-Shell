@@ -369,9 +369,9 @@ namespace TownOfHost
         public static void Prefix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target, [HarmonyArgument(1)] bool animate)
 
         {
-            // Meteor has no PlayerState. Skip Shell's role logging/callbacks only.
+            // Disaster displays have no PlayerState. Skip Shell's role logging/callbacks only.
             // This is a void Prefix: returning still runs the original standard Shapeshift.
-            if (NaturalDisasters.IsMeteorDisplay(__instance)) return;
+            if (NaturalDisasters.IsDisasterDisplay(__instance)) return;
 
             Logger.Info($"{__instance?.GetNameWithRole().RemoveHtmlTags()} => {target?.GetNameWithRole().RemoveHtmlTags()}", "Shapeshift");
 

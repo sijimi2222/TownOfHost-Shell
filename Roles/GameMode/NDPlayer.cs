@@ -17,5 +17,6 @@ public sealed class NDPlayer : RoleBase
         opt.SetVision(true);
         opt.SetFloat(FloatOptionNames.CrewLightMod, 1.3f);
         opt.SetFloat(FloatOptionNames.ImpostorLightMod, 1.3f);
+        NaturalDisasters.ApplyDisasterVision(Player.PlayerId, opt);
     }
 }

@@ -862,6 +862,8 @@ namespace TownOfHost
 
         RuleViolation,
         Meteor,
+        Lava,
+        Sunken,
 
         etc = -1
 
