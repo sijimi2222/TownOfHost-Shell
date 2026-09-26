@@ -8,7 +8,7 @@ namespace TownOfHost.Modules
     // 外部通信を行わない、チャットコマンドへのルールベース案内。
     internal static class ShellAI
     {
-        internal enum Intent { Greeting, MyRole, RoleList, CurrentSettings, CommandList, CommandHelp, RoleHelp, Unknown }
+        internal enum Intent { Greeting, MyRole, RoleList, EnabledRoles, CurrentSettings, CommandList, CommandHelp, RoleHelp, Unknown }
 
         internal readonly struct Detection
         {
@@ -25,15 +25,57 @@ namespace TownOfHost.Modules
             }
         }
 
-        public static bool TryParseCommand(string text, out string question)
+        public static bool TryParseCommand(string text, out string question, out bool publicReply)
         {
             question = "";
+            publicReply = false;
             var command = (text ?? "").Trim();
             if (HasCommandPrefix(command, "/cmd"))
                 command = "/" + command.Substring(4).TrimStart().TrimStart('/');
             if (!HasCommandPrefix(command, "/ai")) return false;
             question = command.Substring(3).Trim();
+            if (HasCommandPrefix(question, "all"))
+            {
+                publicReply = true;
+                question = question.Substring(3).Trim();
+            }
             return true;
+        }
+
+        public static void Reply(string question, byte requester, bool publicReply)
+        {
+            if (!AmongUsClient.Instance.AmHost) return;
+            if (publicReply && string.IsNullOrWhiteSpace(question))
+            {
+                Utils.SendMessage("使用方法: /ai all <質問>", requester, "Shell AI");
+                return;
+            }
+            // 既存の設定非公開オプションを、非ホストのAI経由で迂回させない。
+            if (Classify(question).Intent == Intent.EnabledRoles
+                && requester != PlayerControl.LocalPlayer.PlayerId
+                && (Options.HideGameSettings.GetBool()
+                    || (Options.HideSettingsDuringGame.GetBool() && GameStates.IsInGame)))
+            {
+                Utils.SendMessage(Translator.GetString("Message.HideGameSettings"), requester, "Shell AI");
+                return;
+            }
+            var answer = GetReply(question);
+            if (publicReply)
+            {
+                // 8ballと同じ表示名を使用。改行や装飾によって質問の行が崩れないようにする。
+                var playerName = PlayerCatch.GetPlayerById(requester)?.Data?.PlayerName ?? "?";
+                answer = FormatPublicReply(playerName, answer);
+            }
+            // 長文は既存の行単位分割に任せる。質問者は先頭に一度だけ付ける。
+            Utils.SendMessage(answer, publicReply ? byte.MaxValue : requester,
+                "Shell AI", checkl: true, setsize: publicReply, useChatBody: publicReply);
+        }
+
+        internal static string FormatPublicReply(string playerName, string answer)
+        {
+            static string SingleLine(string value) => string.Concat((value ?? "").RemoveHtmlTags()
+                .Select(c => char.IsControl(c) || c == '\u2028' || c == '\u2029' ? ' ' : c)).Trim();
+            return $"{SingleLine(playerName)}が質問しました\n→ {answer}";
         }
 
         private static bool HasCommandPrefix(string text, string prefix)
@@ -60,6 +102,13 @@ namespace TownOfHost.Modules
             if ((question?.Length ?? 0) > 300) return new Detection(Intent.Unknown);
             var text = Normalize(question);
             if (text.Length == 0) return new Detection(Intent.Unknown);
+
+            bool configuredRoleTopic = HasAny(text, "役職", "配役", "属性", "アドオン")
+                || (text.Contains("役", StringComparison.Ordinal) && text.Contains("on", StringComparison.Ordinal));
+            bool configured = HasAny(text, "有効", "今on", "現在on", "onの", "onにな", "on役", "オン", "設定されて", "設定して", "設定の役職")
+                || (text.Contains("配役構成", StringComparison.Ordinal) && HasAny(text, "今", "現在"));
+            if (configuredRoleTopic && configured && !HasAny(text, "自分", "私の", "誰", "だれ", "割り当て", "割当"))
+                return new Detection(Intent.EnabledRoles);
 
             // 挨拶の次に具体的なコマンド用途を判定。一般案内より個人/陣営などの対象を優先。
             if (text is "こんにちは" or "こん" or "やあ" or "おはよう" or "おはよ"
@@ -124,6 +173,36 @@ namespace TownOfHost.Modules
 
         private static bool IsAsciiLetter(char c) => c is >= 'a' and <= 'z';
 
+        private static string GetEnabledRolesReply()
+        {
+            // /n rと同じモード別候補・設定判定を使用。実配役やPlayerStateは参照しない。
+            var candidates = GameModeManager.IsStandardClass()
+                ? CustomRolesHelper.AllStandardRoles.Concat(CustomRolesHelper.AllAddOns)
+                : Options.CurrentGameMode == CustomGameMode.HideAndSeek
+                    ? CustomRolesHelper.AllHASRoles.AsEnumerable()
+                    : Enumerable.Empty<CustomRoles>();
+            var groups = candidates.Distinct().Where(role => role.IsEnable() && Event.CheckRole(role))
+                .GroupBy(role => role > CustomRoles.NotAssigned ? "属性 / AddOn" : role.GetCustomRoleTypes() switch
+                {
+                    CustomRoleTypes.Crewmate => "クルーメイト",
+                    CustomRoleTypes.Impostor => "インポスター",
+                    CustomRoleTypes.Madmate => "マッドメイト",
+                    CustomRoleTypes.Neutral => "第三陣営",
+                    _ => "その他"
+                });
+            var result = new StringBuilder("現在ONになっている役職（設定上の候補）\n※実際の配役結果ではありません。");
+            bool any = false;
+            foreach (var group in groups)
+            {
+                any = true;
+                result.Append("\n\n【").Append(group.Key).Append("】");
+                foreach (var role in group)
+                    result.Append("\n・").Append(UtilsRoleText.GetRoleName(role).RemoveHtmlTags());
+            }
+            if (!any) result.Append("\nONになっている役職はありません。");
+            return result.ToString();
+        }
+
         public static string GetReply(string question)
         {
             var result = Classify(question);
@@ -140,6 +219,7 @@ namespace TownOfHost.Modules
             {
                 Intent.Greeting => "こんにちは！TownOfHost-Shellの案内AIです。",
                 Intent.MyRole => "自分の役職は /m で確認できます。",
+                Intent.EnabledRoles => GetEnabledRolesReply(),
                 Intent.RoleList => "役職一覧は /n r で確認できます。非ホストは /cmd n r I のようにカテゴリ指定が必要です。I=インポスター M=マッド C=クルー N=中立 A=属性 G=ゴースト。",
                 Intent.CurrentSettings => "現在の設定は /n で確認できます。",
                 Intent.CommandList => "コマンド一覧は /h で確認できます。",

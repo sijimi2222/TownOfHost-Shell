@@ -881,12 +881,12 @@ namespace TownOfHost
             var text = __instance.freeChatField.textArea.text;
 
             // Shell AIの質問は通常チャットやチャット履歴へ流さない。
-            if (ShellAI.TryParseCommand(text, out var aiQuestion))
+            if (ShellAI.TryParseCommand(text, out var aiQuestion, out var aiPublicReply))
             {
                 if (AmongUsClient.Instance.AmHost)
-                    SendMessage(ShellAI.GetReply(aiQuestion), PlayerControl.LocalPlayer.PlayerId, "Shell AI");
+                    ShellAI.Reply(aiQuestion, PlayerControl.LocalPlayer.PlayerId, aiPublicReply);
                 else
-                    RequestCommandProcessingFromHost("/cmd ai " + aiQuestion);
+                    RequestCommandProcessingFromHost("/cmd ai " + (aiPublicReply ? "all " : "") + aiQuestion);
                 __instance.freeChatField.textArea.Clear();
                 return false;
             }
@@ -4639,12 +4639,12 @@ namespace TownOfHost
 
             }
 
-            // Vanillaは既存の/cmd経由のみ対応。質問を再送せず、回答は送信者だけへ返す。
-            if (ShellAI.TryParseCommand(text, out var aiQuestion))
+            // Vanillaの/aiと既存の/cmd aiの両方をホストで処理する。
+            if (ShellAI.TryParseCommand(text, out var aiQuestion, out var aiPublicReply))
             {
                 canceled = true;
-                if (player != null && (Isclient || StartsWithCmdPrefix(text)))
-                    SendMessage(ShellAI.GetReply(aiQuestion), player.PlayerId, "Shell AI");
+                if (player != null)
+                    ShellAI.Reply(aiQuestion, player.PlayerId, aiPublicReply);
                 return;
             }
 

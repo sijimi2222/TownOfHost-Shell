@@ -998,7 +998,7 @@ namespace TownOfHost
 
         static readonly Regex UnderlineRegex = new(@"<u>(.*?)</u>", RegexOptions.Singleline | RegexOptions.Compiled);
 
-        public static void SendMessage(string text, byte sendTo = byte.MaxValue, string title = "", bool checkl = true, bool isTowSend = false, bool setsize = false)
+        public static void SendMessage(string text, byte sendTo = byte.MaxValue, string title = "", bool checkl = true, bool isTowSend = false, bool setsize = false, bool useChatBody = false)
 
         {
 
@@ -1218,7 +1218,7 @@ namespace TownOfHost
 
             if (setsize is false) text = $"<size=70%>{(IsRestriction() ? "<#ffffff>" : "")}{text}";
 
-            if (IsRestriction())
+            if (IsRestriction() && !useChatBody)
 
             {
 
@@ -1248,7 +1248,7 @@ namespace TownOfHost
 
             {
 
-                SendMessage(towsend, sendTo, IsRestriction() ? "NonTitle" : title, true, isTowSend: true);
+                SendMessage(towsend, sendTo, IsRestriction() && !useChatBody ? "NonTitle" : title, true, isTowSend: true, setsize: useChatBody && setsize, useChatBody: useChatBody);
 
             }
 
