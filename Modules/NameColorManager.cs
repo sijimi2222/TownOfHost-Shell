@@ -46,6 +46,10 @@ namespace TownOfHost
 
             }
 
+            // Destroyer owns only this temporary overlay, not TargetColorData.
+            if (Destroyer.HasCrushNameColor(target, isMeeting))
+                colorCode = "ff1919";
+
             // シンボル属性の持ち主は、全プレイヤーから名前が黄色に見える
 
             if (target.HasSymbol())

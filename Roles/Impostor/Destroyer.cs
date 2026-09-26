@@ -40,6 +40,7 @@ public sealed class Destroyer : RoleBase, IKiller
     private float destroyerOldSpeed;
     private float targetOldSpeed;
     private bool isCrushing;
+    private int crushGeneration;
     private readonly List<GameObject> crushMarks = new();
     private Vector2 crushPosition;
     
@@ -48,6 +49,7 @@ public sealed class Destroyer : RoleBase, IKiller
         : base(RoleInfo, player)
     {
         CustomRoleManager.MarkOthers.Add(GetMarkOthers);
+        CustomRoleManager.OnFixedUpdateOthers.Add(CleanupInvalidCrush);
     }
 
     public float CalculateKillCooldown()
@@ -79,19 +81,20 @@ public sealed class Destroyer : RoleBase, IKiller
             return;
 
         LockPlayers(target);
+        int generation = crushGeneration;
 
         
 
         _ = new LateTask(() =>
         {
-            if (!isCrushing)
+            if (!isCrushing || generation != crushGeneration)
                 return;
 
-            if (crushTarget == null)
+            if (!CanContinueCrush())
+            {
+                UnlockPlayers();
                 return;
-
-            if (!crushTarget.IsAlive())
-                return;
+            }
 
             var target = crushTarget;
 
@@ -157,7 +160,7 @@ OptCrushTime.GetFloat(),
         if (isForMeeting)
             return false;
 
-        if (!isCrushing || crushTarget == null)
+        if (!isCrushing || !CanContinueCrush())
             return false;
 
         if (seen.PlayerId != crushTarget.PlayerId)
@@ -188,7 +191,7 @@ OptCrushTime.GetFloat(),
             return "";
 
         var destroyer = PlayerCatch.AllPlayerControls
-            .FirstOrDefault(p => p.GetRoleClass() is Destroyer d && d.isCrushing && d.crushTarget?.PlayerId == seen.PlayerId);
+            .FirstOrDefault(p => p.GetRoleClass() is Destroyer d && d.isCrushing && d.CanContinueCrush() && d.crushTarget?.PlayerId == seen.PlayerId);
 
         if (destroyer == null)
             return "";
@@ -209,16 +212,13 @@ OptCrushTime.GetFloat(),
 
         crushTarget = target;
         isCrushing = true;
+        crushGeneration++;
         crushPosition = target.GetTruePosition();
 
         
         SendCrushRpc(true, target.PlayerId);
 
-        foreach (var seer in PlayerCatch.AllPlayerControls)
-        {
-            NameColorManager.Add(seer.PlayerId, Player.PlayerId, "ff1919");
-            NameColorManager.Add(seer.PlayerId, target.PlayerId, "ff1919");
-        }
+        // The crush tint is display-only; never overwrite other roles' colors.
 
         UtilsOption.MarkEveryoneDirtySettings();
         UtilsNotifyRoles.NotifyRoles();
@@ -313,27 +313,60 @@ OptCrushTime.GetFloat(),
             UnlockPlayers();
     }
 
+    private bool CanContinueCrush() => GameStates.IsInTask && !GameStates.CalledMeeting
+        && Player != null && Player.Data != null && !Player.Data.Disconnected && Player.IsAlive()
+        && crushTarget != null && crushTarget.Data != null && !crushTarget.Data.Disconnected && crushTarget.IsAlive();
+
+    public static bool HasCrushNameColor(PlayerControl target, bool isMeeting) => !isMeeting
+        && GameStates.IsInTask && !GameStates.CalledMeeting
+        && CustomRoleManager.AllActiveRoles.Values.OfType<Destroyer>().Any(role =>
+            role.isCrushing && role.CanContinueCrush()
+            && (role.Player == target || role.crushTarget == target));
+
+    public override void ReceiveRPC(MessageReader reader)
+    {
+        isCrushing = reader.ReadBoolean();
+        byte targetId = reader.ReadByte();
+        crushTarget = isCrushing ? PlayerCatch.GetPlayerById(targetId) : null;
+    }
+
+    private void CleanupInvalidCrush(PlayerControl player)
+    {
+        if (AmongUsClient.Instance.AmHost && isCrushing && !CanContinueCrush())
+            UnlockPlayers();
+    }
+
+    public override void OnDestroy()
+    {
+        CustomRoleManager.OnFixedUpdateOthers.Remove(CleanupInvalidCrush);
+        UnlockPlayers();
+        ClearCrushMarks();
+    }
+
     private void UnlockPlayers()
     {
-        if (crushTarget == null)
-            return;
-
-        Main.AllPlayerSpeed[Player.PlayerId] = destroyerOldSpeed;
-        Main.AllPlayerSpeed[crushTarget.PlayerId] = targetOldSpeed;
-
-        Player.MarkDirtySettings();
-        crushTarget.MarkDirtySettings();
-
-        foreach (var seer in PlayerCatch.AllPlayerControls)
-        {
-            NameColorManager.Remove(seer.PlayerId, Player.PlayerId);
-        }
-
-        if (crushTarget != null)
-            SendCrushRpc(false, crushTarget.PlayerId);
-
+        if (!isCrushing) return;
+        var target = crushTarget;
         isCrushing = false;
         crushTarget = null;
+        crushGeneration++; // Invalidate delayed work belonging to this crush.
+
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
+        if (Player != null)
+        {
+            Main.AllPlayerSpeed[Player.PlayerId] = destroyerOldSpeed;
+            if (GameStates.InGame) Player.MarkDirtySettings();
+        }
+        if (target != null)
+        {
+            Main.AllPlayerSpeed[target.PlayerId] = targetOldSpeed;
+            if (GameStates.InGame) target.MarkDirtySettings();
+        }
+        if (GameStates.InGame && !GameStates.IsEnded && Player != null)
+        {
+            SendCrushRpc(false, target != null ? target.PlayerId : byte.MaxValue);
+            UtilsNotifyRoles.NotifyRoles(NoCache: true);
+        }
     }
     private static void SetupOptionItem()
     {
