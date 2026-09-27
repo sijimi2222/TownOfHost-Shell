@@ -866,6 +866,8 @@ namespace TownOfHost
         Sunken,
         Tornado,
         Drowned,
+        Lightning,
+        Collapsed,
 
         etc = -1
 

@@ -142,11 +142,14 @@ public static partial class NaturalDisasters
             // Snapshot a living player's position, then allow everyone to escape during the warning.
             Vector2 position = players[IRandom.Instance.Next(players.Length)].GetTruePosition();
             impacted = false;
-            lastCountdown = warningTime.GetInt();
+            lastCountdown = kind == DisasterKind.Thunderstorm ? 0 : warningTime.GetInt();
             remaining = lastCountdown;
             spawnWait = 0f;
             DebugLog($"{kind} Start position={position}, living={players.Length}, generation={generation}");
-            meteor = new DisasterObject(position, generation, lastCountdown, kind);
+            PlainShipRoom collapseRoom = null;
+            if (kind == DisasterKind.BuildingCollapse && !TryChooseCollapseRoom(out collapseRoom, out position))
+            { WaitFor("No suitable collapse room"); remaining = interval.GetFloat(); return; }
+            meteor = new DisasterObject(position, generation, lastCountdown, kind, collapseRoom);
             return;
         }
         // The spawn queue is asynchronous. Never kill before OnCreated displayed the warning.
@@ -160,6 +163,7 @@ public static partial class NaturalDisasters
             }
             return;
         }
+        meteor.RecordSafePositions();
         remaining -= Time.fixedDeltaTime;
         LogTimer(impacted ? "ImpactVisual" : "Warning", remaining);
         if (!impacted)
@@ -173,6 +177,7 @@ public static partial class NaturalDisasters
             if (remaining > 0f) return;
             impacted = true;
             meteor.BeginMovement();
+            meteor.BeginPhase4();
             meteor.ShowImpact();
             DebugLog($"{meteor.Kind} Activated / Impact position={meteor.Position}");
             remaining = GetDuration(meteor.Kind); // Hazard remains active for the visible lifetime.
@@ -186,6 +191,7 @@ public static partial class NaturalDisasters
         }
         // Check on impact and every active impact tick, including players who enter later.
         // Snapshot living victims and suppress the end predicate until this batch resolves.
+        if (meteor.IsPhase4Disaster) { meteor.TickPhase4(); return; }
         if (meteor.IsMovingDisaster)
         {
             if (meteor.TickMovement()) CancelCurrentMeteor("Moving disaster left map bounds");
@@ -251,9 +257,10 @@ public static partial class NaturalDisasters
             }
         }
 
-        public DisasterObject(Vector2 position, int token, int warning, DisasterKind kind)
+        public DisasterObject(Vector2 position, int token, int warning, DisasterKind kind, PlainShipRoom room = null)
         {
             Kind = kind;
+            collapseRoom = room;
             this.token = token;
             this.warning = warning;
             Position = position;
@@ -273,9 +280,9 @@ public static partial class NaturalDisasters
             DebugLog($"{Kind} WarningCreated NetId={PlayerControl.NetId}, position={Position}");
         }
 
-        public void ShowWarning(int seconds) => Show($"<size=250%>{seconds}</size>\n{Translator.GetString(Kind == DisasterKind.Meteor ? "DeathReason.Meteor" : "ND" + Kind)}");
+        public void ShowWarning(int seconds) => Show(Kind == DisasterKind.Thunderstorm ? "" : $"<size=250%>{seconds}</size>\n{Translator.GetString(Kind == DisasterKind.Meteor ? "DeathReason.Meteor" : "ND" + Kind)}{CollapseRoomLabel()}");
         // Meteor rich-text sprite from the EHR commit cited at the top of this file.
-        public void ShowImpact() => Show(IsMovingDisaster ? MovingSprite() : Kind != DisasterKind.Meteor ? GetDisasterSprite(Kind, LavaPhase) : "<size=120%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
+        public void ShowImpact() => Show(IsPhase4Disaster ? Phase4Sprite() : IsMovingDisaster ? MovingSprite() : Kind != DisasterKind.Meteor ? GetDisasterSprite(Kind, LavaPhase) : "<size=120%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
 
         void Show(string text)
         {
@@ -297,6 +304,7 @@ public static partial class NaturalDisasters
             cancelled = true;
             Ready = false;
             ResetMovement();
+            ResetPhase4();
             // A reset can happen before the base class's delayed OnCreated removes this entry.
             var players = GameData.Instance?.AllPlayers;
             if (players != null && PlayerControl != null)

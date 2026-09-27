@@ -10,7 +10,7 @@ namespace TownOfHost;
 public static partial class NaturalDisasters
 {
     const float HazardRadius = 1.05f;
-    enum DisasterKind { Meteor, Earthquake, SandStorm, VolcanoEruption, Sinkhole, Tornado, Tsunami }
+    enum DisasterKind { Meteor, Earthquake, SandStorm, VolcanoEruption, Sinkhole, Tornado, Tsunami, Thunderstorm, BuildingCollapse }
     static readonly Dictionary<DisasterKind, OptionItem> weights = new();
     static OptionItem quakeDuration, quakeSpeed, sandDuration, sandVision, lavaDuration, lavaStep, holeDuration;
     // Each membership belongs to an object. Removing one source cannot remove another's effect.
@@ -18,12 +18,33 @@ public static partial class NaturalDisasters
     static readonly Dictionary<byte, HashSet<DisasterObject>> sandSources = new();
     static readonly Dictionary<byte, float> originalSpeeds = new();
 
+    // Append infinity after 120 seconds so existing saved indices keep their meaning.
+    sealed class DisasterDurationOption : IntegerOptionItem
+    {
+        public DisasterDurationOption(int id, string name, int defaultSeconds)
+            : base(id, name, defaultSeconds, TabGroup.MainSettings, false, new(1, 121, 1)) { }
+        public override string GetString() => GetInt() == 121 ? ApplyFormat("∞") : base.GetString();
+        public override string GetValueString(bool coloroff) => GetString();
+    }
+    static float DurationSeconds(OptionItem option) => option.GetInt() == 121
+        ? float.PositiveInfinity : option.GetInt();
     static void SetupPhase2Options()
     {
         SetupPhase3Options();
-        int id = 220010;
-        foreach (DisasterKind kind in Enum.GetValues(typeof(DisasterKind)))
-            weights[kind] = IntegerOptionItem.Create(id++, "NDWeight" + kind, new(0, 100, 5), 50, TabGroup.MainSettings, false)
+        SetupPhase4Options();
+        // Thunderstorm temporarily disabled. Keep enum values and all existing Option IDs.
+        // int id = 220010;
+        // foreach (DisasterKind kind in Enum.GetValues(typeof(DisasterKind)))
+        //     weights[kind] = IntegerOptionItem.Create(id++, "NDWeight" + kind, new(0, 100, 5), 50, TabGroup.MainSettings, false)
+        //         .SetTag(CustomOptionTags.NaturalDisasters);
+        foreach (DisasterKind kind in new[]
+        {
+            DisasterKind.Meteor, DisasterKind.Earthquake, DisasterKind.SandStorm,
+            DisasterKind.VolcanoEruption, DisasterKind.Sinkhole, DisasterKind.Tornado, DisasterKind.Tsunami,
+            // DisasterKind.Thunderstorm, // Thunderstorm temporarily disabled
+            DisasterKind.BuildingCollapse
+        })
+            weights[kind] = IntegerOptionItem.Create(220010 + (int)kind, "NDWeight" + kind, new(0, 100, 5), 50, TabGroup.MainSettings, false)
                 .SetTag(CustomOptionTags.NaturalDisasters);
         quakeDuration = IntegerOptionItem.Create(220020, "NDQuakeDuration", new(1, 120, 1), 30, TabGroup.MainSettings, false)
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
@@ -38,7 +59,7 @@ public static partial class NaturalDisasters
         lavaStep = FloatOptionItem.Create(220025, "NDLavaStep", new(.5f, 5f, .5f), 1f, TabGroup.MainSettings, false)
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
         // EHR sinkholes persist indefinitely. Shell explicitly bounds their lifetime.
-        holeDuration = IntegerOptionItem.Create(220026, "NDHoleDuration", new(1, 120, 1), 30, TabGroup.MainSettings, false)
+        holeDuration = new DisasterDurationOption(220026, "NDHoleDuration", 30)
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
     }
 
@@ -58,12 +79,15 @@ public static partial class NaturalDisasters
 
     static float GetDuration(DisasterKind kind) => kind switch
     {
+        // Thunderstorm temporarily disabled
+        // DisasterKind.Thunderstorm => thunderDuration.GetInt(),
+        DisasterKind.BuildingCollapse => DurationSeconds(collapseDuration),
         DisasterKind.Tornado => tornadoDuration.GetInt(),
         DisasterKind.Tsunami => float.PositiveInfinity,
         DisasterKind.Earthquake => quakeDuration.GetInt(),
         DisasterKind.SandStorm => sandDuration.GetInt(),
         DisasterKind.VolcanoEruption => 3f * lavaStep.GetFloat() + lavaDuration.GetInt(),
-        DisasterKind.Sinkhole => holeDuration.GetInt(),
+        DisasterKind.Sinkhole => DurationSeconds(holeDuration),
         _ => 5f
     };
     static float GetHazardRadius(DisasterObject source) => source.Kind == DisasterKind.VolcanoEruption

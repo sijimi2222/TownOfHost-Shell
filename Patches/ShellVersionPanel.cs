@@ -62,8 +62,9 @@ public static class ShellVersionPanel
         MainMenuManagerPatch.betaVersionMenu = panel;
         cards.Clear();
         versions = new[] { "v" + Main.PluginShowVersion, "v1.0.1", "v1.0.0", "v0.9.5", "v0.9.0" };
-        Button("Background", new(0, 0, 0), new(7.7f, 6.4f), "", Background, () => { });
-        Button("Close", new(-3.25f, 2.68f, -1), new(.6f, .55f), "×", Card, Close);
+        Button("Background", new(0, 0, 0), new(7.1f, 7.2f), "", Background, () => { });
+        var close = Button("Close", new(-3.1f, 2.49f, -2), new(.96f, .88f), "×", Card, Close);
+        close.FontSize = 4.5f;
         var title = Button("Title", new(0, 2.68f, -1), new(5.7f, .55f), "バージョン切り替え", Background, () => { });
         title.FontSize = 3f;
         Button("Current", new(0, 1.82f, -1), new(6.55f, .55f), "現在のバージョン　v" + Main.PluginShowVersion, Card, () => { });

@@ -12,6 +12,9 @@ public sealed class NDPlayer : RoleBase
         { IsInitiallyAssignableCallBack = () => false });
 
     public NDPlayer(PlayerControl player) : base(RoleInfo, player, () => HasTask.False) { }
+    public override string GetSuffix(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false)
+        => !isForMeeting && seer == Player && (seen == null || seen == seer)
+            ? NaturalDisasters.CollapseWarning(Player.PlayerId) : "";
     public override void ApplyGameOptions(IGameOptions opt)
     {
         opt.SetVision(true);
