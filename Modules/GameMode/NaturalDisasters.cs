@@ -78,7 +78,7 @@ public static partial class NaturalDisasters
     {
         ResetWithReason("OnGameStart initialization");
         IsActive = IsThisMode && Main.NormalOptions.MapId == 0;
-        if (IsActive) Main.DontGameSet = false;
+        if (IsActive) Main.DontGameSet = Options.NoGameEnd.GetBool();
         // Wait until the intro is gone; this countdown is advanced only during the task phase.
         remaining = 5f;
         DebugLog($"OnGameStart active={IsActive}, mode={IsThisMode}, map={Main.NormalOptions.MapId}, InGame={GameStates.InGame}, interval={interval.GetFloat()}, warning={warningTime.GetInt()}");
@@ -172,6 +172,7 @@ public static partial class NaturalDisasters
             }
             if (remaining > 0f) return;
             impacted = true;
+            meteor.BeginMovement();
             meteor.ShowImpact();
             DebugLog($"{meteor.Kind} Activated / Impact position={meteor.Position}");
             remaining = GetDuration(meteor.Kind); // Hazard remains active for the visible lifetime.
@@ -185,6 +186,11 @@ public static partial class NaturalDisasters
         }
         // Check on impact and every active impact tick, including players who enter later.
         // Snapshot living victims and suppress the end predicate until this batch resolves.
+        if (meteor.IsMovingDisaster)
+        {
+            if (meteor.TickMovement()) CancelCurrentMeteor("Moving disaster left map bounds");
+            return;
+        }
         UpdateDisasterEffects(meteor, GetDuration(meteor.Kind) - remaining);
         if (meteor.Kind == DisasterKind.Earthquake || meteor.Kind == DisasterKind.SandStorm) return;
         float radius = GetHazardRadius(meteor);
@@ -206,6 +212,7 @@ public static partial class NaturalDisasters
         public override bool CheckForEndGame(out GameOverReason reason)
         {
             reason = GameOverReason.ImpostorsByKill;
+            if (Options.NoGameEnd.GetBool()) return false; // Leave manual Draw termination to GameEndChecker.
             if (!IsActive || !started || ResolvingImpact || CustomWinnerHolder.WinnerTeam != CustomWinner.Default) return false;
             var alive = LivingPlayers();
             if (alive.Length > 1) return false;
@@ -217,7 +224,7 @@ public static partial class NaturalDisasters
         }
     }
 
-    sealed class DisasterObject : CustomNetObject
+    sealed partial class DisasterObject : CustomNetObject
     {
         public readonly DisasterKind Kind;
         public int LavaPhase = 1;
@@ -268,7 +275,7 @@ public static partial class NaturalDisasters
 
         public void ShowWarning(int seconds) => Show($"<size=250%>{seconds}</size>\n{Translator.GetString(Kind == DisasterKind.Meteor ? "DeathReason.Meteor" : "ND" + Kind)}");
         // Meteor rich-text sprite from the EHR commit cited at the top of this file.
-        public void ShowImpact() => Show(Kind != DisasterKind.Meteor ? GetDisasterSprite(Kind, LavaPhase) : "<size=120%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
+        public void ShowImpact() => Show(IsMovingDisaster ? MovingSprite() : Kind != DisasterKind.Meteor ? GetDisasterSprite(Kind, LavaPhase) : "<size=120%><line-height=97%><cspace=0.16em><#0000>WWW</color><mark=#fff700>WW</mark><#0000>WWW\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nW</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W</color>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>W</mark><mark=#ff1100>WW</mark><mark=#ff6f00>W</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark>\n<#0000>W</color><mark=#fff700>W</mark><mark=#ffae00>W</mark><mark=#ff6f00>WW</mark><mark=#ffae00>W</mark><mark=#fff700>W</mark><#0000>W\nWW</color><mark=#fff700>W</mark><mark=#ffae00>WW</mark><mark=#fff700>W</mark><#0000>WW\nWWW</color><mark=#fff700>WW</mark><#0000>WWW");
 
         void Show(string text)
         {
@@ -289,6 +296,7 @@ public static partial class NaturalDisasters
             RemoveEffectSource(this);
             cancelled = true;
             Ready = false;
+            ResetMovement();
             // A reset can happen before the base class's delayed OnCreated removes this entry.
             var players = GameData.Instance?.AllPlayers;
             if (players != null && PlayerControl != null)

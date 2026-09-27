@@ -62,25 +62,25 @@ public static class ShellVersionPanel
         MainMenuManagerPatch.betaVersionMenu = panel;
         cards.Clear();
         versions = new[] { "v" + Main.PluginShowVersion, "v1.0.1", "v1.0.0", "v0.9.5", "v0.9.0" };
-        Button("Background", new(0, 0, 0), new(8.8f, 5.7f), "", Background, () => { });
-        Button("Close", new(-3.85f, 2.3f, -1), new(.6f, .55f), "×", Card, Close);
-        var title = Button("Title", new(0, 2.3f, -1), new(6.5f, .55f), "バージョン切り替え", Background, () => { });
+        Button("Background", new(0, 0, 0), new(7.7f, 6.4f), "", Background, () => { });
+        Button("Close", new(-3.25f, 2.68f, -1), new(.6f, .55f), "×", Card, Close);
+        var title = Button("Title", new(0, 2.68f, -1), new(5.7f, .55f), "バージョン切り替え", Background, () => { });
         title.FontSize = 3f;
-        Button("Current", new(0, 1.55f, -1), new(7.5f, .55f), "現在のバージョン　v" + Main.PluginShowVersion, Card, () => { });
-        var latest = Button("Latest", new(0, .85f, -1), new(7.5f, .55f), "現在公開されてる最新バージョン　v" + Main.PluginShowVersion + "（仮表示）", Card, () => { });
+        Button("Current", new(0, 1.82f, -1), new(6.55f, .55f), "現在のバージョン　v" + Main.PluginShowVersion, Card, () => { });
+        var latest = Button("Latest", new(0, 1f, -1), new(6.55f, .55f), "現在公開されてる最新バージョン　v" + Main.PluginShowVersion + "（仮表示）", Card, () => { });
         latest.FontSize = 1.9f;
         // Only these three reusable slots scroll. Header objects never move.
         for (int i = 0; i < VisibleRows; i++)
         {
             int slot = i;
-            cards.Add(Button("VersionCard" + i, new(-.2f, .05f - i * .88f, -1), new(7.0f, .72f), "", Card,
+            cards.Add(Button("VersionCard" + i, new(-.2f, .04f - i * 1.02f, -1), new(6.1f, .82f), "", Card,
                 () => OnVersionSelected(versions[first + slot])));
         }
-        Button("ScrollTrack", new(3.7f, -.83f, -1), new(.22f, 2.48f), "", Card, () => { });
-        thumb = Button("ScrollThumb", new(3.7f, -.33f, -2), new(.22f, 1.48f), "", new(0, 210, 165, 255), () => { });
-        Button("ScrollUp", new(3.7f, .55f, -2), new(.4f, .35f), "▲", Card, () => Scroll(-1));
-        Button("ScrollDown", new(3.7f, -2.2f, -2), new(.4f, .35f), "▼", Card, () => Scroll(1));
-        var footer = Button("PrototypeNotice", new(0, -2.55f, -1), new(7.5f, .35f), "UIプレビュー：バージョン変更はまだ利用できません", Background, () => { });
+        Button("ScrollTrack", new(3.22f, -.98f, -1), new(.22f, 2.86f), "", Card, () => { });
+        thumb = Button("ScrollThumb", new(3.22f, -.408f, -2), new(.22f, 1.716f), "", new(0, 210, 165, 255), () => { });
+        Button("ScrollUp", new(3.22f, .65f, -2), new(.4f, .35f), "▲", Card, () => Scroll(-1));
+        Button("ScrollDown", new(3.22f, -2.61f, -2), new(.4f, .35f), "▼", Card, () => Scroll(1));
+        var footer = Button("PrototypeNotice", new(0, -2.92f, -1), new(6.55f, .35f), "UIプレビュー：バージョン変更はまだ利用できません", Background, () => { });
         footer.FontSize = 1.6f;
     }
 
@@ -102,7 +102,7 @@ public static class ShellVersionPanel
             cards[i].Label.text = version + (current ? "　　　　　　　適用中" : "　　　　　　　切り替え（準備中）");
             cards[i].NormalSprite.color = cards[i].HoverSprite.color = current ? new Color32(22, 110, 97, 255) : Card;
         }
-        thumb.Button.transform.localPosition = new(3.7f, -.33f - first * .5f, -2);
+        thumb.Button.transform.localPosition = new(3.22f, -.408f - first * .572f, -2);
     }
 
     public static void Close()
@@ -127,15 +127,15 @@ public static class ShellVersionPanel
         var camera = Camera.main;
         if (camera == null) return;
         var mouse = panel.transform.InverseTransformPoint(camera.ScreenToWorldPoint(Input.mousePosition));
-        if (Mathf.Abs(mouse.x) < 4f && mouse.y < .55f && mouse.y > -2.25f)
+        if (Mathf.Abs(mouse.x) < 3.5f && mouse.y < .65f && mouse.y > -2.61f)
         {
             if (Input.mouseScrollDelta.y != 0) Scroll(Input.mouseScrollDelta.y > 0 ? -1 : 1);
         }
-        if (Input.GetMouseButtonDown(0) && Mathf.Abs(mouse.x - 3.7f) < .25f && mouse.y < .4f && mouse.y > -2.1f) dragging = true;
+        if (Input.GetMouseButtonDown(0) && Mathf.Abs(mouse.x - 3.22f) < .25f && mouse.y < .45f && mouse.y > -2.41f) dragging = true;
         if (!Input.GetMouseButton(0)) dragging = false;
         if (dragging)
         {
-            first = Mathf.RoundToInt(Mathf.Clamp01((-.33f - mouse.y) / 1f) * (versions.Length - VisibleRows));
+            first = Mathf.RoundToInt(Mathf.Clamp01((-.408f - mouse.y) / 1.144f) * (versions.Length - VisibleRows));
             Refresh();
         }
     }

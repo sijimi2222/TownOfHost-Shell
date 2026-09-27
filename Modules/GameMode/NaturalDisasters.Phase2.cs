@@ -10,7 +10,7 @@ namespace TownOfHost;
 public static partial class NaturalDisasters
 {
     const float HazardRadius = 1.05f;
-    enum DisasterKind { Meteor, Earthquake, SandStorm, VolcanoEruption, Sinkhole }
+    enum DisasterKind { Meteor, Earthquake, SandStorm, VolcanoEruption, Sinkhole, Tornado, Tsunami }
     static readonly Dictionary<DisasterKind, OptionItem> weights = new();
     static OptionItem quakeDuration, quakeSpeed, sandDuration, sandVision, lavaDuration, lavaStep, holeDuration;
     // Each membership belongs to an object. Removing one source cannot remove another's effect.
@@ -20,6 +20,7 @@ public static partial class NaturalDisasters
 
     static void SetupPhase2Options()
     {
+        SetupPhase3Options();
         int id = 220010;
         foreach (DisasterKind kind in Enum.GetValues(typeof(DisasterKind)))
             weights[kind] = IntegerOptionItem.Create(id++, "NDWeight" + kind, new(0, 100, 5), 50, TabGroup.MainSettings, false)
@@ -57,6 +58,8 @@ public static partial class NaturalDisasters
 
     static float GetDuration(DisasterKind kind) => kind switch
     {
+        DisasterKind.Tornado => tornadoDuration.GetInt(),
+        DisasterKind.Tsunami => float.PositiveInfinity,
         DisasterKind.Earthquake => quakeDuration.GetInt(),
         DisasterKind.SandStorm => sandDuration.GetInt(),
         DisasterKind.VolcanoEruption => 3f * lavaStep.GetFloat() + lavaDuration.GetInt(),

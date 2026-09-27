@@ -84,7 +84,8 @@ namespace TownOfHost
 
 
 
-            if (Main.DontGameSet && CustomWinnerHolder.WinnerTeam != CustomWinner.Draw) return false;
+            if ((Main.DontGameSet || (NaturalDisasters.IsThisMode && Options.NoGameEnd.GetBool()))
+                && CustomWinnerHolder.WinnerTeam != CustomWinner.Draw) return false;
 
 
 

@@ -864,6 +864,8 @@ namespace TownOfHost
         Meteor,
         Lava,
         Sunken,
+        Tornado,
+        Drowned,
 
         etc = -1
 
