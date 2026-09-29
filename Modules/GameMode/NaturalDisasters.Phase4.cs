@@ -7,8 +7,16 @@ namespace TownOfHost;
 // EHR 56d510116d640fb63ee5192e71fd2f5377772840: room exclusion and safe-position return.
 public static partial class NaturalDisasters
 {
-    public static string CollapseWarning(byte playerId) => IsActive && IsThisMode && meteor != null
-        ? meteor.GetCollapseWarning(playerId) : "";
+    public static string CollapseWarning(byte playerId)
+    {
+        if (!IsActive || !IsThisMode) return "";
+        foreach (var disaster in disasters)
+        {
+            string warning = disaster.GetCollapseWarning(playerId);
+            if (warning.Length > 0) return warning;
+        }
+        return "";
+    }
     static OptionItem thunderDuration, lightningInterval, collapseDuration;
     static void SetupPhase4Options()
     {
@@ -29,23 +37,12 @@ public static partial class NaturalDisasters
         int count = 0;
         foreach (var room in ShipStatus.Instance.AllRooms)
         {
-            if (room == null || room.roomArea == null || room.RoomId is SystemTypes.Hallway or SystemTypes.Outside
-                or SystemTypes.Decontamination2 or SystemTypes.Decontamination3) continue;
-            if (IRandom.Instance.Next(++count) == 0) selected = room;
+            if (IsRoomReserved(room) || !TryRoomFloor(room, out Vector2 floor)) continue;
+            if (IRandom.Instance.Next(++count) != 0) continue;
+            selected = room;
+            position = floor;
         }
-        if (selected == null) return false;
-        position = selected.transform.position;
-        if (selected.roomArea.OverlapPoint(position)) return true;
-        var bounds = selected.roomArea.bounds;
-        position = bounds.center;
-        if (selected.roomArea.OverlapPoint(position)) return true;
-        // Bounded sampling handles non-rectangular room colliders without an unbounded search.
-        for (int i = 0; i < 32; i++)
-        {
-            position = new Vector2(UnityEngine.Random.Range(bounds.min.x, bounds.max.x), UnityEngine.Random.Range(bounds.min.y, bounds.max.y));
-            if (selected.roomArea.OverlapPoint(position)) return true;
-        }
-        return false;
+        return selected != null;
     }
 
     sealed partial class DisasterObject
@@ -65,6 +62,8 @@ public static partial class NaturalDisasters
         }
         bool IsCollapsedRoomPoint(Vector2 pos) => collapseRoom != null && collapseRoom.roomArea != null
             && collapseRoom.roomArea.OverlapPoint(pos);
+        public bool UsesRoom(PlainShipRoom room) => !cancelled && Kind == DisasterKind.BuildingCollapse && collapseRoom == room;
+        public bool ContainsReservedRoom(Vector2 position) => !cancelled && Kind == DisasterKind.BuildingCollapse && IsCollapsedRoomPoint(position);
         string CollapseRoomLabel() => Kind == DisasterKind.BuildingCollapse && collapseRoom != null
             ? "\n" + Translator.GetString(collapseRoom.RoomId.ToString()) : "";
 
@@ -131,9 +130,9 @@ public static partial class NaturalDisasters
                 var pc = players[i];
                 if (pc != null && pc.PlayerId < 254)
                     UpdateCollapseWarning(pc, !collapseActive && Ready && IsLivingParticipant(pc)
-                        && IsCollapsedRoomPoint(pc.GetTruePosition()) ? Mathf.Max(0, Mathf.CeilToInt(remaining)) : 0);
+                        && IsCollapsedRoomPoint(pc.GetTruePosition()) ? Mathf.Max(0, Mathf.CeilToInt(Remaining)) : 0);
                 if (!IsLivingParticipant(pc) || pc.inVent || pc.onLadder || pc.inMovingPlat) continue;
-                if (!IsCollapsedRoomPoint(pc.GetTruePosition())) safePlaces[pc.PlayerId] = new SafePlace(pc);
+                if (!IsUnsafeCollapsePosition(pc.GetTruePosition())) safePlaces[pc.PlayerId] = new SafePlace(pc);
             }
         }
 
@@ -213,7 +212,7 @@ public static partial class NaturalDisasters
                     if (!IsCollapsedRoomPoint(pc.GetTruePosition())) continue;
                     if (nextReturn.TryGetValue(pc.PlayerId, out float due) && Time.fixedTime < due) continue;
                     nextReturn[pc.PlayerId] = Time.fixedTime + .5f;
-                    if (safePlaces.TryGetValue(pc.PlayerId, out var safe) && !IsCollapsedRoomPoint(safe.Feet))
+                    if (safePlaces.TryGetValue(pc.PlayerId, out var safe) && !IsUnsafeCollapsePosition(safe.Feet))
                     {
                         pc.RpcSnapToForced(safe.Snap);
                         DebugLog($"BuildingCollapse PlayerReturned PlayerId={pc.PlayerId}, room={collapseRoom.RoomId}");

@@ -654,6 +654,7 @@ namespace TownOfHost
 
         {
 
+            NaturalDisasters.FinishSurvival();
             GameStates.IsOutro = true;
 
 
@@ -887,6 +888,8 @@ namespace TownOfHost
                 var target = (winnerList.Contains(pc.PlayerId) ? pc : (winnerList.Count == 0 ? pc : PlayerCatch.GetPlayerById(winnerList.OrderBy(pc => pc).FirstOrDefault()) ?? pc)) ?? pc;
 
                 var targetname = Main.AllPlayerNames[target.PlayerId];
+                if (NaturalDisasters.HasSurvivalResults)
+                    targetname += "\n" + NaturalDisasters.PersonalSurvivalResult(pc.PlayerId);
 
                 var text = $"<voffset=25>{CustomWinnerText}\n<voffset=0>{targetname}\n\n<voffset=24><size=40%><{Main.ModColor}>TownOfHost-Shell</color><#ffffff>v.{Main.PluginShowVersion}</size>";// sb.ToString() +$"\n</align><voffset=23>{CustomWinnerText}\n<voffset=45><size=1.75>{targetname}";
 

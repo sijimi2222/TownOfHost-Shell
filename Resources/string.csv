@@ -8236,7 +8236,7 @@
 "TigerSpeed","Predation speed multiplier","捕食中の移動速度倍率"
 "TigerVision","Predation vision multiplier","捕食中の視界倍率"
 
-"NaturalDisasters","Natural Disasters (Skeld)","災害モード（Skeld）"
+"NaturalDisasters","Natural Disasters","災害モード"
 "NDPlayer","Disaster Survivor","災害サバイバー"
 "NDPlayerInfo","Survive the meteors","隕石を避けて最後まで生き残れ"
 "NDPlayerInfoLong","Survive meteor strikes on The Skeld. Escape the warning marker before its countdown ends. Players within 1.5 units of the impact die. The last survivor wins. No kills, reports, meetings, sabotage, vents or in-game chat.","The Skeldで隕石を避けるモード。予告のカウントが終わる前にその場所から離れよう。着弾地点の半径1.5以内にいると死亡。最後の生存者が勝利。キル・通報・会議・サボタージュ・ベント・試合中チャットは使用不可。"
@@ -8244,7 +8244,7 @@
 "NDMeteorInterval","Interval after meteor disappears","隕石消滅後の発生間隔"
 "NDMeteorWarning","Meteor warning time","隕石の予告時間"
 "DeathReason.Meteor","Meteor","隕石"
-"GameModeInfo_NaturalDisasters","Phase 4: Skeld only. Nine disasters; one at a time. Meteor interval/warning options apply to all disasters. No in-game chat.","Phase 4：Skeld限定、9種類の災害から生き残るモード。同時発生は1個。隕石の発生間隔・予告時間を全災害で共用。試合中チャットは使用不可。"
+"GameModeInfo_NaturalDisasters","Phase 5: Skeld / MIRA HQ / Polus / Airship / Fungle. Eight disasters; configurable concurrency. Meteor interval/warning options apply to all disasters. No in-game chat.","Phase 5：Skeld / MIRA HQ / Polus / Airship / Fungle対応。8種類の災害、同時発生数は設定可能。隕石の発生間隔・予告時間を全災害で共用。試合中チャットは使用不可。"
 "NDWeightMeteor","Meteor selection weight (0: disabled)","隕石 抽選値（0で無効）"
 "NDWeightEarthquake","Earthquake selection weight (0: disabled)","地震 抽選値（0で無効）"
 "NDWeightSandStorm","Sandstorm selection weight (0: disabled)","砂嵐 抽選値（0で無効）"
@@ -8285,3 +8285,15 @@
 "NDCollapseWarning","⚠ This room collapses in {0} seconds!\nLeave this room!","⚠ あと{0}秒でこの部屋が崩壊します！\nこの部屋から離れろ！"
 "DeathReason.Lightning","Lightning","落雷"
 "DeathReason.Collapsed","Collapsed","崩壊"
+
+"NDResults","Natural Disasters results","自然災害モード 結果"
+"NDSurvivors","Survivors","最後まで生き残ったプレイヤー"
+"NDNoSurvivors","None","なし"
+"NDSurvivalTime","{0}m {1:00}s","{0}分{1:00}秒"
+"NDSurvivalRank","#{0}  {1}  {2}","{0}位　{1}　{2}"
+"NDYourSurvival","Your survival time: {0}","あなたの生存時間：{0}"
+"NDDisconnected","Disconnected","切断"
+
+"NDLivingMembers","―― Survival members ――","―― 生存メンバー ――"
+"NDMaxDisasters","Maximum simultaneous disasters","同時発生できる自然災害の最大数"
+"NDExcludePersistent","Do not count collapsed rooms and sinkholes","崩壊された部屋と陥没穴は自然災害の数に入れない"

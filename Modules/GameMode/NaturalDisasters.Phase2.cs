@@ -63,14 +63,15 @@ public static partial class NaturalDisasters
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
     }
 
-    static bool TrySelectDisaster(out DisasterKind selected)
+    static bool TrySelectDisaster(out DisasterKind selected, bool onlyUncounted = false)
     {
         selected = DisasterKind.Meteor;
-        int total = weights.Values.Sum(option => option.GetInt());
+        int total = weights.Where(entry => !onlyUncounted || IsUncounted(entry.Key)).Sum(entry => entry.Value.GetInt());
         if (total <= 0) return false;
         int roll = IRandom.Instance.Next(total);
         foreach (var entry in weights)
         {
+            if (onlyUncounted && !IsUncounted(entry.Key)) continue;
             roll -= entry.Value.GetInt();
             if (roll < 0) { selected = entry.Key; return true; }
         }

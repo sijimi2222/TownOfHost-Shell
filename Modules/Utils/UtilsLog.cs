@@ -816,6 +816,12 @@ namespace TownOfHost
 
             }
 
+            if (NaturalDisasters.HasSurvivalResults)
+            {
+                NaturalDisasters.SendSurvivalResults(PlayerId);
+                return;
+            }
+
             var sb = new StringBuilder();
 
 

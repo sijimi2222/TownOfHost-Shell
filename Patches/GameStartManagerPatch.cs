@@ -401,7 +401,7 @@ namespace TownOfHost
                 //Main.NormalOptions.KillCooldown = 0f;
 
                 var opt = Main.NormalOptions.Cast<IGameOptions>();
-                if (NaturalDisasters.IsThisMode) Main.NormalOptions.MapId = 0;
+                if (NaturalDisasters.IsThisMode && !NaturalDisasters.SupportsMap(Main.NormalOptions.MapId)) Main.NormalOptions.MapId = 0;
                 AURoleOptions.SetOpt(opt);
                 Main.LastShapeshifterCooldown.Value = AURoleOptions.ShapeshifterCooldown;
                 AURoleOptions.ShapeshifterCooldown = 0f;

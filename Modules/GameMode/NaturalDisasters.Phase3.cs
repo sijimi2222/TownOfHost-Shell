@@ -49,6 +49,7 @@ public static partial class NaturalDisasters
                 bottom = Mathf.Min(bottom, pos.y); top = Mathf.Max(top, pos.y);
             }
             movementBounds = Rect.MinMaxRect(left - 5, bottom - 5, right + 5, top + 5);
+            if (Main.NormalOptions.MapId != 0) movementBounds = MapMovementBounds(Position);
             movementStarted = true;
             if (Kind == DisasterKind.Tornado) ChangeDirection(false);
             else
@@ -65,7 +66,25 @@ public static partial class NaturalDisasters
                 }
                 waveDirection = 0;
                 for (int i = 1; i < 4; i++) if (counts[i] > counts[waveDirection]) waveDirection = i;
-                if (counts[waveDirection] == 0) waveDirection = IRandom.Instance.Next(4);
+                if (counts[waveDirection] == 0)
+                {
+                    if (Main.NormalOptions.MapId == 0) waveDirection = IRandom.Instance.Next(4);
+                    else
+                    {
+                        // Favor a traversable initial stretch on this map, not empty space.
+                        float longest = -1f;
+                        for (int i = 0; i < WaveDirections.Length; i++)
+                        {
+                            float length = 0f;
+                            for (float step = .25f; step <= 8f; step += .25f)
+                            {
+                                if (PhysicsHelpers.AnyNonTriggersBetween(Position, WaveDirections[i], step, Constants.ShipOnlyMask)) break;
+                                length = step;
+                            }
+                            if (length > longest) { longest = length; waveDirection = i; }
+                        }
+                    }
+                }
                 direction = WaveDirections[waveDirection];
             }
         }

@@ -7,20 +7,20 @@ using UnityEngine;
 
 namespace TownOfHost;
 
-// Skeld disasters. Based on EHR 56d510116d640fb63ee5192e71fd2f5377772840.
+// Natural Disasters on supported official maps. Based on EHR 56d510116d640fb63ee5192e71fd2f5377772840.
 public static partial class NaturalDisasters
 {
     public static bool IsThisMode => Options.GameMode != null && Options.CurrentGameMode == CustomGameMode.NaturalDisasters;
     public static bool IsActive { get; private set; }
     public static bool ResolvingImpact { get; private set; }
-    static OptionItem interval, warningTime;
-    static DisasterObject meteor;
+    static OptionItem interval, warningTime, maxDisasters, excludePersistent;
+    static readonly List<DisasterObject> disasters = new();
     static float remaining;
-    static bool impacted;
+
     static bool started;
-    static int lastCountdown;
+
     static int generation;
-    static float spawnWait;
+
     // Match the actual registered Meteor object, not every dummy or player without role data.
     public static bool IsDisasterDisplay(PlayerControl player) => player != null && player.PlayerId == 254
         && CustomNetObject.AllObjects.Any(obj => obj is DisasterObject && obj.PlayerControl == player);
@@ -46,6 +46,10 @@ public static partial class NaturalDisasters
     {
         ObjectOptionitem.Create(1_000_220, "NaturalDisasters", true, null, TabGroup.MainSettings)
             .SetColorcode("#03fc4a").SetTag(CustomOptionTags.NaturalDisasters);
+        maxDisasters = IntegerOptionItem.Create(220002, "NDMaxDisasters", new(1, 15, 1), 3, TabGroup.MainSettings, false)
+            .SetTag(CustomOptionTags.NaturalDisasters);
+        excludePersistent = BooleanOptionItem.Create(220003, "NDExcludePersistent", false, TabGroup.MainSettings, false)
+            .SetTag(CustomOptionTags.NaturalDisasters);
         SetupPhase2Options();
         interval = FloatOptionItem.Create(220000, "NDMeteorInterval", new(0.5f, 20f, 0.5f), 2f, TabGroup.MainSettings, false)
             .SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.NaturalDisasters);
@@ -58,17 +62,21 @@ public static partial class NaturalDisasters
 
     public static void ResetWithReason(string reason)
     {
-        if (IsThisMode || IsActive || meteor != null)
+        if (IsThisMode || IsActive || disasters.Count != 0)
             DebugLog($"Cancel reason = {reason}; active={IsActive}, started={started}, InGame={GameStates.InGame}, introDestroyed={GameStates.introDestroyed}");
+        ResetSurvival(reason);
+        mapFloorAnchors.Clear();
         IsActive = false;
         started = false;
         ResolvingImpact = false;
         generation++;
-        meteor?.Cancel(reason);
-        meteor = null;
+        foreach (var disaster in disasters) disaster.Cancel(reason);
+        disasters.Clear();
         ClearAreaEffects();
         remaining = 0;
-        impacted = false;
+
+
+
         lastWaitReason = null;
         updateLogged = false;
         nextTimerLog = 0f;
@@ -77,7 +85,9 @@ public static partial class NaturalDisasters
     public static void OnGameStart()
     {
         ResetWithReason("OnGameStart initialization");
-        IsActive = IsThisMode && Main.NormalOptions.MapId == 0;
+        IsActive = IsThisMode && SupportsMap(Main.NormalOptions.MapId);
+        if (IsActive) InitializeMap();
+        BeginSurvival();
         if (IsActive) Main.DontGameSet = Options.NoGameEnd.GetBool();
         // Wait until the intro is gone; this countdown is advanced only during the task phase.
         remaining = 5f;
@@ -86,7 +96,7 @@ public static partial class NaturalDisasters
 
     public static PlayerControl[] LivingPlayers() => PlayerCatch.AllPlayerControls
         .Where(pc => pc != null && pc.Data != null && !pc.Data.Disconnected && !pc.Data.IsDead
-            && pc.IsAlive() && !pc.Is(CustomRoles.GM) && !pc.IsTestBot() && !pc.isDummy && pc.PlayerId < 254)
+            && pc.IsAlive() && !pc.Is(CustomRoles.GM) && !pc.IsTestBot() && !pc.isDummy && !pc.notRealPlayer && pc.PlayerId <= 15)
         .ToArray();
 
     public static void OnPlayerLeft() => CancelCurrentMeteor("PlayerLeft");
@@ -97,9 +107,9 @@ public static partial class NaturalDisasters
         DebugLog($"Cancel reason = {reason}");
         // Discard the pending warning too; never keep a disconnected player as a target.
         generation++;
-        meteor?.Cancel(reason);
-        meteor = null;
-        impacted = false;
+        foreach (var disaster in disasters) disaster.Cancel(reason);
+        disasters.Clear();
+
         remaining = interval.GetFloat();
     }
 
@@ -111,6 +121,7 @@ public static partial class NaturalDisasters
             if (IsThisMode && !GameStates.IsLobby && !GameStates.IsEnded) WaitFor("IsActive=false");
             return;
         }
+        TickSurvival();
         if (!updateLogged)
         {
             updateLogged = true;
@@ -126,67 +137,73 @@ public static partial class NaturalDisasters
         if (!GameStates.InGame || GameStates.IsLobby || !GameStates.introDestroyed)
         { WaitFor("WaitingForIntro"); return; }
         if (!GameStates.IsInTask || GameStates.IsMeeting || ExileController.Instance)
-        { if (meteor != null) CancelCurrentMeteor("Task phase interrupted"); WaitFor($"TaskPhaseGate: task={GameStates.IsInTask}, meeting={GameStates.IsMeeting}, exile={ExileController.Instance != null}"); return; }
+        { if (disasters.Count != 0) CancelCurrentMeteor("Task phase interrupted"); WaitFor($"TaskPhaseGate: task={GameStates.IsInTask}, meeting={GameStates.IsMeeting}, exile={ExileController.Instance != null}"); return; }
         if (lastWaitReason == "WaitingForIntro" || lastWaitReason?.StartsWith("TaskPhaseGate:") == true)
             lastWaitReason = null;
         started = true;
         if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default) { ResetWithReason($"Winner={CustomWinnerHolder.WinnerTeam}"); return; }
-        if (meteor == null)
+        // Each object owns its warning and active lifetime; a warning reserves a slot immediately.
+        for (int i = disasters.Count - 1; i >= 0; i--)
         {
-            remaining -= Time.fixedDeltaTime;
-            LogTimer("BeforeMeteor", remaining);
-            if (remaining > 0f) return;
-            var players = LivingPlayers();
-            if (players.Length < 2) { WaitFor($"LivingPlayers={players.Length}; need at least 2"); return; }
-            if (!TrySelectDisaster(out var kind)) { WaitFor("No enabled disasters"); remaining = interval.GetFloat(); return; }
-            // Snapshot a living player's position, then allow everyone to escape during the warning.
-            Vector2 position = players[IRandom.Instance.Next(players.Length)].GetTruePosition();
-            impacted = false;
-            lastCountdown = kind == DisasterKind.Thunderstorm ? 0 : warningTime.GetInt();
-            remaining = lastCountdown;
-            spawnWait = 0f;
-            DebugLog($"{kind} Start position={position}, living={players.Length}, generation={generation}");
-            PlainShipRoom collapseRoom = null;
-            if (kind == DisasterKind.BuildingCollapse && !TryChooseCollapseRoom(out collapseRoom, out position))
-            { WaitFor("No suitable collapse room"); remaining = interval.GetFloat(); return; }
-            meteor = new DisasterObject(position, generation, lastCountdown, kind, collapseRoom);
-            return;
+            var disaster = disasters[i];
+            if (!disaster.Cancelled) TickDisaster(disaster);
+            if (disaster.Cancelled) disasters.RemoveAt(i);
         }
+        bool full = CountDisasterSlots() >= maxDisasters.GetInt();
+        if (full && !excludePersistent.GetBool())
+        { remaining = interval.GetFloat(); return; }
+        remaining -= Time.fixedDeltaTime;
+        LogTimer("BeforeMeteor", remaining);
+        if (remaining > 0f) return;
+        remaining = interval.GetFloat();
+        if (!TrySelectDisaster(out var kind, full)) { WaitFor("No eligible disasters / slots full"); return; }
+        var players = LivingPlayers();
+        if (!TryDisasterPosition(players, out Vector2 position)) { WaitFor("No reachable disaster position"); return; }
+        PlainShipRoom collapseRoom = null;
+        if (kind == DisasterKind.BuildingCollapse && !TryChooseCollapseRoom(out collapseRoom, out position))
+        { WaitFor("No suitable unreserved collapse room"); return; }
+        int warning = kind == DisasterKind.Thunderstorm ? 0 : warningTime.GetInt();
+        disasters.Add(new DisasterObject(position, generation, warning, kind, collapseRoom));
+        DebugLog($"{kind} Start position={position}, living={players.Length}, generation={generation}, slots={CountDisasterSlots()}/{maxDisasters.GetInt()}");
+    }
+
+    static void TickDisaster(DisasterObject meteor)
+    {
         // The spawn queue is asynchronous. Never kill before OnCreated displayed the warning.
         if (!meteor.Ready)
         {
-            spawnWait += Time.fixedDeltaTime;
-            LogTimer("WaitingForCustomNetObject", spawnWait);
-            if (spawnWait >= 10f)
+            meteor.SpawnWait += Time.fixedDeltaTime;
+            LogTimer("WaitingForCustomNetObject", meteor.SpawnWait);
+            if (meteor.SpawnWait >= 10f)
             {
-                CancelCurrentMeteor("CustomNetObject not ready after 10 seconds; no damage");
+                meteor.Cancel("CustomNetObject not ready after 10 seconds; no damage");
             }
             return;
         }
         meteor.RecordSafePositions();
-        remaining -= Time.fixedDeltaTime;
-        LogTimer(impacted ? "ImpactVisual" : "Warning", remaining);
-        if (!impacted)
+        meteor.Remaining -= Time.fixedDeltaTime;
+        LogTimer(meteor.Impacted ? "ImpactVisual" : "Warning", meteor.Remaining);
+        if (!meteor.Impacted)
         {
-            int countdown = Mathf.Max(0, Mathf.CeilToInt(remaining));
-            if (countdown != lastCountdown && countdown > 0)
+            int countdown = Mathf.Max(0, Mathf.CeilToInt(meteor.Remaining));
+            if (countdown != meteor.LastCountdown && countdown > 0)
             {
-                lastCountdown = countdown;
+                meteor.LastCountdown = countdown;
                 meteor.ShowWarning(countdown);
             }
-            if (remaining > 0f) return;
-            impacted = true;
+            if (meteor.Remaining > 0f) return;
+            meteor.Impacted = true;
             meteor.BeginMovement();
             meteor.BeginPhase4();
             meteor.ShowImpact();
             DebugLog($"{meteor.Kind} Activated / Impact position={meteor.Position}");
-            remaining = GetDuration(meteor.Kind); // Hazard remains active for the visible lifetime.
+            meteor.Remaining = GetDuration(meteor.Kind); // Hazard remains active for the visible lifetime.
         }
-        else if (remaining <= 0f)
+        else if (meteor.Remaining <= 0f)
         {
             meteor.Cancel("Impact visual expired");
-            meteor = null;
-            remaining = interval.GetFloat();
+
+
             return;
         }
         // Check on impact and every active impact tick, including players who enter later.
@@ -194,10 +211,10 @@ public static partial class NaturalDisasters
         if (meteor.IsPhase4Disaster) { meteor.TickPhase4(); return; }
         if (meteor.IsMovingDisaster)
         {
-            if (meteor.TickMovement()) CancelCurrentMeteor("Moving disaster left map bounds");
+            if (meteor.TickMovement()) meteor.Cancel("Moving disaster left map bounds");
             return;
         }
-        UpdateDisasterEffects(meteor, GetDuration(meteor.Kind) - remaining);
+        UpdateDisasterEffects(meteor, GetDuration(meteor.Kind) - meteor.Remaining);
         if (meteor.Kind == DisasterKind.Earthquake || meteor.Kind == DisasterKind.SandStorm) return;
         float radius = GetHazardRadius(meteor);
         var victims = LivingPlayers().Where(pc => Vector2.Distance(pc.GetTruePosition(), meteor.Position) <= radius).ToArray();
@@ -233,6 +250,10 @@ public static partial class NaturalDisasters
     sealed partial class DisasterObject : CustomNetObject
     {
         public readonly DisasterKind Kind;
+        public float Remaining, SpawnWait;
+        public bool Impacted;
+        public int LastCountdown;
+        public bool Cancelled => cancelled;
         public int LavaPhase = 1;
         public float NextEffectCheck;
         public readonly HashSet<byte> InsidePlayers = new();
@@ -263,6 +284,8 @@ public static partial class NaturalDisasters
             collapseRoom = room;
             this.token = token;
             this.warning = warning;
+            Remaining = warning;
+            LastCountdown = warning;
             Position = position;
             DebugLog($"CreateWarning position={position}, seconds={warning}, generation={token}");
             CreateNetObject(position);
@@ -303,6 +326,9 @@ public static partial class NaturalDisasters
             RemoveEffectSource(this);
             cancelled = true;
             Ready = false;
+            Remaining = SpawnWait = 0f;
+            LastCountdown = 0;
+            Impacted = false;
             ResetMovement();
             ResetPhase4();
             // A reset can happen before the base class's delayed OnCreated removes this entry.

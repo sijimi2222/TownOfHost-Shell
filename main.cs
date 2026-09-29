@@ -150,9 +150,11 @@ namespace TownOfHost
 
 
 
-        public static readonly string MatchmakingRelayUrl = "";
+        public static readonly string MatchmakingRelayUrl =
+    "https://toh-shell-relay.toh-shell.workers.dev";
 
-        public static readonly string MatchmakingRelaySecret = "";
+        public static readonly string MatchmakingRelaySecret =
+            "08f54dba28b6ea925d8a0d2f8c48a4927645b3b524f64d9705ec2602042ed054";
 
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 

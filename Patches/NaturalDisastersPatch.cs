@@ -15,6 +15,15 @@ static class NaturalDisastersPatch
     [HarmonyPostfix, HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.OnPlayerLeft))]
     static void PlayerLeft() => NaturalDisasters.OnPlayerLeft();
 
+    [HarmonyPrefix, HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.OnPlayerLeft))]
+    static void RecordLeft([HarmonyArgument(0)] InnerNet.ClientData data)
+    {
+        if (data?.Character != null) NaturalDisasters.RecordSurvivalStop(data.Character.PlayerId, true);
+    }
+
+    [HarmonyPrefix, HarmonyPatch(typeof(PlayerState), nameof(PlayerState.SetDead))]
+    static void RecordDeath(byte ___PlayerId) => NaturalDisasters.RecordSurvivalStop(___PlayerId);
+
     [HarmonyPrefix, HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.OnGameEnd))]
     static void End() => NaturalDisasters.ResetWithReason("AmongUsClient.OnGameEnd");
 
@@ -30,9 +39,12 @@ static class NaturalDisastersPatch
     [HarmonyPrefix, HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.CloseDoorsOfType))]
     static bool Doors() => !NaturalDisasters.IsThisMode;
 
+    [HarmonyPostfix, HarmonyPriority(Priority.Last), HarmonyPatch(typeof(TaskPanelBehaviour), nameof(TaskPanelBehaviour.SetTaskText))]
+    static void TaskRoster(TaskPanelBehaviour __instance) => NaturalDisasters.AppendSurvivalRoster(__instance);
     [HarmonyPostfix, HarmonyPriority(Priority.Last), HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
     static void Hud(HudManager __instance)
     {
+        NaturalDisasters.AppendSurvivalRoster(__instance?.TaskPanel);
         if (!NaturalDisasters.IsThisMode || !GameStates.InGame || !GameStates.introDestroyed) return;
         __instance.KillButton?.ToggleVisible(false);
         __instance.ReportButton?.ToggleVisible(false);

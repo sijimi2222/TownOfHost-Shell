@@ -1,6 +1,7 @@
 using System;
 
 using System.IO;
+using System.Collections.Generic;
 
 using System.Net.Http;
 
@@ -158,28 +159,38 @@ namespace TownOfHost
 
 
 
-        private static string _lastRoomCode = "";
 
-        private static string _lastMessageId = "";
+        // Session objects keep late responses from modifying a newer recruitment.
+        private sealed class Recruitment
+        {
+            public LobbySnapshot Lobby = new();
+            public string SessionId = "";
+            public string MessageId = "";
+            public string LastSnapshot = "";
+            public string DeleteReason = "";
+            public bool Closed;
+            public bool UpsertPending;
+            public bool DeletePending;
+            public long RetryDeleteAtMs;
+        }
 
-        private static string _lastSnapshot = "";
+        private sealed record LobbySnapshot(
+            string HostName = "Unknown Host", string RoomCode = "", string State = "Unknown",
+            int Players = 0, int MaxPlayers = 0, int ProgressPercent = 0,
+            string Region = "Unknown", string Map = "Unknown", string GameMode = "Unknown",
+            string ShellVersion = "", string ThreadComment = "");
 
+        private static readonly List<Recruitment> Recruitments = new();
+        private static Recruitment _current;
+        private static Task _sendTail = Task.CompletedTask;
         private static bool _activeRecruitment;
-
         private static bool _forceUpdateRequested;
-
         private static long _nextUpdateAtMs;
-
-
-
         private const int UpdateIntervalMs = 6000;
-
-
-
         private static readonly string PersistedStateFilePath = Path.Combine(Main.BaseDirectory, "discord_matchmaking_active.txt");
-
         private static bool _startupStaleCheckDone;
-
+        private static bool RelayConfigured => !string.IsNullOrWhiteSpace(Main.MatchmakingRelayUrl)
+            && !Main.MatchmakingRelayUrl.Equals("none", StringComparison.OrdinalIgnoreCase);
 
 
         public static void ToggleRecruitment(GameStartManager gameStartManager)
@@ -230,434 +241,237 @@ namespace TownOfHost
 
 
 
+
         private static bool StartRecruitment()
-
         {
-
             try
-
             {
-
-                if (!CanSend()) return false;
-
-                if (!TryCollectLobby(out var hostName, out var roomCode, out var state, out var players, out var maxPlayers, out var progressPercent)) return false;
-
-                var snapshot = $"{hostName}|{roomCode}|{state}|{players}/{maxPlayers}|{progressPercent}";
-
-                var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-
-
+                if (!CanSend() || !RelayConfigured) return false;
+                RunStartupStaleCheckIfNeeded();
+                if (!TryCollectLobby(out var lobby)) return false;
                 lock (Sync)
-
                 {
-
+                    if (_activeRecruitment) return true;
+                    _current = new Recruitment { Lobby = lobby, SessionId = Guid.NewGuid().ToString("N") };
+                    Recruitments.Add(_current);
                     _activeRecruitment = true;
-
                     _forceUpdateRequested = false;
-
-                    _nextUpdateAtMs = nowMs + UpdateIntervalMs;
-
-                    _lastSnapshot = snapshot;
-
+                    _nextUpdateAtMs = Environment.TickCount64 + UpdateIntervalMs;
+                    // Save before the first request: even a lost HTTP response can leave a remote post.
+                    PersistActiveState();
+                    SendUpsert(_current, lobby, "MakePublic");
                 }
-
-
-
-                SendUpsert(hostName, roomCode, state, players, maxPlayers, progressPercent, "MakePublic");
-
                 return true;
-
             }
-
             catch (Exception e)
-
             {
-
                 Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
                 return false;
-
             }
-
         }
-
-
 
         public static void Tick()
-
         {
-
             try
-
             {
-
-                if (!CanSend()) return;
-
-
-
+                if (Main.IsAndroid() || !RelayConfigured) return;
+                var nowMs = Environment.TickCount64;
                 lock (Sync)
-
                 {
-
+                    // Owned closed sessions retry even after leaving the room / losing host status.
+                    foreach (var recruitment in Recruitments)
+                        if (recruitment.Closed && !recruitment.DeletePending && nowMs >= recruitment.RetryDeleteAtMs)
+                            QueueDelete(recruitment);
                     if (!_activeRecruitment) return;
-
-                }
-
-
-
-                var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-                var forceUpdate = false;
-
-                lock (Sync)
-
-                {
-
-                    forceUpdate = _forceUpdateRequested;
-
-                    if (!forceUpdate && nowMs < _nextUpdateAtMs) return;
-
+                    if (!_forceUpdateRequested && nowMs < _nextUpdateAtMs) return;
                     _forceUpdateRequested = false;
-
                     _nextUpdateAtMs = nowMs + UpdateIntervalMs;
-
                 }
-
-
-
-                if (!TryCollectLobby(out var hostName, out var roomCode, out var state, out var players, out var maxPlayers, out var progressPercent)) return;
-
-
-
-                var snapshot = $"{hostName}|{roomCode}|{state}|{players}/{maxPlayers}|{progressPercent}";
-
-                lock (Sync)
-
+                if (!CanSend())
                 {
-
-                    if (string.Equals(snapshot, _lastSnapshot, StringComparison.Ordinal)) return;
-
-                    _lastSnapshot = snapshot;
-
+                    TryDelete("HostLost");
+                    return;
                 }
-
-
-
-                SendUpsert(hostName, roomCode, state, players, maxPlayers, progressPercent, "Tick");
-
+                if (!TryCollectLobby(out var lobby)) return;
+                lock (Sync)
+                {
+                    if (_current == null || _current.Closed) return;
+                    if (_current.Lobby.RoomCode != lobby.RoomCode)
+                    {
+                        TryDelete("RoomChanged");
+                        return;
+                    }
+                    _current.Lobby = lobby;
+                    var snapshot = JsonSerializer.Serialize(lobby);
+                    if (_current.UpsertPending || snapshot == _current.LastSnapshot) return;
+                    SendUpsert(_current, lobby, "Tick");
+                }
             }
-
             catch (Exception e)
-
             {
-
                 Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
             }
-
         }
-
-
 
         public static void TryDelete(string reason)
-
         {
-
-            try
-
+            if (Main.IsAndroid() || !RelayConfigured) return;
+            lock (Sync)
             {
-
-                if (Main.IsAndroid()) return;
-
-
-
-                var roomCode = GetCurrentRoomCode();
-
-                if (string.IsNullOrWhiteSpace(roomCode))
-
-                    roomCode = GetLastRoomCode();
-
-
-
-                if (string.IsNullOrWhiteSpace(roomCode)) return;
-
-
-
-                lock (Sync)
-
-                {
-
-                    _activeRecruitment = false;
-
-                    _forceUpdateRequested = false;
-
-                    _lastSnapshot = "";
-
-                }
-
-
-
-                var messageId = GetLastMessageId(roomCode);
-
-                SendCore(
-
-                    action: "delete",
-
-                    hostName: "Unknown Host",
-
-                    roomCode: roomCode,
-
-                    state: "Closed",
-
-                    players: 0,
-
-                    maxPlayers: 0,
-
-                    progressPercent: 0,
-
-                    messageId: messageId,
-
-                    reason: reason ?? ""
-
-                );
-
+                // Never derive a delete target from the room a guest happens to be in.
+                if (_current == null || _current.Closed) return;
+                var recruitment = _current;
+                recruitment.Closed = true;
+                recruitment.DeleteReason = reason ?? "";
+                _current = null;
+                _activeRecruitment = false;
+                _forceUpdateRequested = false;
+                QueueDelete(recruitment);
             }
-
-            catch (Exception e)
-
-            {
-
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
-            }
-
         }
-
-
 
         private static void RunStartupStaleCheckIfNeeded()
-
         {
-
-            if (_startupStaleCheckDone) return;
-
-            _startupStaleCheckDone = true;
-
-
-
-            try
-
+            lock (Sync)
             {
-
-                if (Main.IsAndroid()) return;
-
-                if (!File.Exists(PersistedStateFilePath)) return;
-
-
-
-                var lines = File.ReadAllLines(PersistedStateFilePath);
-
-                var staleRoomCode = lines.Length > 0 ? lines[0].Trim() : "";
-
-                var staleMessageId = lines.Length > 1 ? lines[1].Trim() : "";
-
-
-
-                if (string.IsNullOrWhiteSpace(staleRoomCode))
-
-                {
-
-                    ClearPersistedState();
-
-                    return;
-
-                }
-
-
-
-                Logger.Info(
-
-                    $"前回セッションで消し忘れた募集を検出したので削除を試みます: room={staleRoomCode}",
-
-                    nameof(DiscordMatchmakingRelayService));
-
-
-
-                SendCore(
-
-                    action: "delete",
-
-                    hostName: "Unknown Host",
-
-                    roomCode: staleRoomCode,
-
-                    state: "Closed",
-
-                    players: 0,
-
-                    maxPlayers: 0,
-
-                    progressPercent: 0,
-
-                    messageId: staleMessageId,
-
-                    reason: "StaleOnStartup"
-
-                );
-
-            }
-
-            catch (Exception e)
-
-            {
-
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
-            }
-
-        }
-
-
-
-        private static void SendUpsert(string hostName, string roomCode, string state, int players, int maxPlayers, int progressPercent, string reason)
-
-        {
-
-            var messageId = GetLastMessageId(roomCode);
-
-            SendCore(
-
-                action: "upsert",
-
-                hostName: hostName,
-
-                roomCode: roomCode,
-
-                state: state,
-
-                players: players,
-
-                maxPlayers: maxPlayers,
-
-                progressPercent: progressPercent,
-
-                messageId: messageId,
-
-                reason: reason
-
-            );
-
-        }
-
-
-
-        private static void SendCore(string action, string hostName, string roomCode, string state, int players, int maxPlayers, int progressPercent, string messageId, string reason)
-
-        {
-
-            var relayUrl = Main.MatchmakingRelayUrl;
-
-            var relaySecret = Main.MatchmakingRelaySecret;
-
-
-
-            if (string.IsNullOrWhiteSpace(relayUrl) || relayUrl.Equals("none", StringComparison.OrdinalIgnoreCase))
-
-                return;
-
-
-
-            _ = Task.Run(async () =>
-
-            {
-
+                if (_startupStaleCheckDone || Main.IsAndroid() || !RelayConfigured) return;
+                _startupStaleCheckDone = true;
                 try
-
                 {
-
-                    Logger.Info($"Relay send: action={action}, room={roomCode}, state={state}, players={players}/{maxPlayers}, progress={progressPercent}%, reason={reason}", nameof(DiscordMatchmakingRelayService));
-
-
-
-                    using var req = new HttpRequestMessage(HttpMethod.Post, relayUrl);
-
-                    if (!string.IsNullOrWhiteSpace(relaySecret) && !relaySecret.Equals("none", StringComparison.OrdinalIgnoreCase))
-
-                        req.Headers.TryAddWithoutValidation("X-Relay-Secret", relaySecret);
-
-
-
-                    req.Content = new StringContent(
-
-                        BuildPayload(action, hostName, roomCode, state, players, maxPlayers, progressPercent, messageId, reason),
-
-                        Encoding.UTF8,
-
-                        "application/json"
-
-                    );
-
-
-
-                    using var res = await Client.SendAsync(req);
-
-                    var body = await res.Content.ReadAsStringAsync();
-
-
-
-                    if (!res.IsSuccessStatusCode)
-
+                    if (!File.Exists(PersistedStateFilePath)) return;
+                    var saved = File.ReadAllText(PersistedStateFilePath);
+                    if (saved.TrimStart().StartsWith("[", StringComparison.Ordinal))
                     {
-
-                        Logger.Warn($"Discord relay failed: {(int)res.StatusCode} {res.StatusCode} / {body}", nameof(DiscordMatchmakingRelayService));
-
-                        return;
-
+                        using var doc = JsonDocument.Parse(saved);
+                        foreach (var entry in doc.RootElement.EnumerateArray())
+                            RestoreStaleRecruitment(entry.GetProperty("roomCode").GetString(),
+                                entry.GetProperty("messageId").GetString(), entry.GetProperty("sessionId").GetString());
                     }
-
-
-
-                    Logger.Info($"Relay success: action={action}, room={roomCode}, state={state}, reason={reason}", nameof(DiscordMatchmakingRelayService));
-
-
-
-                    if (action.Equals("upsert", StringComparison.OrdinalIgnoreCase))
-
+                    else
                     {
-
-                        var newMessageId = TryReadJsonString(body, "messageId");
-
-                        if (!string.IsNullOrWhiteSpace(newMessageId))
-
-                            SetLastRecruitment(roomCode, newMessageId);
-
+                        // Compatibility with the old roomCode/messageId two-line save file.
+                        var lines = saved.Replace("\r", "").Split('\n');
+                        RestoreStaleRecruitment(lines.Length > 0 ? lines[0].Trim() : "",
+                            lines.Length > 1 ? lines[1].Trim() : "", lines.Length > 2 ? lines[2].Trim() : "");
                     }
-
-                    else if (action.Equals("delete", StringComparison.OrdinalIgnoreCase))
-
-                    {
-
-                        ClearLastRecruitment(roomCode, messageId);
-
-                        ClearPersistedState();
-
-                    }
-
+                    foreach (var recruitment in Recruitments)
+                        if (recruitment.Closed) QueueDelete(recruitment);
                 }
-
-                catch (Exception ex)
-
+                catch (Exception e)
                 {
-
-                    Logger.Exception(ex, nameof(DiscordMatchmakingRelayService));
-
+                    Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
                 }
-
-            });
-
+            }
         }
 
+        private static void RestoreStaleRecruitment(string roomCode, string messageId, string sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(roomCode)
+                || (string.IsNullOrWhiteSpace(messageId) && string.IsNullOrWhiteSpace(sessionId))) return;
+            Recruitments.Add(new Recruitment
+            {
+                Lobby = new LobbySnapshot(RoomCode: roomCode), MessageId = messageId ?? "",
+                SessionId = sessionId ?? "", Closed = true, DeleteReason = "StaleOnStartup"
+            });
+        }
+
+        // All queue operations are made under Sync. One outstanding upsert per session coalesces
+        // repeated polls, and the task chain preserves enqueue order without blocking Unity.
+        private static void SendUpsert(Recruitment recruitment, LobbySnapshot lobby, string reason)
+        {
+            if (recruitment.UpsertPending || recruitment.Closed) return;
+            recruitment.UpsertPending = true;
+            EnqueueSend(recruitment, lobby, "upsert", reason);
+        }
+
+        private static void QueueDelete(Recruitment recruitment)
+        {
+            if (recruitment.DeletePending) return;
+            recruitment.DeletePending = true;
+            EnqueueSend(recruitment, recruitment.Lobby with { State = "Closed", Players = 0, MaxPlayers = 0, ProgressPercent = 0 },
+                "delete", recruitment.DeleteReason);
+        }
+
+        private static void EnqueueSend(Recruitment recruitment, LobbySnapshot lobby, string action, string reason)
+        {
+            var previous = _sendTail;
+            _sendTail = Task.Run(async () =>
+            {
+                await previous.ConfigureAwait(false);
+                await SendCore(recruitment, lobby, action, reason).ConfigureAwait(false);
+            });
+        }
+
+        private static async Task SendCore(Recruitment recruitment, LobbySnapshot lobby, string action, string reason)
+        {
+            try
+            {
+                if (!RelayConfigured) return;
+                string messageId;
+                lock (Sync) messageId = recruitment.MessageId; // Read after the preceding response.
+                using var req = new HttpRequestMessage(HttpMethod.Post, Main.MatchmakingRelayUrl);
+                var secret = Main.MatchmakingRelaySecret;
+                if (!string.IsNullOrWhiteSpace(secret) && !secret.Equals("none", StringComparison.OrdinalIgnoreCase))
+                    req.Headers.TryAddWithoutValidation("X-Relay-Secret", secret);
+                req.Content = new StringContent(BuildPayload(action, lobby, messageId, recruitment.SessionId, reason),
+                    Encoding.UTF8, "application/json");
+                Logger.Info($"Relay send: action={action}, room={lobby.RoomCode}, session={recruitment.SessionId}, reason={reason}", nameof(DiscordMatchmakingRelayService));
+                using var res = await Client.SendAsync(req).ConfigureAwait(false);
+                var body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!res.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"Relay failed: HTTP {(int)res.StatusCode}; retry on next poll", nameof(DiscordMatchmakingRelayService));
+                    return;
+                }
+                if (action == "upsert")
+                {
+                    var newMessageId = TryReadJsonString(body, "messageId");
+                    if (string.IsNullOrWhiteSpace(newMessageId)
+                        || (!string.IsNullOrEmpty(messageId) && messageId != newMessageId))
+                    {
+                        Logger.Warn("Relay returned missing/invalid/different messageId; retry on next poll", nameof(DiscordMatchmakingRelayService));
+                        return;
+                    }
+                    lock (Sync)
+                    {
+                        recruitment.MessageId = newMessageId;
+                        recruitment.LastSnapshot = JsonSerializer.Serialize(lobby);
+                        PersistActiveState();
+                    }
+                }
+                else
+                {
+                    // Legacy delete endpoints may return an empty 2xx body.
+                    // Reject malformed JSON rather than discarding recovery data.
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        using var response = JsonDocument.Parse(body);
+                    }
+                    lock (Sync)
+                    {
+                        Recruitments.Remove(recruitment);
+                        PersistActiveState();
+                    }
+                }
+                Logger.Info($"Relay success: action={action}, room={lobby.RoomCode}, session={recruitment.SessionId}", nameof(DiscordMatchmakingRelayService));
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception(ex, nameof(DiscordMatchmakingRelayService));
+            }
+            finally
+            {
+                lock (Sync)
+                {
+                    if (action == "upsert") recruitment.UpsertPending = false;
+                    else
+                    {
+                        recruitment.DeletePending = false;
+                        recruitment.RetryDeleteAtMs = Environment.TickCount64 + UpdateIntervalMs;
+                    }
+                }
+            }
+        }
 
 
         private static bool CanSend()
@@ -770,29 +584,36 @@ namespace TownOfHost
 
 
 
-        private static bool TryCollectLobby(out string hostName, out string roomCode, out string state, out int players, out int maxPlayers, out int progressPercent)
 
+        private static bool TryCollectLobby(out LobbySnapshot lobby)
         {
-
-            hostName = PlayerControl.LocalPlayer?.Data?.PlayerName ?? "Unknown Host";
-
-            roomCode = GetCurrentRoomCode();
-
-            var gameStarted = AmongUsClient.Instance != null && AmongUsClient.Instance.IsGameStarted;
-
-            var isInGame = gameStarted || GameStates.IsInGame;
-
-            state = isInGame ? "InGame" : (GameStates.IsLobby ? "Lobby" : "Unknown");
-
-            players = AmongUsClient.Instance?.allClients?.Count ?? 0;
-
-            maxPlayers = Main.NormalOptions?.MaxPlayers ?? 15;
-
-            progressPercent = isInGame ? CalculateMatchProgressPercent() : 0;
-
+            // Unity / options / translation data is captured on the main thread, not in the HTTP task.
+            var roomCode = GetCurrentRoomCode();
+            var isInGame = (AmongUsClient.Instance != null && AmongUsClient.Instance.IsGameStarted) || GameStates.IsInGame;
+            var region = ServerManager.Instance?.CurrentRegion?.Name;
+            var map = "Unknown";
+            if (Main.NormalOptions != null)
+            {
+                var id = Main.NormalOptions.MapId;
+                if (id < Constants.MapNames.Length) map = Constants.MapNames[id];
+            }
+            var mode = Options.GameMode?.GetString().RemoveHtmlTags();
+            var comment = TownOfHost.Modules.MatchmakingWordManager.GetCurrentWord() ?? "";
+            if (comment.Length > TownOfHost.Modules.MatchmakingWordManager.MaxCommentLength)
+                comment = comment[..TownOfHost.Modules.MatchmakingWordManager.MaxCommentLength];
+            lobby = new LobbySnapshot(
+                PlayerControl.LocalPlayer?.Data?.PlayerName ?? "Unknown Host", roomCode,
+                isInGame ? "InGame" : (GameStates.IsLobby ? "Lobby" : "Unknown"),
+                AmongUsClient.Instance?.allClients?.Count ?? 0, Main.NormalOptions?.MaxPlayers ?? 15,
+                isInGame ? CalculateMatchProgressPercent() : 0,
+                string.IsNullOrWhiteSpace(region) ? "Unknown" : region,
+                string.IsNullOrWhiteSpace(map) ? "Unknown" : map,
+                string.IsNullOrWhiteSpace(mode) ? "Unknown" : mode,
+                NormalizeShellVersion(Main.PluginShowVersion), comment);
             return !string.IsNullOrWhiteSpace(roomCode);
-
         }
+
+        private static string NormalizeShellVersion(string version) => (version ?? "").Trim().TrimStart('v', 'V').Trim();
 
 
 
@@ -898,114 +719,49 @@ namespace TownOfHost
 
 
 
-        private static string BuildPayload(string action, string hostName, string roomCode, string state, int players, int maxPlayers, int progressPercent, string messageId, string reason)
 
+        private static string BuildPayload(string action, LobbySnapshot lobby, string messageId, string sessionId, string reason)
         {
-
-            var now = DateTime.Now;
-
-            var nowUtc = now.ToUniversalTime().ToString("o");
-
-            var stateLabel = GetStateLabel(state);
-
-            var content = BuildRecruitmentContent(hostName, roomCode, stateLabel, players, maxPlayers, state, progressPercent, now);
-
-            var threadComment = TownOfHost.Modules.MatchmakingWordManager.GetCurrentWord();
-
-            if (threadComment.Length > TownOfHost.Modules.MatchmakingWordManager.MaxCommentLength)
-
-                threadComment = threadComment[..TownOfHost.Modules.MatchmakingWordManager.MaxCommentLength];
-
-            var requestThread = action.Equals("upsert", StringComparison.OrdinalIgnoreCase)
-
-                                && string.IsNullOrWhiteSpace(messageId)
-
-                                && !string.IsNullOrWhiteSpace(threadComment);
-
-            return "{"
-
-                + $"\"action\":\"{EscapeJson(action ?? "upsert")}\","
-
-                + $"\"hostName\":\"{EscapeJson(hostName)}\","
-
-                + $"\"roomCode\":\"{EscapeJson(roomCode)}\","
-
-                + $"\"state\":\"{EscapeJson(state ?? "Unknown")}\","
-
-                + $"\"stateLabel\":\"{EscapeJson(stateLabel)}\","
-
-                + $"\"players\":{players},"
-
-                + $"\"maxPlayers\":{maxPlayers},"
-
-                + $"\"progressPercent\":{progressPercent},"
-
-                + $"\"content\":\"{EscapeJson(content)}\","
-
-                + $"\"messageId\":\"{EscapeJson(messageId ?? "")}\","
-
-                + $"\"reason\":\"{EscapeJson(reason ?? "")}\","
-
-                + $"\"threadRequested\":{(requestThread ? "true" : "false")},"
-
-                + $"\"threadComment\":\"{EscapeJson(threadComment)}\","
-
-                + $"\"mod\":\"{EscapeJson(Main.ModName)}\","
-
-                + $"\"modVersion\":\"{EscapeJson(Main.PluginVersion)}\","
-
-                + $"\"forkId\":\"{EscapeJson(Main.ForkId)}\","
-
-                + $"\"sentAtUtc\":\"{EscapeJson(nowUtc)}\""
-
-                + "}";
-
+            return JsonSerializer.Serialize(new
+            {
+                action,
+                hostName = lobby.HostName,
+                roomCode = lobby.RoomCode,
+                state = lobby.State,
+                stateLabel = GetStateLabel(lobby.State),
+                players = lobby.Players,
+                maxPlayers = lobby.MaxPlayers,
+                progressPercent = lobby.ProgressPercent,
+                content = BuildRecruitmentContent(lobby),
+                messageId,
+                reason,
+                threadRequested = action == "upsert" && string.IsNullOrWhiteSpace(messageId) && !string.IsNullOrWhiteSpace(lobby.ThreadComment),
+                threadComment = lobby.ThreadComment,
+                mod = Main.ModName,
+                modVersion = Main.PluginVersion,
+                forkId = Main.ForkId,
+                sentAtUtc = DateTime.UtcNow.ToString("o"),
+                region = lobby.Region,
+                map = lobby.Map,
+                gameMode = lobby.GameMode,
+                shellVersion = string.IsNullOrWhiteSpace(lobby.ShellVersion) ? NormalizeShellVersion(Main.PluginShowVersion) : lobby.ShellVersion,
+                internalVersion = Main.PluginVersion,
+                sessionId
+            });
         }
 
-
-
-        private static string BuildRecruitmentContent(string hostName, string roomCode, string stateLabel, int players, int maxPlayers, string rawState, int progressPercent, DateTime updatedAt)
-
+        private static string BuildRecruitmentContent(LobbySnapshot lobby)
         {
-
-            var host = string.IsNullOrWhiteSpace(hostName) ? "Unknown Host" : hostName;
-
-            var code = string.IsNullOrWhiteSpace(roomCode) ? "------" : roomCode;
-
-            var state = string.IsNullOrWhiteSpace(stateLabel) ? "不明" : stateLabel;
-
-            var playersText = $"{Math.Max(players, 0)}/{Math.Max(maxPlayers, 0)}";
-
-            var updatedAtText = updatedAt.ToString("MM月\\/dd日\\/HH\\:mm");
-
-
-
-            var progressLine = rawState == "InGame"
-
-                ? $"♣試合の進行状況♣(テスト機能): **{Math.Clamp(progressPercent, 0, 100)}%**\n"
-
-                : "";
-
-
-
-            return "⠀⠀⠀【募集情報】\n"
-
-                + $"★ホスト★:  **{host}**\n"
-
-                + $"▲コード▲: **{code}**\n"
-
-                + $"♦現在♦: **{state}**\n"
-
-                + $"♠人数♠: **{playersText}**\n"
-
-                + progressLine
-
-                + $"使用MODバージョン:{Main.ModName} v{Main.PluginShowVersion}\n"
-
-                + $"♥最終更新♥: **{updatedAtText}**\n"
-
-                + "ーーーーーーーーーーーーー";
-
+            if (lobby.State == "Closed") return "🔴 募集終了";
+            var status = lobby.State switch
+            {
+                "Lobby" => "🏠 状態 ロビー",
+                "InGame" => "⚔️ 状態 試合中",
+                _ => "🏠 状態 不明"
+            };
+            return $"🟢 募集中\n\n{lobby.RoomCode}\n{lobby.Players} / {lobby.MaxPlayers}\n\n"
+                + $"🌏 リージョン {lobby.Region}\n🗺 マップ {lobby.Map}\n🎮 ステージ {lobby.GameMode}\n"
+                + $"🔧 バージョン v{lobby.ShellVersion}\n{status}";
         }
 
 
@@ -1066,128 +822,30 @@ namespace TownOfHost
 
 
 
-        private static void SetLastRecruitment(string roomCode, string messageId)
 
+        // Called under Sync. Keep failed old deletes as well as the new current session;
+        // a delayed old response must never erase the new session's recovery information.
+        private static void PersistActiveState()
         {
-
-            lock (Sync)
-
-            {
-
-                _lastRoomCode = roomCode ?? "";
-
-                _lastMessageId = messageId ?? "";
-
-            }
-
-            PersistActiveState(roomCode, messageId);
-
-        }
-
-
-
-        private static void ClearLastRecruitment(string roomCode, string messageId)
-
-        {
-
-            lock (Sync)
-
-            {
-
-                if (!string.IsNullOrWhiteSpace(roomCode) && !string.Equals(roomCode, _lastRoomCode, StringComparison.Ordinal)) return;
-
-                if (!string.IsNullOrWhiteSpace(messageId) && !string.Equals(messageId, _lastMessageId, StringComparison.Ordinal)) return;
-
-
-
-                _lastRoomCode = "";
-
-                _lastMessageId = "";
-
-            }
-
-        }
-
-
-
-        private static void PersistActiveState(string roomCode, string messageId)
-
-        {
-
             try
-
             {
-
+                if (Recruitments.Count == 0)
+                {
+                    if (File.Exists(PersistedStateFilePath)) File.Delete(PersistedStateFilePath);
+                    return;
+                }
+                var entries = new List<object>(Recruitments.Count);
+                foreach (var recruitment in Recruitments)
+                    entries.Add(new { roomCode = recruitment.Lobby.RoomCode, messageId = recruitment.MessageId, sessionId = recruitment.SessionId });
                 Directory.CreateDirectory(Main.BaseDirectory);
-
-                File.WriteAllText(PersistedStateFilePath, $"{roomCode}\n{messageId}");
-
+                var temporaryPath = PersistedStateFilePath + ".tmp";
+                File.WriteAllText(temporaryPath, JsonSerializer.Serialize(entries));
+                File.Move(temporaryPath, PersistedStateFilePath, true);
             }
-
             catch (Exception e)
-
             {
-
                 Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
             }
-
-        }
-
-
-
-        private static void ClearPersistedState()
-
-        {
-
-            try
-
-            {
-
-                if (File.Exists(PersistedStateFilePath))
-
-                    File.Delete(PersistedStateFilePath);
-
-            }
-
-            catch (Exception e)
-
-            {
-
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
-
-            }
-
-        }
-
-
-
-        private static string GetLastRoomCode()
-
-        {
-
-            lock (Sync) return _lastRoomCode;
-
-        }
-
-
-
-        private static string GetLastMessageId(string roomCode)
-
-        {
-
-            lock (Sync)
-
-            {
-
-                if (string.IsNullOrWhiteSpace(roomCode)) return _lastMessageId;
-
-                if (!string.Equals(roomCode, _lastRoomCode, StringComparison.Ordinal)) return "";
-
-                return _lastMessageId;
-
-            }
-
         }
 
 
@@ -1215,26 +873,6 @@ namespace TownOfHost
         }
 
 
-
-        private static string EscapeJson(string s)
-
-        {
-
-            if (string.IsNullOrEmpty(s)) return string.Empty;
-
-            return s
-
-                .Replace("\\", "\\\\")
-
-                .Replace("\"", "\\\"")
-
-                .Replace("\r", "\\r")
-
-                .Replace("\n", "\\n")
-
-                .Replace("\t", "\\t");
-
-        }
 
     }
 
