@@ -40,7 +40,9 @@ public abstract class GameEndPredicate
 
         reason = GameOverReason.ImpostorsByKill;
 
-        if (Options.DisableTaskWin.GetBool() || TaskState.InitialTotalTasks == 0 || Fox.BlockTaskWin()) return false;
+        // InitialTotalTasksはカスタムタスク割り当て前に0のまま残る場合があるため、
+        // 実際に再計算されたGameData.TotalTasksを基準にする。
+        if (Options.DisableTaskWin.GetBool() || GameData.Instance == null || GameData.Instance.TotalTasks == 0 || Fox.BlockTaskWin()) return false;
 
 
 
@@ -80,22 +82,18 @@ public abstract class GameEndPredicate
 
         var systems = ShipStatus.Instance.Systems;
 
-        if (systems.ContainsKey(SystemTypes.LifeSupp)
-
-            && systems[SystemTypes.LifeSupp].TryCast<LifeSuppSystemType>() is { Countdown: < 0f } lifeSupp)
-
+        if (systems.ContainsKey(SystemTypes.LifeSupp))
         {
-
-            SetSabotageWinner();
-
-            Main.IsActiveSabotage = false;
-
-            reason = GameOverReason.ImpostorsBySabotage;
-
-            lifeSupp.Countdown = 10000f;
-
-            return true;
-
+            var lifeSupp = systems[SystemTypes.LifeSupp].TryCast<LifeSuppSystemType>();
+            if (lifeSupp != null && !float.IsNaN(lifeSupp.Countdown) && lifeSupp.Countdown <= 0f)
+            {
+                // 負値のまま残る環境でも、期限切れを確実に敗北処理へ渡す。
+                SetSabotageWinner();
+                Main.IsActiveSabotage = false;
+                reason = GameOverReason.ImpostorsBySabotage;
+                lifeSupp.Countdown = 10000f;
+                return true;
+            }
         }
 
 
@@ -110,7 +108,11 @@ public abstract class GameEndPredicate
 
 
 
-        if (system?.TryCast<ICriticalSabotage>() is not { Countdown: < 0f } critical) return false;
+        var critical = system?.TryCast<ICriticalSabotage>();
+        if (critical == null || float.IsNaN(critical.Countdown) || critical.Countdown > 0f) return false;
+
+        // Countdownが0を下回っても、期限切れとして同じ終了経路を通す。
+        // ICriticalSabotage.Countdownは読み取り専用のため、値は変更しない。
 
 
 

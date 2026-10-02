@@ -32,6 +32,11 @@ namespace TownOfHost
 
                 if (p == null) continue;
 
+                // 決闘者は中立役職で、宿敵撃破による追加勝利を持つため、
+                // 通常タスクを村人側の共通ノルマへ加算しない。
+                // 除外しないと、決闘者のタスクが残ったまま村人勝利が成立しない。
+                if (p._object != null && p._object.Is(CustomRoles.Duelist)) continue;
+
                 var hasTasks = UtilsTask.HasTasks(p) && PlayerState.GetByPlayerId(p.PlayerId).GetTaskState().AllTasksCount > 0;
 
                 if (hasTasks)

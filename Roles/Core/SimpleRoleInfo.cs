@@ -134,8 +134,15 @@ public class SimpleRoleInfo
             };
         Tab = tab;
 
-        CustomRoleManager.AllRolesInfo.Add(roleName, this);
-        CustomRoleManager.CustomRoleIds.Add(configId, roleName);
+        // Shell独自変更：SnowmanとAndroidは現在リストラ中のため、
+        // 役職一覧・設定・抽選対象へ登録しない。
+        // 復活させる場合はこの条件を削除する。
+        if (roleName is not CustomRoles.Snowman
+            and not CustomRoles.Android)
+        {
+            CustomRoleManager.AllRolesInfo.Add(roleName, this);
+            CustomRoleManager.CustomRoleIds.Add(configId, roleName);
+        }
     }
     public static SimpleRoleInfo Create(
         Type classType,
@@ -252,6 +259,12 @@ public class SimpleRoleInfo
                 roleName = CustomRoles.GuardianAngel;
                 customRoleType = CustomRoleTypes.Crewmate;
                 configId = -2;
+                break;
+            case RoleTypes.SpiritGuide:
+                roleName = CustomRoles.Influencer;
+                customRoleType = CustomRoleTypes.Crewmate;
+                configId = 25150;
+                OptionSort = (0, 7);
                 break;
             case RoleTypes.Impostor:
                 roleName = CustomRoles.Impostor;

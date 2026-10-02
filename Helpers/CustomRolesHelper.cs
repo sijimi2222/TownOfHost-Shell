@@ -120,6 +120,8 @@ namespace TownOfHost
 
                 CustomRoles.Judge or
 
+                CustomRoles.Influencer or
+
                 //CustomRoles.GuardianAngel or幽霊役職でやったからちょっと不都合になる
 
                 CustomRoles.Impostor or

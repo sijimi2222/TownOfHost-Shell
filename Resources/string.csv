@@ -8297,3 +8297,10 @@
 "NDLivingMembers","―― Survival members ――","―― 生存メンバー ――"
 "NDMaxDisasters","Maximum simultaneous disasters","同時発生できる自然災害の最大数"
 "NDExcludePersistent","Do not count collapsed rooms and sinkholes","崩壊された部屋と陥没穴は自然災害の数に入れない"
+
+"Influencer","Influencer","インフルエンサー"
+"InfluencerInfo","Keep influencing the living after death.","死んでもメッセージを送り続けよう"
+"InfluencerInfoLong","Even after death, you can send messages to the living players.","死亡後も生存者にメッセージを送ることができる。"
+"InfluencerMessageCooldown","Message Cooldown","メッセージのクールダウン"
+
+"EnableShellAI","Enable AI mode","AIモードを有効にする"

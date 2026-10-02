@@ -8,6 +8,8 @@ namespace TownOfHost.Modules
     // 外部通信を行わない、チャットコマンドへのルールベース案内。
     internal static class ShellAI
     {
+        internal static bool IsEnabled => Options.EnableShellAI?.GetBool() == true;
+
         internal enum Intent { Greeting, MyRole, RoleList, EnabledRoles, CurrentSettings, CommandList, CommandHelp, RoleHelp, Unknown }
 
         internal readonly struct Detection
@@ -44,7 +46,8 @@ namespace TownOfHost.Modules
 
         public static void Reply(string question, byte requester, bool publicReply)
         {
-            if (!AmongUsClient.Instance.AmHost) return;
+            // Disabled commands are consumed silently: no classification, logs, reply or RPC.
+            if (!IsEnabled || AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
             if (publicReply && string.IsNullOrWhiteSpace(question))
             {
                 Utils.SendMessage("使用方法: /ai all <質問>", requester, "Shell AI");

@@ -227,6 +227,10 @@ public class MeetingVoteManager
         {
             _ = new LateTask(() =>
             {
+                // 会議終了直後に部屋が解散・切断された場合は、無効になった接続へ
+                // GameDataを送らない。これにより二次的なSendOrDisconnect例外を防ぐ。
+                if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost || !GameStates.IsInGame) return;
+
                 AntiBlackout.SetIsDead();
                 AntiBlackout.SetRole(result);
             }, 4f, "LateAntiBlackoutSet", null);
@@ -501,18 +505,20 @@ public class MeetingVoteManager
             var NotmostVotedPlayers = votedCounts.Where(vote => vote.Value != maxVoteNum).Select(vote => vote.Key).ToArray();
 
             //タイブレ投票
-            this.Tievotecount = Tievotecount;
+            // タイブレーク計算で呼び出し元の投票辞書を直接書き換えると、
+            // 後続の表示・再計算に誤った票数が残るためコピーを使う。
+            this.Tievotecount = new Dictionary<byte, int>(Tievotecount);
             foreach (var pc in NotmostVotedPlayers)
             {//最多投票以外のプレイヤーはタイブレ投票0にする
-                Tievotecount[pc] = 0;
+                this.Tievotecount[pc] = 0;
             }
 
             // 票数順に整列された投票
-            var TSe = Tievotecount.OrderByDescending(vote => vote.Value);
+            var TSe = this.Tievotecount.OrderByDescending(vote => vote.Value);
             // 最も票を得た人の票数
             var TCo = TSe.FirstOrDefault().Value;
             // 最多票数のプレイヤー全員
-            var TMost = Tievotecount.Where(vote => vote.Value == TCo).Select(vote => vote.Key).ToArray();
+            var TMost = this.Tievotecount.Where(vote => vote.Value == TCo).Select(vote => vote.Key).ToArray();
 
             // 最多票数のプレイヤーが複数人いる場合
             if (mostVotedPlayers.Length > 1)

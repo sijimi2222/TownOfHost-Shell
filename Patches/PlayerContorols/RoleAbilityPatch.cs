@@ -1345,6 +1345,8 @@ namespace TownOfHost
         public static bool Prefix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target)
 
         {
+             if (__instance.Data?.Role?.Role == RoleTypes.SpiritGuide)
+                return true;
 
             // ゴースト系能力
 

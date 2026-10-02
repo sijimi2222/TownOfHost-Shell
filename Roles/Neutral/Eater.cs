@@ -230,8 +230,8 @@ public sealed class Eater : RoleBase, IKiller, IUsePhantomButton, IKillFlashSeea
 
     float GetConfiguredSwallowRange()
     {
-        var rangeIndex = Mathf.Clamp(OptionSwallowRange.GetValue(), 0, NormalGameOptionsV11.KillDistances.Length - 1);
-        return NormalGameOptionsV11.KillDistances[rangeIndex];
+        var rangeIndex = Mathf.Clamp(OptionSwallowRange.GetValue(), 0, NormalGameOptionsV12.KillDistances.Length - 1);
+        return NormalGameOptionsV12.KillDistances[rangeIndex];
     }
 
     void TickCooldown(float dt)

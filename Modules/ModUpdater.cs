@@ -354,11 +354,11 @@ namespace TownOfHost
 
                     bool? check = body?.Contains("IsforceUpdate") ?? null;
 
-                    hasUpdate = latestVersion.CompareTo(Main.version) > 0 ||
+                    hasUpdate = latestVersion.CompareTo(Main.ShellVersion) > 0 ||
 
                     //最後のアプデのcheckが有効で～最終バージョンと現バージョンが一緒じゃない
 
-                    (check is true && latestVersion.CompareTo(Main.version) is not 0);
+                    (check is true && latestVersion.CompareTo(Main.ShellVersion) is not 0);
 
                 }
 

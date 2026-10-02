@@ -76,6 +76,55 @@ public class ModNewsHistory
                 };
                 AllModNews.Add(news);
             }
+            {
+                var news = new ModNews
+                {
+                    Number = 100003,
+                    Title = "TOH-Shell v2.0.0 リリース！",
+                    SubTitle = "<color=#b85fff>TownOfHost-Shell v2.0.0</color>",
+                    ShortTitle = "<color=#b85fff>●TOH-Shell v2.0.0</color>",
+                    Text = "TOH-Shell v2.0.0をリリースしました！\n"
+                        + "\n"
+                        + "災害モードの完成、AIモード切り替え、Among Us最新版への対応など、大きな変更を行っています。\n"
+                        + "\n"
+                        + "【Natural Disasters】\n"
+                        + "・災害モードを大幅更新し、各マップの災害処理を調整\n"
+                        + "・生存時間を記録し、死亡後は時間を固定\n"
+                        + "・ゲーム終了時に生存時間を確認できるよう改善\n"
+                        + "・「ゲームを終了しない」設定で、最後の1人や全滅後もホストが終了するまで続行可能\n"
+                        + "※ Thunderstormは現在調整中のため無効化しています。\n"
+                        + "\n"
+                        + "【AIモード】\n"
+                        + "「AIモードを有効にする」設定を追加しました。\n"
+                        + "ON：従来のAI機能を使用でき、会議中にAIコマンド案内を表示します。\n"
+                        + "OFF：AI機能とAIリクエスト送信を停止し、会議中は元のゲッサーコマンド案内へ戻ります。\n"
+                        + "\n"
+                        + "【マッチメイキング】\n"
+                        + "Shell独自のDiscordマッチメイキング機能を更新しました。\n"
+                        + "部屋情報として人数、リージョン、マップ、ゲームモード、Shellバージョン、ロビー／試合中の状態を表示します。\n"
+                        + "募集終了時はDiscord上の募集メッセージも削除されます。\n"
+                        + "\n"
+                        + "【Among Us最新版対応】\n"
+                        + "Among Us 2026.9.29アップデートへ対応しました。\n"
+                        + "・x64環境、GameOptions V12へ対応\n"
+                        + "・hamo β 4.00.32.00の互換性変更を統合\n"
+                        + "・SpiritGuide関連へ対応\n"
+                        + "\n"
+                        + "【役職整理】\n"
+                        + "SnowmanとAndroidを現在の役職一覧からリストラしました。\n"
+                        + "役職コードは残していますが、通常の設定・役職一覧・抽選対象には登録されません。\n"
+                        + "\n"
+                        + "【その他】\n"
+                        + "・会議関連処理の改善\n"
+                        + "・Shell独自機能の互換性調整\n"
+                        + "・最新Among Us環境向けの内部修正\n"
+                        + "・各種不具合修正\n"
+                        + "\n"
+                        + "不具合を見つけた場合は報告をお願いします。",
+                    Date = "2026-10-02"
+                };
+                AllModNews.Add(news);
+            }
             AnnouncementPopUp.UpdateState = AnnouncementPopUp.AnnounceState.NotStarted;
         }
     }

@@ -2329,6 +2329,9 @@ public enum CustomRoles
 
     // 属性の開始番号(500)直前にある未使用の499番を使用する。
 
+    // Shell preserves existing role IDs; upstream Influencer=286 conflicts with StandMaster.
+    Influencer = 496,
+
     NDPlayer = 497,
 
     Tiger = 498,

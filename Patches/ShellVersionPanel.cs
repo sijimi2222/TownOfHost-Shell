@@ -159,6 +159,7 @@ public static class ShellVersionPanel
         versions = new[]
         {
             "v" + Main.PluginShowVersion,
+            "v1.1.0",
             "v1.0.1",
             "v1.0.0",
             "v0.9.5",

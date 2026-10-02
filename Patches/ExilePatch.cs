@@ -258,7 +258,10 @@ namespace TownOfHost
 
             if (!PlayerControl.LocalPlayer.IsAlive())
             {
-                role = role.IsCrewmate() ? RoleTypes.CrewmateGhost : RoleTypes.ImpostorGhost;
+                role = AntiBlackout.WasSpiritGuide(PlayerControl.LocalPlayer.PlayerId) ||
+                    PlayerControl.LocalPlayer.Data?.Role?.Role == RoleTypes.SpiritGuide
+                    ? RoleTypes.SpiritGuide
+                    : role.IsCrewmate() ? RoleTypes.CrewmateGhost : RoleTypes.ImpostorGhost;
             }
             Logger.Info($"Before Local SetRole: Player={PlayerControl.LocalPlayer.GetRealName()} Alive={PlayerControl.LocalPlayer.IsAlive()} Current={PlayerControl.LocalPlayer.Data.Role.Role} SetTo={role}", "LocalRoleDebug");
             RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, role);

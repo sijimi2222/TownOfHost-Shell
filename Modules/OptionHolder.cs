@@ -1034,6 +1034,8 @@ namespace TownOfHost
 
         // その他
 
+        public static OptionItem EnableShellAI;
+
         public static OptionItem OptionCommandSetting;
 
         public static OptionItem OptionCommandNow;
@@ -2814,6 +2816,10 @@ namespace TownOfHost
 
 
 
+            // Independent of command restrictions; synced/saved by the existing OptionItem system.
+            EnableShellAI = BooleanOptionItem.Create(1_601_320, "EnableShellAI", true, TabGroup.Other2, true)
+                .SetColorcode("#00c1ff");
+
             OptionCommandSetting = BooleanOptionItem.Create(1_300_114, "CommandSetting", true, TabGroup.Other2, true)
 
                 .SetHeader(true)
@@ -3667,6 +3673,7 @@ namespace TownOfHost
                     case CustomRoles.Detective: id = 23100; break;
 
                     case CustomRoles.Judge: id = 25100; break;
+                    case CustomRoles.Influencer: id = 25150; break;
 
                 }
 

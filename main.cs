@@ -128,7 +128,7 @@ namespace TownOfHost
 
         public const string PluginVersion = "4.00.00.21";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "1.1.0";
+        public const string PluginShowVersion = "2.0.0";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
@@ -142,7 +142,8 @@ namespace TownOfHost
 
         // サポートされている最低のAmongUsバージョン(Readmeも変える)
 
-        public static readonly string LowestSupportedVersion = "2026.3.31";
+        // TEMP: AU 2026-09-29 compatibility. Review/remove when hamo upstream update is merged.
+        public static readonly string LowestSupportedVersion = "2026.9.29";
 
         // このバージョンのみで公開ルームを無効にする場合
 
@@ -158,6 +159,9 @@ namespace TownOfHost
 
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 
+        // Public releases are compared separately from the internal compatibility version.
+        public static readonly Version ShellVersion = Version.Parse(PluginShowVersion);
+
         public static Version version = Version.Parse(PluginVersion);
 
         public static BepInEx.Logging.ManualLogSource Logger;
@@ -170,9 +174,9 @@ namespace TownOfHost
 
         public static string credentialsText;
 
-        public static NormalGameOptionsV11 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
+        public static NormalGameOptionsV12 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
 
-        public static HideNSeekGameOptionsV11 HideNSeekSOptions => GameOptionsManager.Instance.currentHideNSeekGameOptions;
+        public static HideNSeekGameOptionsV12 HideNSeekSOptions => GameOptionsManager.Instance.currentHideNSeekGameOptions;
 
         //Client Options
 
@@ -655,7 +659,7 @@ namespace TownOfHost
 
             TownOfHost.Logger.Info($"{Application.version}", "AmongUs Version");
 
-            TownOfHost.Logger.Info($"{ModName} v.{PluginVersion}", "ModPluginVersion");
+            TownOfHost.Logger.Info($"{ModName} v.{PluginShowVersion} (internal {PluginVersion})", "ModPluginVersion");
 
             var handler = TownOfHost.Logger.Handler("GitVersion");
 

@@ -554,7 +554,9 @@ namespace TownOfHost
 
                 }
 
-            var (color, text) = GetRoleNameData(state.MainRole, Subrole, state.GhostRole, showSubRoleMarks);
+            var displayGhostRole = TownOfHost.Roles.Vanilla.Influencer.IsDisplayedAsInfluencer(player)
+                ? CustomRoles.Influencer : state.GhostRole;
+            var (color, text) = GetRoleNameData(state.MainRole, Subrole, displayGhostRole, showSubRoleMarks);
 
 
 
@@ -666,7 +668,9 @@ namespace TownOfHost
 
         {
 
-            if (!Main.roleColors.TryGetValue(role, out var hexColor)) hexColor = role.GetRoleInfo()?.RoleColorCode;
+            // 役職情報を持たない属性でも空の色コードを返さない。
+            // 空文字のまま設定ヘッダーへ渡すと、UIに未解決の「<>」が表示される。
+            if (!Main.roleColors.TryGetValue(role, out var hexColor)) hexColor = role.GetRoleInfo()?.RoleColorCode ?? "#cccccc";
 
             if (role is CustomRoles.Amnesiac && Amnesiac.IsWolf) hexColor = CustomRoles.WolfBoy.GetRoleInfo()?.RoleColorCode ?? "#727171";
 

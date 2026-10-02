@@ -187,7 +187,7 @@ namespace TownOfHost
 
 
 
-                NormalGameOptionsV11 gameOptions = Main.NormalOptions.TryCast<NormalGameOptionsV11>();
+                NormalGameOptionsV12 gameOptions = Main.NormalOptions.TryCast<NormalGameOptionsV12>();
 
                 if (Main.NormalOptions.NumImpostors == 0 && GameStates.IsOnlineGame)
 
@@ -213,7 +213,10 @@ namespace TownOfHost
 
                 gameOptions.RoleOptions.SetRoleRate(RoleTypes.Judge, 0, 0);
 
-                Main.NormalOptions.roleOptions.TryGetRoleOptions(RoleTypes.GuardianAngel, out GuardianAngelRoleOptionsV10 roleData);
+                // TEMP: AU 2026-09-29 uses V12 role options; keep the existing protection duration.
+                // Review/remove when hamo upstream update is merged.
+                if (Main.NormalOptions.roleOptions.TryGetRoleOptions(RoleTypes.GuardianAngel, out GuardianAngelRoleOptionsV12 roleData))
+                    roleData.ProtectionDurationSeconds = 9999999999;
 
                 gameOptions.SetBool(BoolOptionNames.ConfirmImpostor, false);
 
@@ -227,7 +230,6 @@ namespace TownOfHost
 
                 }
 
-                roleData.ProtectionDurationSeconds = 9999999999;
 
                 foreach (var option in OptionItem.AllOptions)
 
@@ -240,7 +242,7 @@ namespace TownOfHost
                 }
 
                 VanillaOptionHolder.SetVanillaValue();
-
+                TownOfHost.Roles.Vanilla.Influencer.ApplyOptions();
 
 
                 if (TaskBattle.IsAllMapMode)

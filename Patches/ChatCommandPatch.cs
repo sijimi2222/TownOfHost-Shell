@@ -883,10 +883,13 @@ namespace TownOfHost
             // Shell AIの質問は通常チャットやチャット履歴へ流さない。
             if (ShellAI.TryParseCommand(text, out var aiQuestion, out var aiPublicReply))
             {
-                if (AmongUsClient.Instance.AmHost)
-                    ShellAI.Reply(aiQuestion, PlayerControl.LocalPlayer.PlayerId, aiPublicReply);
-                else
-                    RequestCommandProcessingFromHost("/cmd ai " + (aiPublicReply ? "all " : "") + aiQuestion);
+                if (ShellAI.IsEnabled)
+                {
+                    if (AmongUsClient.Instance.AmHost)
+                        ShellAI.Reply(aiQuestion, PlayerControl.LocalPlayer.PlayerId, aiPublicReply);
+                    else
+                        RequestCommandProcessingFromHost("/cmd ai " + (aiPublicReply ? "all " : "") + aiQuestion);
+                }
                 __instance.freeChatField.textArea.Clear();
                 return false;
             }
@@ -3439,7 +3442,7 @@ namespace TownOfHost
 
                             {
 
-                                Main.NormalOptions.TryCast<NormalGameOptionsV11>().SetInt(Int32OptionNames.NumCommonTasks, cot);
+                                Main.NormalOptions.TryCast<NormalGameOptionsV12>().SetInt(Int32OptionNames.NumCommonTasks, cot);
 
                                 chc += Main.UseingJapanese ? $"通常タスクを{cot}にしました!\n" : $"CommonTask:{cot}\n";
 
@@ -3451,7 +3454,7 @@ namespace TownOfHost
 
                             {
 
-                                Main.NormalOptions.TryCast<NormalGameOptionsV11>().SetInt(Int32OptionNames.NumLongTasks, lot);
+                                Main.NormalOptions.TryCast<NormalGameOptionsV12>().SetInt(Int32OptionNames.NumLongTasks, lot);
 
                                 chc += Main.UseingJapanese ? $"ロングタスクを{lot}にしました!\n" : $"LongTask:{lot}\n";
 
@@ -3463,7 +3466,7 @@ namespace TownOfHost
 
                             {
 
-                                Main.NormalOptions.TryCast<NormalGameOptionsV11>().SetInt(Int32OptionNames.NumShortTasks, sht);
+                                Main.NormalOptions.TryCast<NormalGameOptionsV12>().SetInt(Int32OptionNames.NumShortTasks, sht);
 
                                 chc += Main.UseingJapanese ? $"ショートタスクを{sht}にしました!\n" : $"ShortTask:{sht}\n";
 
@@ -3513,7 +3516,7 @@ namespace TownOfHost
 
                             if (fl <= 0) fl = 0.00000000000000001f;
 
-                            Main.NormalOptions.TryCast<NormalGameOptionsV11>().SetFloat(FloatOptionNames.KillCooldown, fl);
+                            Main.NormalOptions.TryCast<NormalGameOptionsV12>().SetFloat(FloatOptionNames.KillCooldown, fl);
 
                         }
 
