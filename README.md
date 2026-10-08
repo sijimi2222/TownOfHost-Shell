@@ -18,8 +18,8 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**最新版[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.0.0)**<re><br>
-過去バージョン[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
+**最新版は[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.0.0)**<re><br>
+過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
 
 ## 公開ルームについて
 > [!Note]
