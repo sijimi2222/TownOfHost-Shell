@@ -18,8 +18,8 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**最新版は[]()**<re>
-過去バージョンは[]()<re>
+**最新版は[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.0.0)**<re><br>
+過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
 
 ## 公開ルームについて
 > [!Note]
@@ -89,10 +89,10 @@ Modが使えなくなるよ!<br>
 　sijimi<br>
 　　[Youtube](https://youtube.com/channel/UCTm40eponkyVVJHLbkkpMSA?si=78s2Lr3T5c-Q6kpD)<br>
 
-※本家TownOfHost,TownOfHost_PKO様の開発者はここでは省略させていただきます
+※本家TownOfHost,TownOfHost_PKO,<br>TownOfHosthamo様の開発者はここでは省略させていただきます
 #### クレジット
 [Town Of Host](https://github.com/tukasa0001/TownOfHost)<br>
-　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Pkoでも大体実装されています<br>
+　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Shellでも大体実装されています<br>
 
 [Town Of Host_K](https://github.com/KYMario/TownOfHost-K)<br>
 　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
