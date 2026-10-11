@@ -125,6 +125,49 @@ public class ModNewsHistory
                 };
                 AllModNews.Add(news);
             }
+            {
+                var news = new ModNews
+                {
+                    Number = 100004,
+                    Title = "TOH-Shell v2.1.0 リリース！",
+                    SubTitle = "<color=#b85fff>TownOfHost-Shell v2.1.0</color>",
+                    ShortTitle = "<color=#b85fff>●TOH-Shell v2.1.0</color>",
+                    Text = "TOH-Shell v2.1.0をリリースしました！\n"
+                        + "\n"
+                        + "今回のアップデートでは、新役職の追加やhamo β版の統合、設定画面の改善などを行いました。\n"
+                        + "\n"
+                        + "【新役職】\n"
+                        + "・Tuner\n"
+                        + "・Mad Cleaner\n"
+                        + "・Chief\n"
+                        + "・Streamer\n"
+                        + "・Prankster\n"
+                        + "\n"
+                        + "【Prankster】\n"
+                        + "会議中に他プレイヤーへお菓子を要求できるニュートラル役職です。\n"
+                        + "お菓子を集めて勝利を目指します。\n"
+                        + "要求を拒否したプレイヤーには「イタズラの呪い」が付与されます。\n"
+                        + "また、各会議に隠れている「ジャック」を選んでしまうと、プランクスターの正体が公開されます。\n"
+                        + "\n"
+                        + "【hamo β統合】\n"
+                        + "TownOfHost-hamoの最新β版の変更を統合し、互換性や内部処理を更新しました。\n"
+                        + "\n"
+                        + "【設定画面】\n"
+                        + "・役職の表示順を整理\n"
+                        + "・一部表示を修正\n"
+                        + "・Shell独自役職の表示を改善\n"
+                        + "\n"
+                        + "【その他】\n"
+                        + "・各役職の処理を調整\n"
+                        + "・会議関連処理を改善\n"
+                        + "・各種不具合を修正\n"
+                        + "・内部処理や互換性を改善\n"
+                        + "\n"
+                        + "不具合を見つけた場合は、TOH-Shell Discordまで報告をお願いします！",
+                    Date = "2026-10-12"
+                };
+                AllModNews.Add(news);
+            }
             AnnouncementPopUp.UpdateState = AnnouncementPopUp.AnnounceState.NotStarted;
         }
     }
