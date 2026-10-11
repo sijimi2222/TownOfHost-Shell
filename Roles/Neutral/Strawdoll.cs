@@ -5,6 +5,7 @@ using AmongUs.GameOptions;
 
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using Hazel;
 
 namespace TownOfHost.Roles.Neutral;
@@ -131,7 +132,15 @@ public sealed class Strawdoll : RoleBase, IKiller, IUsePhantomButton
     {
         info.DoKill = false;
         var (killer, target) = info.AttemptTuple;
-
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
         if (Target == null)
         {
             Target = target;

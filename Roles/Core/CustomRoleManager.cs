@@ -152,6 +152,13 @@ public static class CustomRoleManager
 
         }
 
+        // ケイドロでは鬼のキルを「捕獲」に置き換え、逃走者を死亡させず牢屋へ移動する。
+        if (Kedoro.IsActive && Kedoro.IsOni(attemptKiller) && Kedoro.IsRunner(attemptTarget))
+        {
+            Kedoro.Capture(attemptKiller, attemptTarget);
+            return false;
+        }
+
 
 
         var killerRole = attemptKiller.GetRoleClass();
@@ -1031,6 +1038,8 @@ public static class CustomRoleManager
         SubRoleRPCSender.RoleHandlers.Clear();
 
         CoLog.Reset();
+        TownOfHost.Roles.Madmate.MadParasite.ResetTransformHistory();
+        TownOfHost.Modules.InfectedTracker.Reset();
         Tiger.ResetPredatedBodies();
 
     }
@@ -1128,6 +1137,8 @@ public static class CustomRoleManager
                 case CustomRoles.Connecting: Connecting.Add(pc.PlayerId); break;
 
                 case CustomRoles.Serial: Serial.Add(pc.PlayerId); break;
+
+                case CustomRoles.BountyGuesser: BountyGuesser.Add(pc.PlayerId); break;
 
                 case CustomRoles.PlusVote: PlusVote.Add(pc.PlayerId); break;
 
@@ -2331,6 +2342,49 @@ public enum CustomRoles
 
     // Shell preserves existing role IDs; upstream Influencer=286 conflicts with StandMaster.
     Influencer = 496,
+
+    // hamo beta additions: retain Shell IDs used by saved settings/RPCs.
+    PuppeteerHadouHo = 312,
+    Whiteshark = 313,
+    HateKiller = 314,
+    BlackSanta = 315,
+    Hyde = 316,
+    BoostLighter = 317,
+    Jizo = 318,
+    Fanatic = 319,
+    Jekyll = 320,
+    JekyllandHyde = 321,
+    Dancer = 322,
+    Dracula = 323,
+    Mermaid = 324,
+    kenzoku = 575,
+    BountyGuesser = 576,
+    Resulter = 325,
+    Corexis = 326,
+    Muter = 327,
+    MadScream = 328,
+    Maestro = 329,
+    Tomorrow = 330,
+    Repeater = 331,
+    MadParasite = 332,
+    Infect = 333,
+    Infected = 334,
+    HathorSekhmet = 335,
+    Surrogate = 336,
+    MadProxy = 337,
+    Inheritance = 577,
+    Survivor = 338,
+    Mario = 339,
+    Obolus = 340,
+    HydeImp = 341,
+    DarkHide = 342,
+    Greedier = 343,
+    Administer = 344,
+    Tuner = 345,
+    MadCleaner = 346,
+    Chief = 347,
+    Streamer = 348,
+    Prankster = 349,
 
     NDPlayer = 497,
 

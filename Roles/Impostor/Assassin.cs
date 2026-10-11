@@ -14,6 +14,8 @@ namespace TownOfHost.Roles.Impostor;
 
 public sealed class Assassin : RoleBase, IImpostor, IUsePhantomButton, IDoubleTrigger, IKillFlashSeeable
 {
+    bool IKiller.UsesDirectKillCooldown => AddRole is IImpostor impostor ? impostor.UsesDirectKillCooldown : CanKill;
+
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
             typeof(Assassin),

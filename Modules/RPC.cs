@@ -1512,11 +1512,15 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
                         var Istie = reader.ReadBoolean();
 
-                        var result = new MeetingVoteManager.VoteResult(exileId, Istie);
+                        var overrideex = reader.ReadByte();
 
-                        AntiBlackout.voteresult = result;
+                        var overridno = reader.ReadUInt16();
 
                         MeetingVoteManager.Voteresult = reader.ReadString();
+
+                        var result = new MeetingVoteManager.VoteResult(exileId, Istie, overrideex, overridno);
+
+                        AntiBlackout.voteresult = result;
 
                     }
 

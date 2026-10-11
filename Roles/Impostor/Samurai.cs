@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
-using UnityEngine;
 using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Crewmate;
+using UnityEngine;
 
 namespace TownOfHost.Roles.Impostor;
 
@@ -46,6 +47,7 @@ public sealed class Samurai : RoleBase, IImpostor, IUsePhantomButton
     public Samurai(PlayerControl player)
         : base(RoleInfo, player)
     {
+        CanUse = true;
     }
 
     static void SetupOptionItem()
@@ -64,6 +66,7 @@ public sealed class Samurai : RoleBase, IImpostor, IUsePhantomButton
     public bool CanUseSabotageButton() => CanSabotage;
     public bool CanUseImpostorVentButton() => CanVent;
 
+    bool CanUse;
     public override bool CanClickUseVentButton => CanVent;
     public override bool OnEnterVent(PlayerPhysics physics, int ventId) => CanVent;
     public override bool CanVentMoving(PlayerPhysics physics, int ventId) => CanVent;
@@ -78,17 +81,23 @@ public sealed class Samurai : RoleBase, IImpostor, IUsePhantomButton
 
     void IUsePhantomButton.OnClick(ref bool AdjustKillCooldown, ref bool? ResetCooldown)
     {
-        AdjustKillCooldown = false;
-        ResetCooldown = false;
+        if (CanUse)
+        {
+            AdjustKillCooldown = false;
+            ResetCooldown = false;
 
-        if (!AmongUsClient.Instance.AmHost) return;
-        if (!Player.IsAlive()) return;
+            if (!AmongUsClient.Instance.AmHost) return;
+            if (!Player.IsAlive()) return;
 
-        var killedCount = KillTargetsInFront();
-        if (killedCount <= 0) return;
+            var killedCount = KillTargetsInFront();
+            if (killedCount <= 0) return;
 
-        ResetCooldown = true;
-        UtilsNotifyRoles.NotifyRoles(OnlyMeName: true, SpecifySeer: Player);
+            Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
+            CanUse = false;
+
+            ResetCooldown = true;
+            UtilsNotifyRoles.NotifyRoles(OnlyMeName: true, SpecifySeer: Player);
+        }
     }
 
     int KillTargetsInFront()
@@ -165,8 +174,6 @@ public sealed class Samurai : RoleBase, IImpostor, IUsePhantomButton
         return forwardDot >= 0.35f;
     }
 
-    public override string GetAbilityButtonText() => GetString("SamuraiAbilityButtonText");
-
     public override string GetLowerText(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false, bool isForHud = false)
     {
         seen ??= seer;
@@ -175,5 +182,18 @@ public sealed class Samurai : RoleBase, IImpostor, IUsePhantomButton
 
         if (isForHud) return GetString("SamuraiLowerText");
         return $"<size=50%>{GetString("SamuraiLowerText")}</size>";
+    }
+
+    public override string GetAbilityButtonText() => "必殺技";
+
+    public void OnCheckMurderAsKiller(MurderInfo info)
+    {
+        Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
+    }
+
+    public override bool OverrideAbilityButton(out string text)
+    {
+        text = "Samurai_Ability";
+        return true;
     }
 }

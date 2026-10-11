@@ -114,6 +114,9 @@ public static class SurveySystem
 
         public string Text { get; set; } = "";
 
+        // Discord側の「名前：内容」の内容部分。
+        public string Description { get; set; } = "";
+
         public int Count { get; set; } = 0; // 現在の得票数(Discord側が集計して返してくる)
 
     }
@@ -138,13 +141,17 @@ public static class SurveySystem
 
         public bool AllowMultipleVotes { get; set; } = false;
 
+        // 要望により追加: trueの場合、番号選択ではなく自由記述("/cmd aq テキスト")で投票する。
+        public bool AllowFreeText { get; set; } = false;
+
         public DateTime? EndedAtUtc { get; set; } = null;
 
         public int TotalVotes { get; set; } = 0;
 
         public DateTime FetchedAtUtc { get; set; } = DateTime.UtcNow;
 
-
+        // 複数開催APIで返される一覧。旧形式ではnull/空のまま。
+        public List<SurveyCache> Surveys { get; set; } = new();
 
         // このキャッシュを、部屋に入った時に結果表示すべきかどうか。
 
@@ -205,6 +212,7 @@ public static class SurveySystem
             if (!Directory.Exists(SaveDir)) Directory.CreateDirectory(SaveDir);
 
             _cache = ReadJson<SurveyCache>(CacheFilePath) ?? new SurveyCache();
+            NormalizeSurveyCache();
 
         }
 
@@ -276,9 +284,23 @@ public static class SurveySystem
 
 
 
+    private static void NormalizeSurveyCache()
+    {
+        if (_cache == null) _cache = new SurveyCache();
+        if (_cache.Surveys == null) _cache.Surveys = new List<SurveyCache>();
+        if (_cache.Surveys.Count > 0)
+        {
+            var primary = _cache.Surveys.FirstOrDefault(s => s != null && s.IsActive) ?? _cache.Surveys[0];
+            if (primary != null && !string.IsNullOrEmpty(primary.Id)) _cache = primary;
+        }
+    }
+
     public static bool HasActiveSurvey => _cache is { IsActive: true };
 
     public static SurveyCache Current => _cache;
+
+    // 要望により追加: 現在のアンケートが「Discordで入力型」(自由記述)モードかどうか。
+    public static bool IsFreeTextMode => _cache is { IsActive: true, AllowFreeText: true };
 
 
 
@@ -292,28 +314,26 @@ public static class SurveySystem
 
     {
 
-        if (_cache == null || !_cache.IsActive || string.IsNullOrEmpty(_cache.Question))
+        var surveys = (_cache?.Surveys != null && _cache.Surveys.Count > 0)
+            ? _cache.Surveys.Where(s => s != null && s.IsActive).ToList()
+            : new List<SurveyCache>();
+        if (_cache is { IsActive: true } && !surveys.Any()) surveys.Add(_cache);
+        if (surveys.Count == 0) return GetString("Survey.NoActiveSurvey");
 
-            return GetString("Survey.NoActiveSurvey");
-
-
-
-        var sb = new StringBuilder();
-
-        sb.Append($"<size=90%><color=#00c1ff>📋 {_cache.Question}</color>\n");
-
-        foreach (var opt in _cache.Options.OrderBy(o => o.Index))
-
+        var sb = new StringBuilder("<size=90%>");
+        for (var surveyIndex = 0; surveyIndex < surveys.Count; surveyIndex++)
         {
-
-            sb.Append($"{opt.Index + 1}. {opt.Text}\n");
-
+            var survey = surveys[surveyIndex];
+            sb.Append($"<color=#00c1ff>📋 アンケート{surveyIndex + 1}: {survey.Question}</color>\n");
+            foreach (var opt in survey.Options.OrderBy(o => o.Index))
+            {
+                var detail = string.IsNullOrWhiteSpace(opt.Description) ? "" : $"：{opt.Description}";
+                sb.Append($"{opt.Index + 1}. {opt.Text}{detail}\n");
+            }
+            sb.Append(survey.AllowMultipleVotes ? GetString("Survey.HowToVoteMultiple") : GetString("Survey.HowToVote"));
+            sb.Append("\n\n");
         }
-
-        sb.Append(_cache.AllowMultipleVotes ? GetString("Survey.HowToVoteMultiple") : GetString("Survey.HowToVote"));
-
         sb.Append("</size>");
-
         return sb.ToString();
 
     }
@@ -492,6 +512,51 @@ public static class SurveySystem
 
     }
 
+    /// <summary>
+    /// 「Discordで入力型」モードのアンケートに自由記述で投票する。「/cmd aq テキスト」用。
+    /// 複数回答は呼び出し側で"."区切りをパースしてtextsに渡す(例: "/cmd aq A.B" → ["A","B"])。
+    /// 投票者のフレンドコードもあわせて送信し、Discord側の設定チャンネルに転送してもらう。
+    /// </summary>
+    public static async Task<string> VoteFreeTextAsync(PlayerControl player, List<string> texts)
+    {
+        if (_cache == null || !_cache.IsActive)
+            return GetString("Survey.NoActiveSurvey");
+
+        if (!_cache.AllowFreeText)
+            return "現在のアンケートは入力型ではありません。「/cmd aq (番号)」で投票してください。";
+
+        var cleanedTexts = texts?.Select(t => t?.Trim()).Where(t => !string.IsNullOrEmpty(t)).Distinct().ToList()
+            ?? new List<string>();
+        if (cleanedTexts.Count == 0)
+            return "回答が入力されていません。使い方: 「/cmd aq (回答)」複数回答は「/cmd aq (回答1).(回答2)」";
+
+        if (!_cache.AllowMultipleVotes && cleanedTexts.Count > 1)
+            return GetString("Survey.MultipleVotesNotAllowed");
+
+        if (string.IsNullOrEmpty(SurveyRemoteConfig.EndpointUrl))
+            return GetString("Survey.RemoteNotConfigured");
+
+        var voterKey = GetVoterKey(player);
+        var payload = new
+        {
+            surveyId = _cache.Id,
+            voterKey,
+            voterName = player.GetNameWithRole().RemoveHtmlTags(),
+            friendCode = player?.GetClient()?.FriendCode ?? "",
+            freeTexts = cleanedTexts,
+        };
+
+        var (ok, errorMessage) = await PostAsync("/vote", payload).ConfigureAwait(false);
+        if (!ok)
+            return errorMessage ?? GetString("Survey.VoteFailed");
+
+        // 投票直後、表示を最新化するためにもう一度取得しておく(次のポーリングを待たずに済むように)。
+        _ = PollNowAsync();
+
+        var answerText = string.Join("、", cleanedTexts);
+        return $"回答を受け付けました: {answerText}";
+    }
+
 
 
     private static string GetString(string key)
@@ -659,8 +724,16 @@ public static class SurveySystem
             var fetched = JsonSerializer.Deserialize<SurveyCache>(json, JsonOptions);
 
             if (fetched == null) return;
-
-
+            if (fetched.Surveys == null) fetched.Surveys = new List<SurveyCache>();
+            if (fetched.Surveys.Count > 0)
+            {
+                var primary = fetched.Surveys.FirstOrDefault(s => s != null && s.IsActive) ?? fetched.Surveys[0];
+                if (primary != null)
+                {
+                    primary.Surveys = fetched.Surveys;
+                    fetched = primary;
+                }
+            }
 
             fetched.FetchedAtUtc = DateTime.UtcNow;
 

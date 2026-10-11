@@ -7,6 +7,9 @@ namespace TownOfHost.Roles.Neutral
 {
     public sealed class Remotekiller : RoleBase, ILNKiller, ISchrodingerCatOwner
     {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
         public static readonly SimpleRoleInfo RoleInfo =
             SimpleRoleInfo.Create(
                 typeof(Remotekiller),

@@ -4,7 +4,10 @@ using TownOfHost.Roles.Core;
 
 namespace TownOfHost.Roles.Madmate;
 
-public sealed class SatsumatoImo : RoleBase
+// 役職本体(RoleInfo・アサイン・専用ロジック)は封印中。
+// ただし他の役職・システムから参照される判定用の静的ユーティリティは
+// 引き続き必要なため、このクラスとしては残しておく。
+public static class SatsumatoImo
 {
     public static OptionItem OptionCanSeeImpostor;
 
@@ -33,40 +36,10 @@ public sealed class SatsumatoImo : RoleBase
         return false;
     }
 
-    public static readonly SimpleRoleInfo RoleInfo =
-        SimpleRoleInfo.Create(
-            typeof(SatsumatoImo),
-            player => new SatsumatoImo(player),
-            CustomRoles.SatsumatoImo,
-            () => RoleTypes.Crewmate,
-            CustomRoleTypes.Crewmate,
-            34800,
-            SetupOptionItem,
-            "si",
-            "#990044",
-            (4, 2),
-            introSound: () => GetIntroSound(RoleTypes.Impostor)
-        );
-
-    public SatsumatoImo(PlayerControl player)
-        : base(RoleInfo, player, () => HasTask.ForRecompute)
-    {
-    }
-
-    static void SetupOptionItem()
-    {
-        OptionCanSeeImpostor = BooleanOptionItem.Create(RoleInfo, 5, OptionName.SatsumatoImoCanSeeImpostor, false, false);
-        HideRoleOptions(CustomRoles.SatsumatoImoC);
-        HideRoleOptions(CustomRoles.SatsumatoImoM);
-    }
-
-    enum OptionName
-    {
-        SatsumatoImoCanSeeImpostor,
-    }
-
     public static bool CanSeeImpostorNameColor(CustomRoles role)
     {
+        // Mad Cleaner uses its own dynamic ally visibility, not the common permanent colors.
+        if (role is CustomRoles.MadCleaner) return false;
         if (role is CustomRoles.SatsumatoImoM)
         {
             return OptionCanSeeImpostor?.GetBool() ?? false;
@@ -82,7 +55,7 @@ public sealed class SatsumatoImo : RoleBase
 
     public static bool UsesMadmateCommonSettings(CustomRoles role)
     {
-        return role.IsMadmate() && role is not CustomRoles.SatsumatoImoM;
+        return role.IsMadmate() && role is not CustomRoles.SatsumatoImoM && role is not CustomRoles.Hyde;
     }
 
     internal static void HideRoleOptions(CustomRoles role)
@@ -98,6 +71,46 @@ public sealed class SatsumatoImo : RoleBase
         {
             countOption.SetHidden(true);
         }
+    }
+}
+
+/*
+// 役職本体は封印中(パッチノート参照)。CustomRoles.SatsumatoImo等のenum値・
+// SatsumatoImoクラスの判定用メソッドは上記に残してあるので、ここは
+// RoleInfo・アサイン絡みのロジックのみ。
+
+public sealed class SatsumatoImoRole : RoleBase
+{
+    public static readonly SimpleRoleInfo RoleInfo =
+        SimpleRoleInfo.Create(
+            typeof(SatsumatoImoRole),
+            player => new SatsumatoImoRole(player),
+            CustomRoles.SatsumatoImo,
+            () => RoleTypes.Crewmate,
+            CustomRoleTypes.Crewmate,
+            34800,
+            SetupOptionItem,
+            "si",
+            "#990044",
+            (4, 2),
+            introSound: () => GetIntroSound(RoleTypes.Impostor)
+        );
+
+    public SatsumatoImoRole(PlayerControl player)
+        : base(RoleInfo, player, () => HasTask.ForRecompute)
+    {
+    }
+
+    static void SetupOptionItem()
+    {
+        SatsumatoImo.OptionCanSeeImpostor = BooleanOptionItem.Create(RoleInfo, 5, OptionName.SatsumatoImoCanSeeImpostor, false, false);
+        SatsumatoImo.HideRoleOptions(CustomRoles.SatsumatoImoC);
+        SatsumatoImo.HideRoleOptions(CustomRoles.SatsumatoImoM);
+    }
+
+    enum OptionName
+    {
+        SatsumatoImoCanSeeImpostor,
     }
 }
 
@@ -201,3 +214,4 @@ public sealed class SatsumatoImoM : RoleBase
         Player.RpcSetCustomRole(CustomRoles.SatsumatoImoC, log: null);
     }
 }
+*/

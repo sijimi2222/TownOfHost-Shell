@@ -30,6 +30,10 @@ public interface IKiller
 
     public bool IsKiller => CanKill;
 
+    /// <summary>Whether KillCooldown represents an ordinary direct kill, rather than a
+    /// repurposed ability button. Used only by the Tuner temporary modifier.</summary>
+    public bool UsesDirectKillCooldown => IsKiller && CanKill;
+
 
 
     /// <summary>

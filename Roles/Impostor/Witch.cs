@@ -1,16 +1,19 @@
 using System.Collections.Generic;
 using System.Text;
-using Hazel;
-
 using AmongUs.GameOptions;
+using Epic.OnlineServices.Presence;
+using Hazel;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using TownOfHost.Roles.Neutral;
 
 namespace TownOfHost.Roles.Impostor
 {
     public sealed class Witch : RoleBase, IImpostor, IUsePhantomButton, IDoubleTrigger
     {
+    bool IKiller.UsesDirectKillCooldown => !IsSpellMode;
+
         public static readonly SimpleRoleInfo RoleInfo =
             SimpleRoleInfo.Create(
                 typeof(Witch),
@@ -206,6 +209,15 @@ namespace TownOfHost.Roles.Impostor
             {
                 ResetCooldown = true;
                 var target = Player.GetKillTarget(true);
+                if (target.Is(CustomRoles.Madpsycho))
+                {
+                    if (Madpsycho.CanPsycho)
+                    {
+                        PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                        target.RpcMurderPlayer(Player);
+                        return;
+                    }
+                }
                 if (target != null)
                 {
                     var targetroleclass = target?.GetRoleClass();

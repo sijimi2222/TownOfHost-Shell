@@ -707,6 +707,7 @@ namespace TownOfHost
                 }
 
                 opt.TitleText.text = size + "<b>" + GetName(isoption: true) + mark + Fromtext + "</b></size>";
+                PranksterSettingsIcon.Refresh(this, opt);
 
                 opt.ValueText.text = GetString();
 

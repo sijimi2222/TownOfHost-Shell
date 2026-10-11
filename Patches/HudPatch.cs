@@ -25,6 +25,7 @@ using TownOfHost.Roles.Impostor;
 using TownOfHost.Roles.Neutral;
 
 using static TownOfHost.Translator;
+using TownOfHost.Roles.Madmate;
 
 
 
@@ -62,10 +63,10 @@ namespace TownOfHost
 
         private static bool hudUpdateNullReferenceLogged;
 
+
         public static void Postfix(HudManager __instance)
 
-        {
-
+        {            
             // HudManagerの生成途中はUpdateが先行することがあるため、
 
             // UI参照が揃うまで処理を次フレームへ延期して反復例外を防ぐ。
@@ -1408,6 +1409,47 @@ namespace TownOfHost
 
         private static bool taskPanelDeferredUntilAfterIntro;
 
+        // タブラベル(縦書きの「タスク」文字)を書き換えた元のテキストを覚えておき、
+        // 通常表示に戻す際に正しく復元できるようにする。
+        private static TMPro.TextMeshPro _cachedTabLabel;
+        private static string _originalTabLabelText;
+
+        /// <summary>
+        /// TaskPanel左側の縦書きタブラベルを書き換える(nullを渡すとバニラ表記へ復元)。
+        /// バニラのタブ用テキストはtaskText自体とは別のTextMeshProのため、
+        /// 子要素から「タスク」「TASK」を含むものを探して特定する。
+        /// </summary>
+        private static void RelabelTaskPanelTab(TaskPanelBehaviour panel, string newLabel)
+        {
+            try
+            {
+                if (_cachedTabLabel == null || _cachedTabLabel.IsDestroyedOrNull())
+                {
+                    _cachedTabLabel = null;
+                    if (panel == null) return;
+                    foreach (var tmp in panel.GetComponentsInChildren<TMPro.TextMeshPro>(true))
+                    {
+                        if (tmp == panel.taskText) continue;
+                        var t = tmp.text;
+                        if (string.IsNullOrEmpty(t)) continue;
+                        if (t.Contains("タスク") || t.ToUpperInvariant().Contains("TASK"))
+                        {
+                            _cachedTabLabel = tmp;
+                            _originalTabLabelText = t;
+                            break;
+                        }
+                    }
+                    if (_cachedTabLabel == null) return;
+                }
+
+                _cachedTabLabel.text = newLabel ?? _originalTabLabelText;
+            }
+            catch (Exception ex)
+            {
+                TownOfHost.Logger.Exception(ex, "TaskPanelBehaviourPatch.RelabelTaskPanelTab");
+            }
+        }
+
 
 
         /// <summary>イントロ中のタスクパネルを空にして隠し、終了後の復元を予約する。</summary>
@@ -1580,9 +1622,16 @@ namespace TownOfHost
 
                 }
 
+                // 要望により、役職説明を表示している間はパネル左側の縦書きタブラベルを
+                // バニラの「タスク」から「役職説明」へ差し替える。
+                RelabelTaskPanelTab(__instance, GetString("RoleDescriptionTabLabel"));
+
                 return;
 
             }
+
+            // 通常のタスク表示に戻る時は、タブラベルもバニラの表記へ戻す。
+            RelabelTaskPanelTab(__instance, null);
 
             if (!GameStates.IsModHost || GameStates.IsLobby) return;
 

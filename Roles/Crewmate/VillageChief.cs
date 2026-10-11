@@ -29,6 +29,9 @@ namespace TownOfHost.Roles.Crewmate;
 public sealed class VillageChief : RoleBase, IKiller, ISelfVoter
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 

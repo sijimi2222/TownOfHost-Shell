@@ -23,22 +23,7 @@ namespace TownOfHost.Roles
 
             private RandomAssignOptions(int id, OptionItem parent, CustomRoleTypes roleTypes, int maxCount)
             {
-                var name = GetString($"CustomRoleTypes.{roleTypes}");
-                switch (roleTypes)
-                {
-                    case CustomRoleTypes.Crewmate:
-                        name = Utils.ColorString(UtilsRoleText.GetRoleColor(CustomRoles.Crewmate), name);
-                        break;
-                    case CustomRoleTypes.Impostor:
-                        name = Utils.ColorString(UtilsRoleText.GetRoleColor(CustomRoles.Impostor), name);
-                        break;
-                    case CustomRoleTypes.Madmate:
-                        name = Utils.ColorString(ModColors.MadMateOrenge, name);
-                        break;
-                    case CustomRoleTypes.Neutral:
-                        name = Utils.ColorString(ModColors.Gray, name);
-                        break;
-                }
+                var name = GetColoredRoleTypeName(roleTypes);
                 var replacementDictionary = new Dictionary<string, string>()
                 { { "%roleType%", name} };
 
@@ -79,6 +64,63 @@ namespace TownOfHost.Roles
             public int MinLimit => minOption.Rule.MaxValue;
             public int MaxLimit => maxOption.Rule.MaxValue;
         }
+
+        /// <summary>
+        /// 人数ごとの個別設定(3人〜15人)。要望により、アサインモードがランダムのとき、
+        /// 各プレイヤー人数ごとにインポスター/マッドメイト/クルーメイト/ニュートラルの
+        /// 最大人数・最少人数と、マッドメイトをクルー枠からアサインする場合の最大人数を
+        /// 個別に設定できるようにするためのもの。
+        /// </summary>
+        class PerCountAssignOptions
+        {
+            public int PlayerCount { get; }
+            public OptionItem Enabled { get; }
+            private readonly Dictionary<CustomRoleTypes, IntegerOptionItem> minOptions = new();
+            private readonly Dictionary<CustomRoleTypes, IntegerOptionItem> maxOptions = new();
+            private readonly IntegerOptionItem madFromCrewMaxOption;
+
+            public PerCountAssignOptions(int idBase, OptionItem parent, int playerCount)
+            {
+                PlayerCount = playerCount;
+                var header = BooleanOptionItem.Create(idBase, "PlayerCountSettingHeader", false, TabGroup.MainSettings, false)
+                    .SetParent(parent)
+                    .SetEnabled(() => OptionAssignMode.GetBool() && OptionAssignPerPlayerCount.GetBool());
+                header.ReplacementDictionary = new Dictionary<string, string>() { { "%count%", playerCount.ToString() } };
+                Enabled = header;
+
+                var offset = 1;
+                foreach (var roleTypes in new[] { CustomRoleTypes.Impostor, CustomRoleTypes.Madmate, CustomRoleTypes.Crewmate, CustomRoleTypes.Neutral })
+                {
+                    var maxCount = roleTypes == CustomRoleTypes.Impostor ? Math.Min(3, playerCount) : playerCount;
+                    var name = GetColoredRoleTypeName(roleTypes);
+                    var replacementDictionary = new Dictionary<string, string>() { { "%roleType%", name } };
+
+                    var minOption = (IntegerOptionItem)IntegerOptionItem.Create(idBase + offset++, "RoleTypeMin", new(0, maxCount, 1), 0, TabGroup.MainSettings, false)
+                        .SetParent(header)
+                        .SetValueFormat(OptionFormat.Players)
+                        .SetEnabled(() => OptionAssignMode.GetBool() && OptionAssignPerPlayerCount.GetBool() && header.GetBool());
+                    minOption.ReplacementDictionary = replacementDictionary;
+
+                    var maxOption = (IntegerOptionItem)IntegerOptionItem.Create(idBase + offset++, "RoleTypeMax", new(0, maxCount, 1), 0, TabGroup.MainSettings, false)
+                        .SetParent(header)
+                        .SetValueFormat(OptionFormat.Players)
+                        .SetEnabled(() => OptionAssignMode.GetBool() && OptionAssignPerPlayerCount.GetBool() && header.GetBool());
+                    maxOption.ReplacementDictionary = replacementDictionary;
+
+                    minOptions[roleTypes] = minOption;
+                    maxOptions[roleTypes] = maxOption;
+                }
+
+                madFromCrewMaxOption = (IntegerOptionItem)IntegerOptionItem.Create(idBase + offset++, "AssignMadmateFromCrewmateSlotMax", new(0, playerCount, 1), playerCount, TabGroup.MainSettings, false)
+                    .SetParent(header)
+                    .SetValueFormat(OptionFormat.Players)
+                    .SetEnabled(() => OptionAssignMode.GetBool() && OptionAssignPerPlayerCount.GetBool() && header.GetBool() && OptionAssignMadmateFromCrewmateSlot.GetBool());
+            }
+
+            public int Min(CustomRoleTypes roleTypes) => minOptions.TryGetValue(roleTypes, out var opt) ? opt.GetInt() : 0;
+            public int Max(CustomRoleTypes roleTypes) => maxOptions.TryGetValue(roleTypes, out var opt) ? opt.GetInt() : 0;
+            public int MadFromCrewMax => madFromCrewMaxOption.GetInt();
+        }
         private static AssignAlgorithm AssignMode => assignMode();
         private static Func<AssignAlgorithm> assignMode;
         private enum AssignAlgorithm
@@ -95,12 +137,64 @@ namespace TownOfHost.Roles
         public static OptionItem OptionAssignMode;
         public static OptionItem OptionAssignMadmateFromCrewmateSlot;
         public static OptionItem OptionAssignMadmateFromCrewmateSlotMax;
+        public static OptionItem OptionAssignPerPlayerCount;
         private static Dictionary<CustomRoleTypes, RandomAssignOptions> RandomAssignOptionsCollection = new(CustomRolesHelper.AllRoleTypes.Length);
+        // 要望により追加: 3人〜15人それぞれに個別の配役数設定を持たせるための辞書。
+        private const int MinSupportedPlayerCount = 3;
+        private const int MaxSupportedPlayerCount = 15;
+        private static Dictionary<int, PerCountAssignOptions> PerCountOptionsCollection = new();
+
+        private static string GetColoredRoleTypeName(CustomRoleTypes roleTypes)
+        {
+            var name = GetString($"CustomRoleTypes.{roleTypes}");
+            return roleTypes switch
+            {
+                CustomRoleTypes.Crewmate => Utils.ColorString(UtilsRoleText.GetRoleColor(CustomRoles.Crewmate), name),
+                CustomRoleTypes.Impostor => Utils.ColorString(UtilsRoleText.GetRoleColor(CustomRoles.Impostor), name),
+                CustomRoleTypes.Madmate => Utils.ColorString(ModColors.MadMateOrenge, name),
+                CustomRoleTypes.Neutral => Utils.ColorString(ModColors.Gray, name),
+                _ => name,
+            };
+        }
+
+        /// <summary>現在のプレイヤー人数に対して有効な人数別設定があれば取得する。</summary>
+        private static bool TryGetPerCountOverride(out PerCountAssignOptions options)
+        {
+            options = null;
+            if (OptionAssignPerPlayerCount?.GetBool() != true) return false;
+            if (GameData.Instance == null) return false;
+            var count = GetAssignTargetPlayerCount();
+            if (!PerCountOptionsCollection.TryGetValue(count, out var pc)) return false;
+            if (pc.Enabled?.GetBool() != true) return false;
+            options = pc;
+            return true;
+        }
+
+        /// <summary>
+        /// アサインモードの「人数ごとの設定」の判定に使う人数を返す。
+        /// GMは実際に役職を割り振られるプレイヤーではないため、GM機能が有効な場合は
+        /// 接続人数から1人分減らしてから、人数ごとの設定(3人〜15人)と突き合わせる。
+        /// (例: 10人部屋+GM ON の場合、実際にアサインされるのは9人分なので、
+        ///  9人設定の枠を見るようにする)
+        /// </summary>
+        private static int GetAssignTargetPlayerCount()
+        {
+            var count = GameData.Instance?.PlayerCount ?? 0;
+            if (Options.EnableGM?.GetBool() == true) count -= 1;
+            return Math.Max(0, count);
+        }
+
+        private static int EffectiveMin(CustomRoleTypes roleTypes)
+            => TryGetPerCountOverride(out var pc) ? pc.Min(roleTypes) : RandomAssignOptionsCollection[roleTypes].Min;
+        private static int EffectiveMax(CustomRoleTypes roleTypes)
+            => TryGetPerCountOverride(out var pc) ? pc.Max(roleTypes) : RandomAssignOptionsCollection[roleTypes].Max;
+        private static int EffectiveMadFromCrewMax()
+            => TryGetPerCountOverride(out var pc) ? pc.MadFromCrewMax : GlobalMaxMadmateFromCrewmateSlotInRandom;
         private static Dictionary<CustomRoleTypes, int> AssignCount = new(CustomRolesHelper.AllRoleTypes.Length);
         private static List<CustomRoles> AssignRoleList = new(CustomRolesHelper.AllRoles.Length);
         private static bool UseCrewmateSlotForMadmateInRandom
             => AssignMode == AssignAlgorithm.Random && OptionAssignMadmateFromCrewmateSlot?.GetBool() == true;
-        private static int MaxMadmateFromCrewmateSlotInRandom
+        private static int GlobalMaxMadmateFromCrewmateSlotInRandom
             => OptionAssignMadmateFromCrewmateSlotMax?.GetInt() ?? 15;
 
         // ===== モデレーターコマンド(/cmd ma, /cmd mn)向けの公開API =====
@@ -175,13 +269,27 @@ namespace TownOfHost.Roles
                 .SetParent(OptionAssignMadmateFromCrewmateSlot)
                 .SetValueFormat(OptionFormat.Players)
                 .SetEnabled(() => OptionAssignMode.GetBool() && OptionAssignMadmateFromCrewmateSlot.GetBool());
+
+            // ===== 要望により追加: 人数(3人〜15人)ごとの個別設定 =====
+            OptionAssignPerPlayerCount = BooleanOptionItem.Create(idStart + 60, "AssignPerPlayerCount", false, TabGroup.MainSettings, false)
+                .SetParent(OptionAssignMode)
+                .SetEnabled(() => OptionAssignMode.GetBool());
+
+            PerCountOptionsCollection.Clear();
+            const int perCountIdBase = 590000;
+            const int perCountIdStep = 20; // 1人分につきヘッダー+9項目=10使用。将来の項目追加に備え余裕を持たせる。
+            for (var count = MinSupportedPlayerCount; count <= MaxSupportedPlayerCount; count++)
+            {
+                var idBase = perCountIdBase + (count - MinSupportedPlayerCount) * perCountIdStep;
+                PerCountOptionsCollection[count] = new PerCountAssignOptions(idBase, OptionAssignPerPlayerCount, count);
+            }
         }
         public static (bool, int, int) CheckRoleTypeCount(CustomRoleTypes role)
         {
             if (AssignMode == AssignAlgorithm.Fixed) return (false, 0, 0);
-            if (RandomAssignOptionsCollection.TryGetValue(role, out var option))
+            if (RandomAssignOptionsCollection.TryGetValue(role, out _))
             {
-                return (true, option.Max, option.Min);
+                return (true, EffectiveMax(role), EffectiveMin(role));
             }
             return (true, -1, -1);
         }
@@ -191,13 +299,13 @@ namespace TownOfHost.Roles
             var result = true;
             var opt = Main.NormalOptions.Cast<IGameOptions>();
 
-            var playerCount = GameData.Instance.PlayerCount;
+            // GM有効時はGM自身が役職アサインの対象にならないため、実際にアサインされる
+            // 人数(GM分を除いた人数)を基準に整合性チェックする。
+            var playerCount = GetAssignTargetPlayerCount();
             var numImpostors = Math.Min(playerCount, opt.GetInt(Int32OptionNames.NumImpostors));
 
-            var impOptions = RandomAssignOptionsCollection[CustomRoleTypes.Impostor];
-
-            var min = impOptions.Min;
-            var max = impOptions.Max;
+            var min = EffectiveMin(CustomRoleTypes.Impostor);
+            var max = EffectiveMax(CustomRoleTypes.Impostor);
             if (min > max || min > numImpostors || max > numImpostors)
             {
                 var msg = GetString("Warning.NotMatchImpostorCount");
@@ -206,8 +314,8 @@ namespace TownOfHost.Roles
                 result = false;
             }
             var roleMinCount = 0;
-            foreach (var options in RandomAssignOptionsCollection.Values)
-                roleMinCount += options.Min;
+            foreach (var roleType in RandomAssignOptionsCollection.Keys)
+                roleMinCount += EffectiveMin(roleType);
             if (roleMinCount > playerCount)
             {
                 var msg = GetString("Warning.NotMatchRoleCount");
@@ -351,10 +459,10 @@ namespace TownOfHost.Roles
             List<CustomRoleTypes> otherRoleTypesList = new();
             if (numOthers > 0) //マッド、クルー、ニュートラルの人数決定
             {
-                var otherRoleTypesOptions = RandomAssignOptionsCollection.Where(x => x.Key != CustomRoleTypes.Impostor);
+                var otherRoleTypes = RandomAssignOptionsCollection.Keys.Where(x => x != CustomRoleTypes.Impostor).ToList();
                 //一旦最少人数を設定
-                foreach (var (roleType, options) in otherRoleTypesOptions)
-                    otherRoleTypesList.AddRange(Enumerable.Repeat(roleType, options.Min).ToList());
+                foreach (var roleType in otherRoleTypes)
+                    otherRoleTypesList.AddRange(Enumerable.Repeat(roleType, EffectiveMin(roleType)).ToList());
 
                 //超えている場合はランダムに削除
                 while (otherRoleTypesList.Count > numOthers)
@@ -364,10 +472,10 @@ namespace TownOfHost.Roles
                 if (numAdditional > 0) //最少人数で限界値に満たない場合
                 {
                     List<CustomRoleTypes> additionalList = new();
-                    foreach (var (roleType, options) in otherRoleTypesOptions)
+                    foreach (var roleType in otherRoleTypes)
                     {
                         //追加人数を取得
-                        int additionalCount = Math.Max(0, rand.Next(options.Max - options.Min + 1));
+                        int additionalCount = Math.Max(0, rand.Next(EffectiveMax(roleType) - EffectiveMin(roleType) + 1));
 
                         additionalList.AddRange(Enumerable.Repeat(roleType, additionalCount).ToList());
                     }
@@ -381,11 +489,11 @@ namespace TownOfHost.Roles
             }
 
             //Dictionaryに変換
-            foreach (var (roleTypes, options) in RandomAssignOptionsCollection)
+            foreach (var roleTypes in RandomAssignOptionsCollection.Keys)
             {
                 if (roleTypes == CustomRoleTypes.Impostor)
                 {
-                    int impAssignCount = Math.Min(numImpostors, rand.Next(options.Min, options.Max + 1));
+                    int impAssignCount = Math.Min(numImpostors, rand.Next(EffectiveMin(roleTypes), EffectiveMax(roleTypes) + 1));
                     AssignCount.Add(roleTypes, impAssignCount);
                 }
                 else
@@ -417,7 +525,7 @@ namespace TownOfHost.Roles
                 if (UseCrewmateSlotForMadmateInRandom)
                 {
                     var madmateNeed = targetRoles.Count(x => x.GetAssignRoleType() == CustomRoleTypes.Madmate);
-                    if (assignedMadmateFromCrewSlot + madmateNeed > MaxMadmateFromCrewmateSlotInRandom) continue;
+                    if (assignedMadmateFromCrewSlot + madmateNeed > EffectiveMadFromCrewMax()) continue;
                 }
                 //アサイン枠が足りてない場合
                 if (requiredCounts.Any(kvp => !assignCount.TryGetValue(kvp.Key, out var count) || kvp.Value > count)) continue;
@@ -467,7 +575,7 @@ namespace TownOfHost.Roles
                 if (UseCrewmateSlotForMadmateInRandom)
                 {
                     var madmateNeed = targetRoles.Count(x => x.GetAssignRoleType() == CustomRoleTypes.Madmate);
-                    if (assignedMadmateFromCrewSlot + madmateNeed > MaxMadmateFromCrewmateSlotInRandom)
+                    if (assignedMadmateFromCrewSlot + madmateNeed > EffectiveMadFromCrewMax())
                     {
                         randomRoleTicketPool.RemoveAll(x => x == selectedTicket);
                         continue;

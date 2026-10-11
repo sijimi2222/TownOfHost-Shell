@@ -371,7 +371,8 @@ namespace TownOfHost
         {
             // Disaster displays have no PlayerState. Skip Shell's role logging/callbacks only.
             // This is a void Prefix: returning still runs the original standard Shapeshift.
-            if (NaturalDisasters.IsDisasterDisplay(__instance)) return;
+            if (NaturalDisasters.IsDisasterDisplay(__instance)
+                || VampireBloodStain.IsDisplay(__instance)) return;
 
             Logger.Info($"{__instance?.GetNameWithRole().RemoveHtmlTags()} => {target?.GetNameWithRole().RemoveHtmlTags()}", "Shapeshift");
 
@@ -480,6 +481,13 @@ namespace TownOfHost
             if (AmongUsClient.Instance.AmHost is false) return false;
 
 
+
+            // Vanilla and modded non-host Infect use the standard Phantom RPC.
+            if (__instance.GetRoleClass() is Infect infect)
+            {
+                infect.OnSuicideButtonClicked();
+                return false;
+            }
 
             //ダミーハンター：ファントムで一番近いダミーの位置へワープしてキル(キルワープ再現)
 

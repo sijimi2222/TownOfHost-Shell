@@ -23,6 +23,8 @@ namespace TownOfHost.Roles.Neutral;
 public sealed class JackalWolf : RoleBase, ILNKiller, IUsePhantomButton, IDoubleTrigger, IKillFlashSeeable, ISidekickable, ISchrodingerCatOwner
 
 {
+    bool IKiller.UsesDirectKillCooldown => AddRole is IKiller killer ? killer.UsesDirectKillCooldown : CanKill;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 

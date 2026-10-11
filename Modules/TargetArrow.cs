@@ -252,7 +252,7 @@ namespace TownOfHost
 
                 var target = PlayerCatch.GetPlayerById(targetId);
 
-                if (seerIsDead || !target.IsAlive())
+                if (seerIsDead || target == null || target.Data == null || target.Data.Disconnected || !target.IsAlive())
 
                 {
 

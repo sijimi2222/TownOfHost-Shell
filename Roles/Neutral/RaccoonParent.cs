@@ -11,6 +11,8 @@ namespace TownOfHost.Roles.Neutral;
 
 public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomButton
 {
+    bool IKiller.UsesDirectKillCooldown => GrabbedTargetId != byte.MaxValue;
+
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
             typeof(RaccoonParent),
@@ -24,6 +26,8 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
             "racp",
             "#a0785a",
             OptionSort: (7, 2),
+            // ファントム基盤のまま、手動照準では全陣営を対象にできるようにする。
+            isDesyncImpostor: true,
             from: From.TownOfHost_hamo
         );
 
@@ -38,6 +42,9 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
     static OptionItem OptionKillCooldownAfterEnd;
     static OptionItem OptionKillOnMeetingIfGrabbing;
     static OptionItem OptionMakeChildCooldown;
+    static OptionItem OptionRaccoonChildSection;
+    static OptionItem OptionRaccoonChildKillCooldown;
+    static OptionItem OptionRaccoonChildKillOnMeetingIfGrabbing;
 
     enum OptionName
     {
@@ -46,13 +53,32 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
         RaccoonParentMakeChildCooldown,
     }
 
-    static void SetupOptionItem()
+        static void SetupOptionItem()
     {
+        // CustomWinner.RaccoonParentの勝利優先度データを登録する。
+        // 未登録だと勝利時に「RaccoonParent is no Data」となり、ゲーム終了へ進めない。
+        SoloWinOption.Create(RoleInfo, 9, defo: 1);
+
         OptionKillOnMeetingIfGrabbing = BooleanOptionItem.Create(RoleInfo, 10, OptionName.RaccoonParentKillOnMeetingIfGrabbing, false, false);
         OptionKillCooldownAfterEnd = FloatOptionItem.Create(RoleInfo, 11, OptionName.RaccoonParentKillCooldownAfterEnd, new(0f, 180f, 0.5f), 30f, false)
             .SetValueFormat(OptionFormat.Seconds);
         OptionMakeChildCooldown = FloatOptionItem.Create(RoleInfo, 12, OptionName.RaccoonParentMakeChildCooldown, new(0f, 180f, 0.5f), 30f, false)
             .SetValueFormat(OptionFormat.Seconds);
+
+        // アライグマの子は親が作る子役職のため、設定は親役職内の見出しへまとめる。
+        OptionRaccoonChildSection = ObjectOptionitem.Create(RoleInfo.ConfigId + 13, "RaccoonChildSettings", true, null, RoleInfo.Tab)
+            .SetOptionName(() => "【アライグマの子設定】")
+            .SetParent(Options.CustomRoleSpawnChances[CustomRoles.RaccoonParent])
+            .SetParentRole(CustomRoles.RaccoonParent);
+        OptionRaccoonChildKillCooldown = FloatOptionItem.Create(RoleInfo.ConfigId + 14, "RaccoonChildKillCooldown", new(0f, 180f, 0.5f), 35f, RoleInfo.Tab, false)
+            .SetOptionName(() => "キルクール")
+            .SetValueFormat(OptionFormat.Seconds)
+            .SetParent(OptionRaccoonChildSection)
+            .SetParentRole(CustomRoles.RaccoonParent);
+        OptionRaccoonChildKillOnMeetingIfGrabbing = BooleanOptionItem.Create(RoleInfo.ConfigId + 15, "RaccoonChildKillOnMeetingIfGrabbing", false, RoleInfo.Tab, false)
+            .SetOptionName(() => "掴んだ相手を会議開始時にキルするか")
+            .SetParent(OptionRaccoonChildSection)
+            .SetParentRole(CustomRoles.RaccoonParent);
     }
 
     public byte GrabbedTargetId;
@@ -64,6 +90,8 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
     float meetingStartTimer = -1f;
 
     public static float GetKillCooldown() => OptionKillCooldownAfterEnd.GetFloat();
+    public static float GetChildKillCooldown() => OptionRaccoonChildKillCooldown?.GetFloat() ?? 35f;
+    public static bool ChildKillOnMeetingIfGrabbing => OptionRaccoonChildKillOnMeetingIfGrabbing?.GetBool() ?? false;
 
     // SK完了後はファントム能力を使わないため、親本人をインポスター基盤で維持する。
     public override RoleTypes? AfterMeetingRole => CanMakeChild ? RoleTypes.Phantom : RoleTypes.Impostor;
@@ -120,8 +148,10 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
         InvestigatedTargetId = byte.MaxValue;
         investigateReady = false;
         grabFollowState = 0;
-        // ペンギンと同様に、掴まれた側は移動・移動床を使えない。
-        target.GetPlayerState().CanMove = false;
+        // 対象の位置はFixedUpdateで強制追従させる。
+        // CanMoveをfalseにすると対象のキルボタンまで無効化されるため、
+        // 移動床だけを禁止してキル・防御などの能力操作は許可する。
+        target.GetPlayerState().CanMove = true;
         target.GetPlayerState().CanUseMovingPlatform = false;
         MyState.CanUseMovingPlatform = false;
         target.MarkDirtySettings();
@@ -140,6 +170,9 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
             target.MarkDirtySettings();
         }
         MyState.CanUseMovingPlatform = true;
+        // 掴み側のキル・移動オプションも即時に再計算する。
+        // 対象が別役職に倒された場合でも、古い掴み状態でボタンが止まらないようにする。
+        Player.MarkDirtySettings();
         grabFollowState = 0;
         GrabbedTargetId = byte.MaxValue;
         if (!keepInvestigation)
@@ -148,6 +181,19 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
             investigateReady = false;
         }
         SendRpc();
+    }
+
+    /// <summary>
+    /// 掴み側または掴み対象が死亡・追放・切断した際に、残った掴み状態を即時に解除する。
+    /// 共通のキル後処理から呼び出されるため、対象を倒した役職のキルボタンも通常状態へ戻る。
+    /// </summary>
+    public bool ReleaseGrabIfInvolves(PlayerControl player)
+    {
+        if (player == null) return false;
+        if (Player.PlayerId != player.PlayerId && GrabbedTargetId != player.PlayerId) return false;
+
+        ReleaseGrab();
+        return true;
     }
 
     // ===== 修正 =====
@@ -240,8 +286,10 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
         if (!AmongUsClient.Instance.AmHost || !Player.IsAlive() || !CanMakeChild) return;
 
         var target = Player.GetKillTarget(true);
-        // ジャッカルのSKと同じく、基本クルーメイトに限定せずクルー陣営の役職全体を対象にする。
-        if (target == null || !target.IsAlive() || !target.GetCustomRole().IsCrewmate())
+        // インポスター・マッドメイト・第三陣営を含む、すべての生存役職を子作り対象にする。
+        // アライグマ親子同士だけは対象外にして循環した役職変更を防ぐ。
+        if (target == null || !target.IsAlive()
+            || target.Is(CustomRoles.RaccoonParent) || target.Is(CustomRoles.RaccoonChild))
         {
             ResetCooldown = false;
             return;
@@ -358,10 +406,33 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
     }
 
     /// <summary>
+    /// アライグマ親子の掴み対象が死亡する直前・直後に、ホストで残存する掴み状態を解除する。
+    /// 通常キル、役職固有キル、追放・切断経路からも同じAPIを利用できる。
+    /// </summary>
+    public static bool ReleaseForPlayer(PlayerControl player)
+    {
+        if (player == null || AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return false;
+
+        bool released = false;
+        foreach (var pc in PlayerCatch.AllPlayerControls)
+        {
+            if (pc?.GetRoleClass() is RaccoonParent parent)
+                released |= parent.ReleaseGrabIfInvolves(player);
+            else if (pc?.GetRoleClass() is RaccoonChild child)
+                released |= child.ReleaseGrabIfInvolves(player);
+        }
+
+        if (released)
+            Logger.Info($"{player.GetNameWithRole().RemoveHtmlTags()} に関連する掴み状態を解除しました。", "RaccoonGrab");
+
+        return released;
+    }
+
+    /// <summary>
     /// アライグマ陣営(親・子)の独立した勝利判定。
-    /// 条件1: アライグマ陣営以外のキル可能役職(IKiller)が全滅
-    /// 条件2: アライグマ陣営の人数がクルーメイトの人数以下になる
-    /// どちらか一方でも成立すれば勝利。他陣営の判定には一切干渉しない。
+    /// 条件1: アライグマ陣営以外のキル可能人外（インポスターまたはIKiller）が全滅
+    /// 条件2: 生存クルーメイト数と生存アライグマ陣営数（親＋子）が同数
+    /// 両方成立した時だけ勝利するジャッカル型の勝利条件。
     /// </summary>
     public static bool CheckWin(ref GameOverReason reason)
     {
@@ -373,20 +444,25 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
         var otherKillers = PlayerCatch.AllAlivePlayerControls
             .Where(pc => pc != null
                 && !pc.Is(CustomRoles.RaccoonParent) && !pc.Is(CustomRoles.RaccoonChild)
-                && pc.GetRoleClass() is IKiller)
+                && (pc.GetCustomRole().IsImpostor() || pc.GetRoleClass() is IKiller))
             .ToList();
 
+        // 特殊クルー役職も含め、クルーメイト陣営全体の生存数で比較する。
         var aliveCrewCount = PlayerCatch.AllAlivePlayerControls
-            .Count(pc => pc != null && pc.GetCustomRole() is CustomRoles.Crewmate);
+            .Count(pc => pc != null && pc.GetCustomRole().IsCrewmate());
 
-        bool win = otherKillers.Count == 0 || raccoons.Count <= aliveCrewCount;
+        // 例: クルー2人・アライグマ親子2人、かつキル可能人外が0人なら勝利。
+        bool win = otherKillers.Count == 0 && raccoons.Count == aliveCrewCount;
         if (!win) return false;
 
         var winner = raccoons.First();
         if (CustomWinnerHolder.ResetAndSetAndChWinner(CustomWinner.RaccoonParent, winner.PlayerId))
         {
             foreach (var pc in raccoons)
+            {
                 CustomWinnerHolder.NeutralWinnerIds.Add(pc.PlayerId);
+                CustomWinnerHolder.WinnerIds.Add(pc.PlayerId);
+            }
             reason = GameOverReason.ImpostorsByKill;
             return true;
         }

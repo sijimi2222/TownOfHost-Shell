@@ -50,6 +50,7 @@ namespace TownOfHost
 
         {
 
+            if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId)) return false;
             if (GameStates.IsMeeting || GameStates.IsLobby || Wait) return false;
 
             if (CustomWinnerHolder.WinnerTeam is not CustomWinner.Default) return false;
@@ -63,6 +64,8 @@ namespace TownOfHost
                 return false;
 
             }
+
+            
 
             Logger.Info($"{__instance.GetNameWithRole().RemoveHtmlTags()} => {target?.Object?.GetNameWithRole()?.RemoveHtmlTags() ?? "null"}", "ReportDeadBody");
 
@@ -237,6 +240,8 @@ namespace TownOfHost
 
 
 
+            if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId)) return;
+
             Logger.Info($"{reporter.GetNameWithRole().RemoveHtmlTags()} => {target?.Object?.GetNameWithRole()?.RemoveHtmlTags() ?? "null"}", "ExReportDeadBody");
 
 
@@ -326,7 +331,7 @@ namespace TownOfHost
         {
             if (NaturalDisasters.IsThisMode) return false;
 
-            if (target != null && Tiger.IsPredatedBody(target.PlayerId))
+            if (target != null && (Tiger.IsPredatedBody(target.PlayerId) || Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId)))
             {
                 GameStates.CalledMeeting = false;
                 return false;
@@ -644,6 +649,12 @@ namespace TownOfHost
 
 
 
+            // Also guard forced/queued reports that bypass CheckMeeting.
+            if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId))
+            {
+                GameStates.CalledMeeting = false;
+                return;
+            }
             reporternetid = reporter.NetId;
 
             targetid = target?.PlayerId ?? byte.MaxValue;

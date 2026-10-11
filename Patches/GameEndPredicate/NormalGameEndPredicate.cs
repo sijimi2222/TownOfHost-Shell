@@ -543,7 +543,6 @@ namespace TownOfHost
             foreach (var pc in PlayerCatch.AllAlivePlayerControls)
 
             {
-
                 if (pc.Is(CustomRoles.PavlovOwner))
 
                 {
@@ -671,25 +670,6 @@ namespace TownOfHost
             bool standMasterAlive = PlayerCatch.AllAlivePlayerControls
 
                 .Any(pc => pc.Is(CustomRoles.StandMaster));
-
-
-
-            foreach (var pc in PlayerCatch.AllAlivePlayerControls)
-
-            {
-
-                if (pc.GetRoleClass() is Eater eater && eater.TryWinByLastSurvivorRule())
-
-                {
-
-                    reason = GameOverReason.ImpostorsByKill;
-
-                    return true;
-
-                }
-
-            }
-
 
 
             // 覚醒した被虐者は、残り2人になった時点で相手の陣営を無視して単独勝利する。

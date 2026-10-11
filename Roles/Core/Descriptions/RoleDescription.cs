@@ -40,10 +40,11 @@ public abstract class RoleDescription
             {
                 case CountTypes.Impostor: overrideRoleText = CustomRoles.Impostor; break;
                 case CountTypes.Jackal: overrideRoleText = CustomRoles.Jackal; break;
-                case CountTypes.Hunter: overrideRoleText = CustomRoles.Hunter; break;
                 case CountTypes.Fox: overrideRoleText = CustomRoles.Fox; break;
                 case CountTypes.GrimReaper: overrideRoleText = CustomRoles.GrimReaper; break;
                 case CountTypes.Remotekiller: overrideRoleText = CustomRoles.Remotekiller; break;
+                case CountTypes.Hunter: overrideRoleText = CustomRoles.Hunter; break;
+                case CountTypes.StandMaster: overrideRoleText = CustomRoles.StandMaster; break;
                 case CountTypes.MilkyWay: countText = Neutral.Vega.TeamText; break;
                 default: overrideRoleText = CustomRoles.Crewmate; break;
             }

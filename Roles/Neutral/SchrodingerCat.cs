@@ -10,7 +10,9 @@ using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Crewmate;
+using TownOfHost.Roles.Ghost;
 using static TownOfHost.Roles.Core.Interfaces.ISchrodingerCatOwner;
+using static UnityEngine.GraphicsBuffer;
 
 namespace TownOfHost.Roles.Neutral;
 
@@ -61,6 +63,9 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
     /// </summary>
     private ISchrodingerCatOwner owner = null;
     private TeamType _team = TeamType.None;
+
+    static Dictionary<byte, byte> MadCats = new(14);
+
     /// <summary>
     /// 現在の所属陣営<br/>
     /// 変更する際は特段の事情がない限り<see cref="RpcSetTeam"/>を使ってください
@@ -72,6 +77,7 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
         {
             logger.Info($"{Player.GetRealName()}の陣営を{value}に変更");
             _team = value;
+
         }
     }
     public bool AmMadmate => Team == TeamType.Mad;
@@ -98,6 +104,7 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
     public override bool OnCheckMurderAsTarget(MurderInfo info)
     {
         var killer = info.AttemptKiller;
+        var target = info.AppearanceTarget;
 
         //自殺ならスルー
         if (info.IsSuicide) return true;
@@ -212,6 +219,10 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
         {
             candidates.Add(TeamType.Pavlov);
         }
+        if (CustomRoles.DarkHide.IsPresent())
+        {
+            candidates.Add(TeamType.DarkHide);
+        }
         var team = candidates[rand.Next(candidates.Count)];
         RpcSetTeam(team);
     }
@@ -230,6 +241,7 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
             TeamType.MilkyWay => CustomWinnerHolder.winners.Contains(CustomWinner.MilkyWay),
             TeamType.Betrayer => CustomWinnerHolder.winners.Contains(CustomWinner.MadBetrayer),
             TeamType.Pavlov => CustomWinnerHolder.winners.Contains(CustomWinner.Pavlov),
+            TeamType.DarkHide => CustomWinnerHolder.winners.Contains(CustomWinner.DarkHide),
             _ => null,
         };
         if (!won.HasValue)
@@ -246,6 +258,12 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
     public void RpcSetTeam(TeamType team)
     {
         Team = team;
+
+        if (team == TeamType.Mad)
+        {
+            MadCats.Add(Player.PlayerId, Player.PlayerId);
+        }
+
         if (AmongUsClient.Instance.AmHost)
         {
             using var sender = CreateSender();
@@ -278,6 +296,8 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
             TeamType.MilkyWay => StringHelper.CodeColor(Vega.TeamColor),
             TeamType.Betrayer => UtilsRoleText.GetRoleColor(CustomRoles.MadBetrayer),
             TeamType.Pavlov => UtilsRoleText.GetRoleColor(CustomRoles.PavlovDog),
+            TeamType.Opportunist => UtilsRoleText.GetRoleColor(CustomRoles.Opportunist),
+            TeamType.DarkHide => UtilsRoleText.GetRoleColor(CustomRoles.DarkHide),
             _ => null,
         };
         if (!color.HasValue)
@@ -294,6 +314,16 @@ public sealed class SchrodingerCat : RoleBase, IAdditionalWinner, IDeathReasonSe
             && CustomWinnerHolder.winners.Contains(CustomWinner.Impostor))
         {
             Achievements.RpcCompleteAchievement(Player.PlayerId, 0, achievements[1]);
+        }
+    }
+    public static void CheckSaboWin(PlayerControl player)
+    {
+        //サボ時でも勝てるようにする
+        if (MadCats.ContainsKey(player.PlayerId))
+        {
+            CustomWinnerHolder.CantWinPlayerIds.Remove(player.PlayerId);
+            CustomWinnerHolder.WinnerIds.Add(player.PlayerId);
+            CustomWinnerHolder.AdditionalWinnerRoles.Add(CustomRoles.SchrodingerCat);
         }
     }
     public static Dictionary<int, Achievement> achievements = new();

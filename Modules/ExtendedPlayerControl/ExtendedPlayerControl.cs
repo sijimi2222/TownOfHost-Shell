@@ -224,6 +224,7 @@ namespace TownOfHost
 
                 }
 
+                TownOfHost.Roles.Crewmate.Tuner.SetCooldownEncoding(player, true);
                 player.SyncSettings();
 
             }
@@ -676,6 +677,7 @@ namespace TownOfHost
         public static void ResetKillCooldown(this PlayerControl player)
 
         {
+            TownOfHost.Roles.Crewmate.Tuner.SetCooldownEncoding(player, false);
 
             if (SuddenDeathMode.NowSuddenDeathMode)
 
@@ -911,7 +913,11 @@ namespace TownOfHost
 
                 CustomRoles.Altair or
 
-                CustomRoles.Eater;
+                CustomRoles.Eater or
+                CustomRoles.Hunter or
+                CustomRoles.Mermaid or
+                CustomRoles.Obolus or
+                CustomRoles.DarkHide;
 
         }
 
@@ -922,6 +928,8 @@ namespace TownOfHost
             if (player.GetRoleClass() is BakeCat bakeCat) return bakeCat.Team is not ISchrodingerCatOwner.TeamType.None;
 
             if (player.GetRoleClass() is MadBetrayer) return MadBetrayer.IsMadmate() is false;
+
+            if (player.GetRoleClass() is DarkSheriff darkSheriff) return darkSheriff.Awakened;
 
 
 
@@ -1044,7 +1052,10 @@ namespace TownOfHost
 
             var text = role.ToString();
 
-
+            // ハトホルとセクメトは会議ごとに神格が変わるため、通常の共通Infoではなく
+            // 現在の神格に対応したイントロを表示する。
+            if (!InfoLong && role is CustomRoles.HathorSekhmet && roleClass is HathorSekhmet hathorSekhmet)
+                return GetString(hathorSekhmet.IsSekhmetPhase ? "SekhmetIntro" : "HathorIntro");
 
             var Prefix = "";
 
@@ -1404,7 +1415,8 @@ namespace TownOfHost
 
                 {
 
-                    if (!TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(list[j].ParentId))
+                    if (!TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(list[j].ParentId)
+                        && !TownOfHost.Roles.Madmate.MadCleaner.IsCleaned(list[j].ParentId))
                         list2.Add(list[j].ParentId);
 
                 }

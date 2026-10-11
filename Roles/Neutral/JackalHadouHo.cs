@@ -27,6 +27,8 @@ namespace TownOfHost.Roles.Neutral;
 public sealed class JackalHadouHo : RoleBase, ILNKiller, IUsePhantomButton, ISelfVoter
 
 {
+    bool IKiller.UsesDirectKillCooldown => !(skMode && CanSideKick);
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 
@@ -1873,6 +1875,9 @@ public sealed class JackalHadouHo : RoleBase, ILNKiller, IUsePhantomButton, ISel
 public sealed class Tama : RoleBase, IKiller
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 

@@ -690,9 +690,7 @@ namespace TownOfHost
 
                     + $"\n/cmd /set rule(s r) - {GetString("Command.set_rule")}"
 
-                    + $"\n/cmd /mod id|name|color - {GetString("Command.modadd")}"
-
-                    + $"\n/cmd /mod delete id|name|color - {GetString("Command.moddel")}";
+                    + $"\n/cmd /mod id|name|color - {GetString("Command.modadd")}";
 
 
 

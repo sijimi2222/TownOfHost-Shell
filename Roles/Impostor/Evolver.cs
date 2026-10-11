@@ -431,6 +431,7 @@ public sealed class Evolver : RoleBase, IImpostor, IUsePhantomButton
 
 
     static readonly HashSet<byte> EatenBodies = new();
+    public static bool IsEatenBody(byte id) => EatenBodies.Contains(id);
 
 
 
@@ -466,7 +467,8 @@ public sealed class Evolver : RoleBase, IImpostor, IUsePhantomButton
 
             var id = db.ParentId;
 
-            if (EatenBodies.Contains(id) || TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(id)) continue;
+            if (EatenBodies.Contains(id) || TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(id)
+                || TownOfHost.Roles.Madmate.MadCleaner.IsCleaned(id)) continue;
 
             var pos = (Vector2)db.TruePosition;
 
@@ -523,6 +525,7 @@ public sealed class Evolver : RoleBase, IImpostor, IUsePhantomButton
         => Object.FindObjectsOfType<DeadBody>().Any(b => b.ParentId == bodyId)
 
         && !EatenBodies.Contains(bodyId)
+        && !TownOfHost.Roles.Madmate.MadCleaner.IsCleaned(bodyId)
         && !TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(bodyId);
 
 

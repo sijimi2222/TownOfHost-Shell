@@ -107,6 +107,7 @@ namespace TownOfHost
                 roleCommands.Add(CustomRoles.Detective, "Det");
                 roleCommands.Add(CustomRoles.Judge, "ju");
                 roleCommands.Add(CustomRoles.Influencer, "inf");
+                roleCommands.Add(CustomRoles.Influencer, "inf");
 
 
 
@@ -159,6 +160,7 @@ namespace TownOfHost
                 roleCommands.Add(CustomRoles.Connecting, "Cn");
 
                 roleCommands.Add(CustomRoles.Serial, "Se");
+                roleCommands.Add(CustomRoles.BountyGuesser, "Bg");
 
                 roleCommands.Add(CustomRoles.PlusVote, "Pv");
 

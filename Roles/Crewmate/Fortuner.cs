@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AmongUs.GameOptions;
 using Hazel;
+using MS.Internal.Xml.XPath;
+
 using TownOfHost.Roles.AddOns.Common;
 using TownOfHost.Roles.AddOns.Neutral;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
-
+using TownOfHost.Roles.Madmate;
+using static UnityEngine.GraphicsBuffer;
 namespace TownOfHost.Roles.Crewmate;
 
 public sealed class Fortuner : RoleBase, IKiller
@@ -111,6 +113,15 @@ public sealed class Fortuner : RoleBase, IKiller
         if (UseCount <= 0)
         {
             info.DoKill = false;
+            return;
+        }
+        var (killer, target) = info.AttemptTuple;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            info.DoKill = false;
+
+            PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+            target.RpcMurderPlayer(Player);
             return;
         }
         giveplayerid.Add(info.AppearanceTarget.PlayerId);

@@ -25,6 +25,9 @@ namespace TownOfHost.Roles.Neutral;
 public sealed class Cupid : RoleBase, IKiller, IAdditionalWinner
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 

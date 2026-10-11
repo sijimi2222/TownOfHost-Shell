@@ -981,6 +981,13 @@ namespace TownOfHost
 
             }
 
+            else if (Options.CurrentGameMode == CustomGameMode.Kedoro)
+            {
+                Kedoro.AssignTeams();
+                foreach (var pair in PlayerState.AllPlayerStates)
+                    ExtendedRpc.RpcSetCustomRole(pair.Key, pair.Value.MainRole);
+                GameEndChecker.SetPredicateToKedoro();
+            }
             else if (NaturalDisasters.IsThisMode)
             {
                 foreach (var pc in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsTestBot() && !pc.Is(CustomRoles.GM)))

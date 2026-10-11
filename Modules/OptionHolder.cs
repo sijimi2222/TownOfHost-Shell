@@ -48,6 +48,7 @@ namespace TownOfHost
 
         ShuffleRole,//= 0x09
         NaturalDisasters,
+        Kedoro,
 
         All = int.MaxValue
 
@@ -85,6 +86,7 @@ namespace TownOfHost
 
         OtherOption,//その他の設定
         NaturalDisasters,
+        Kedoro,
 
 
 
@@ -111,6 +113,22 @@ namespace TownOfHost
         {
 
             Logger.Info("Options.Load Start", "Options");
+
+            // 「Force Japanese」がONの場合、Among Us本体の言語設定を強制的に日本語へ
+            // 切り替える。バニラのタスク名など、MOD側の翻訳辞書(Translator.cs)を
+            // 経由しないテキストは、この本体側の言語設定にしか依存しないため、
+            // ForceJapaneseの値をここで反映しないとタスク名等が英語のままになる。
+            try
+            {
+                if (Main.ForceJapanese.Value && __instance.currentLanguage.languageID != SupportedLangs.Japanese)
+                {
+                    __instance.SetLanguage(SupportedLangs.Japanese);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Logger.Warn($"ForceJapaneseによる言語切り替えに失敗しました: {ex.Message}", "Options");
+            }
 
             Main.UseYomiage.Value = false;
 
@@ -198,6 +216,15 @@ namespace TownOfHost
 
         public static CustomGameMode CurrentGameMode => (CustomGameMode)GameMode.GetValue();
 
+        public static bool IsKedoro => CurrentGameMode == CustomGameMode.Kedoro;
+        public static OptionItem KedoroKillCooldown;
+        public static OptionItem KedoroRescueCooldown;
+        public static OptionItem KedoroJailCount;
+        public static OptionItem KedoroVentCooldown;
+        public static OptionItem KedoroVentMaxTime;
+        public static OptionItem KedoroSabotageDelay;
+        public static OptionItem KedoroSabotageTime;
+
 
 
         public static readonly string[] gameModes =
@@ -216,7 +243,7 @@ namespace TownOfHost
 
             "Standard", "HideAndSeek", "TaskBattle", "StandardHAS", "SuddenDeath", "MurderMystery",
 
-            "DummyBattleRoyale", "DummyHunter", "ShuffleRole", "NaturalDisasters",
+            "DummyBattleRoyale", "DummyHunter", "ShuffleRole", "NaturalDisasters", "Kedoro",
 
         };
 
@@ -1078,6 +1105,10 @@ namespace TownOfHost
 
         public static OptionItem OptionCommandAcl;
 
+        public static OptionItem OptionShowCoRoleWithRole;
+
+        public static OptionItem OptionShowCoAddonMark;
+
 
 
         public static OptionItem OptionNameCharLimit;
@@ -1536,7 +1567,16 @@ namespace TownOfHost
 
             WinOption.SetupCustomOption();
 
-            ObjectOptionitem.Create(1_000_124, "RoleOption", true, null, TabGroup.MainSettings).SetOptionName(() => "Role Setting").SetTag(CustomOptionTags.Role).SetEnabled(() => GameSettingMenuStartPatch.NowRoleTab is not CustomRoles.NotAssigned);
+            ObjectOptionitem.Create(1_000_124, "RoleOption", true, null, TabGroup.MainSettings).SetOptionName(() => "Role Setting").SetTag(CustomOptionTags.Role).SetEnabled(() => GameSettingMenuStartPatch.NowRoleTab is not CustomRoles.NotAssigned && GameSettingMenuStartPatch.NowRoleTab is not CustomRoles.JekyllandHyde);
+
+            // ケイドロ
+            KedoroKillCooldown = FloatOptionItem.Create(112500, "KedoroKillCooldown", new(0f, 180f, 1f), 10f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro);
+            KedoroRescueCooldown = FloatOptionItem.Create(112501, "KedoroRescueCooldown", new(0f, 180f, 1f), 30f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown);
+            KedoroJailCount = IntegerOptionItem.Create(112502, "KedoroJailCount", new(1, 30, 1), 3, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Times).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown);
+            KedoroVentCooldown = FloatOptionItem.Create(112503, "KedoroVentCooldown", new(0f, 180f, 1f), 15f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown);
+            KedoroVentMaxTime = FloatOptionItem.Create(112504, "KedoroVentMaxTime", new(0f, 180f, 1f), 5f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown).SetZeroNotation(OptionZeroNotation.Infinity);
+            KedoroSabotageDelay = FloatOptionItem.Create(112505, "KedoroSabotageDelay", new(30f, 1000f, 1f), 30f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown);
+            KedoroSabotageTime = FloatOptionItem.Create(112506, "KedoroSabotageTime", new(0f, 1000f, 1f), 1f, TabGroup.MainSettings, false).SetValueFormat(OptionFormat.Seconds).SetTag(CustomOptionTags.Kedoro).SetParent(KedoroKillCooldown);
 
             //タスクバトル
 
@@ -1747,11 +1787,11 @@ namespace TownOfHost
 
                 .SetHeader(true)
 
-                .SetValueFormat(OptionFormat.Seconds);
+                .SetValueFormat(OptionFormat.Seconds).SetParentRole(CustomRoles.Shapeshifter);
 
             DefaultShapeshiftDuration = FloatOptionItem.Create(102502, "DefaultShapeshiftDuration", new(1, 300, 1f), 10, TabGroup.ImpostorRoles, false)
 
-                .SetValueFormat(OptionFormat.Seconds);
+                .SetValueFormat(OptionFormat.Seconds).SetParentRole(CustomRoles.Shapeshifter);
 
 
 
@@ -1763,11 +1803,11 @@ namespace TownOfHost
 
             DefaultEngineerCooldown = FloatOptionItem.Create(102503, "DefaultEngineerCooldown", new(0, 180, 1f), 15, TabGroup.CrewmateRoles, false)
 
-                .SetHeader(true).SetValueFormat(OptionFormat.Seconds);
+                .SetHeader(true).SetValueFormat(OptionFormat.Seconds).SetParentRole(CustomRoles.Engineer);
 
             DefaultEngineerInVentMaxTime = FloatOptionItem.Create(102504, "DefaultEngineerInVentMaxTime", new(0, 180, 1), 5, TabGroup.CrewmateRoles, false)
 
-                .SetValueFormat(OptionFormat.Seconds).SetZeroNotation(OptionZeroNotation.Infinity);
+                .SetValueFormat(OptionFormat.Seconds).SetZeroNotation(OptionZeroNotation.Infinity).SetParentRole(CustomRoles.Engineer);
 
 
 
@@ -3040,6 +3080,27 @@ namespace TownOfHost
 
                 .SetOptionName(() => "/acl - 属性COの一覧を表示");
 
+            // 「/co」コマンドが使える設定(DisableCommandCoがOFF)の時だけ表示する。
+            // ONの場合、役職名が公開される場面(自分自身の役職表示、死亡後の他プレイヤー視認等)で、
+            // /coでCOした役職名を実際の役職名の前に「(CO役職名)役職名」の形で表示する。
+            OptionShowCoRoleWithRole = BooleanOptionItem.Create(1_601_300, "ShowCoRoleWithRole", false, TabGroup.Other2, true)
+
+                .SetParent(OptionCommandCo, invertParentValueForDisplay: true)
+
+                .SetColorcode("#00c1ff")
+
+                .SetOptionName(() => "COした役職を役職名の前に表示する");
+
+            // 「/aco」コマンドが使える設定(DisableCommandAcoがOFF)の時だけ表示する。
+            // ONの場合、属性が公開される場面で、/acoでCOした属性をマークとして表示する。
+            OptionShowCoAddonMark = BooleanOptionItem.Create(1_601_310, "ShowCoAddonMark", false, TabGroup.Other2, true)
+
+                .SetParent(OptionCommandAco, invertParentValueForDisplay: true)
+
+                .SetColorcode("#00c1ff")
+
+                .SetOptionName(() => "COした属性をマークで表示する");
+
 
 
             OptionUltraLightweightMode = BooleanOptionItem.Create(1_400_140, "UltraLightweightMode", false, TabGroup.Other2, true)
@@ -3546,11 +3607,15 @@ namespace TownOfHost
 
             DebugModeManager.SetupCustomOption();
 
-
-
             OptionSaver.Load();
 
-
+            // 旧版の氷鬼モード値(削除前の選択肢)が保存されていた場合は、
+            // 現在のゲームモード選択肢の範囲外になるため標準モードへ戻す。
+            if (GameMode.GetInt() < 0 || GameMode.GetInt() >= gameModes.Length)
+            {
+                Logger.Warn("削除済みゲームモードの保存値を検出したため、スタンダードへ戻しました。", "Options");
+                GameMode.SetValue((int)CustomGameMode.Standard, false);
+            }
 
             Combinations = null; //使わないから消す
 
@@ -3636,7 +3701,10 @@ namespace TownOfHost
 
         private static List<CombinationRoles> Combinations = new();
 
-        public static void SetupRoleOptions(SimpleRoleInfo info) => SetupRoleOptions(info.ConfigId, info.Tab, info.RoleName, info.AssignInfo.AssignCountRule, fromtext: UtilsOption.GetFrom(info), combination: info.Combination);
+        // 通常役職は従来どおり標準Roleタグで生成する。
+        public static void SetupRoleOptions(SimpleRoleInfo info)
+            => SetupRoleOptions(info.ConfigId, info.Tab, info.RoleName, info.AssignInfo.AssignCountRule,
+                fromtext: UtilsOption.GetFrom(info), combination: info.Combination);
 
         public static OptionItem SetupRoleOptions(int id, TabGroup tab, CustomRoles role, IntegerValueRule assignCountRule = null, CustomGameMode customGameMode = CustomGameMode.Standard, string fromtext = "", CombinationRoles combination = CombinationRoles.None, int defo = -1)
 
@@ -3695,8 +3763,7 @@ namespace TownOfHost
 
                 case CustomGameMode.HideAndSeek: tag = CustomOptionTags.HideAndSeek; break;
 
-                case CustomGameMode.MurderMystery: tag = CustomOptionTags.MurderMystery; break;
-
+                                case CustomGameMode.MurderMystery: tag = CustomOptionTags.MurderMystery; break;
             }
 
             CustomRoleManager.SortCustomRoles.Add(role);
@@ -3729,7 +3796,9 @@ namespace TownOfHost
 
                     .SetTag(tag) as IntegerOptionItem;
 
-            var hidevalue = role.IsCombinationRole() || role.IsLovers() || (assignCountRule.MaxValue == assignCountRule.MinValue);
+            var forceHidden = role == CustomRoles.NotAssigned || role == CustomRoles.Eater;
+
+            var hidevalue = forceHidden || role.IsCombinationRole() || role.IsLovers() || (assignCountRule.MaxValue == assignCountRule.MinValue);
 
 
 

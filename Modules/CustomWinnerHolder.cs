@@ -109,7 +109,9 @@ namespace TownOfHost
             var callerMethod = caller.GetMethod();
             string callerMethodName = callerMethod.Name;
             string callerClassName = callerMethod.DeclaringType.FullName;
-            Logger.Info($"RASACW {WinnerTeam} =>? {winner}, Call:{callerClassName}.{callerMethodName}", "CustomWinner");
+            // 勝利判定は毎フレーム呼ばれるため、通常プレイでは詳細ログを出さない。
+            if (Main.DebugVersion)
+                Logger.Info($"RASACW {WinnerTeam} =>? {winner}, Call:{callerClassName}.{callerMethodName}", "CustomWinner");
 
             if (SoloWinOption.AllData.TryGetValue(hantrole is CustomRoles.NotAssigned ? (CustomRoles)winner : hantrole, out var data))
             {
@@ -125,7 +127,8 @@ namespace TownOfHost
                     WinPriority = data.OptionWin.GetInt();
                     WinnerTeam = winner;
                     winners.Add(winner);
-                    Logger.Info($"{WinPriority} < {data.OptionWin.GetInt()}", "CustomWinner");
+                    if (Main.DebugVersion)
+                        Logger.Info($"{WinPriority} < {data.OptionWin.GetInt()}", "CustomWinner");
                     if (playerId is byte.MaxValue) return true;
                     WinnerIds.Add(playerId);
                     return true;
@@ -137,7 +140,8 @@ namespace TownOfHost
                     UtilsGameLog.AddGameLog("AddWinner", $"AddWin:{UtilsRoleText.GetRoleColorAndtext(winnerRole)}");
                     AdditionalWinnerRoles.Add((CustomRoles)winner);
                     winners.Add(winner);
-                    Logger.Info($"{WinPriority} == {data.OptionWin.GetInt()}", "CustomWinner");
+                    if (Main.DebugVersion)
+                        Logger.Info($"{WinPriority} == {data.OptionWin.GetInt()}", "CustomWinner");
                     if (playerId is byte.MaxValue) return true;
                     WinnerIds.Add(playerId);
                     CantWinPlayerIds.Remove(playerId);
@@ -145,7 +149,8 @@ namespace TownOfHost
                 }
                 else
                 {
-                    Logger.Info($"{WinPriority} > {data.OptionWin.GetInt()}", "CustomWinner");
+                    if (Main.DebugVersion)
+                        Logger.Info($"{WinPriority} > {data.OptionWin.GetInt()}", "CustomWinner");
                     return false;
                 }
             }

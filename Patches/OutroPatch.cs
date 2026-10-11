@@ -29,6 +29,9 @@ namespace TownOfHost
             GameStates.ExiledAnimate = false;
             DummyHunter.OnGameEnd();
             Modules.CustomNetObject.Reset();
+            Kedoro.Reset();
+            TownOfHost.Roles.Crewmate.Tuner.Reset();
+            TownOfHost.Roles.Madmate.MadCleaner.ResetCleanedBodies();
             CoLog.Reset();
 
             UtilsGameLog.day++;

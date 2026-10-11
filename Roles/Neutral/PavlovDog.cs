@@ -151,6 +151,9 @@ public sealed class PavlovDog : PavlovDogBase
 
 public sealed class PavlovOwner : RoleBase, IKiller, IAdditionalWinner, ISchrodingerCatOwner
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
     static RoleTypes GetOwnerBaseRoleType()
         => CanAnyOwnerImprintNow() ? RoleTypes.Impostor : RoleTypes.Crewmate;
 
@@ -172,7 +175,8 @@ public sealed class PavlovOwner : RoleBase, IKiller, IAdditionalWinner, ISchrodi
             CustomRoles.PavlovOwner,
             GetOwnerBaseRoleType,
             CustomRoleTypes.Neutral,
-            77200,
+            //ID被り解消のためだから許して...()
+            77259,
             SetupOptionItem,
             "pvo",
             "#F4A96A",
@@ -351,7 +355,7 @@ public sealed class PavlovDogImprint : PavlovDogBase
             CustomRoles.PavlovDogImprint,
             () => RoleTypes.Shapeshifter,
             CustomRoleTypes.Neutral,
-            77100,
+            77270,
             SetupOptionItem,
             "pvi",
             "#F4A96A",

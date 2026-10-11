@@ -4,6 +4,7 @@ using UnityEngine;
 
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using Hazel;
 
 namespace TownOfHost.Roles.Neutral;
@@ -97,6 +98,17 @@ public sealed class CurseMaker : RoleBase, IKiller, IUsePhantomButton
     {
         fall = false;
         var (killer, target) = info.AttemptTuple;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            info.DoKill = false;
+
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
         info.DoKill = false;
         if (CursedPlayers.ContainsKey(target.PlayerId) || TargetInfo != null) return;
 

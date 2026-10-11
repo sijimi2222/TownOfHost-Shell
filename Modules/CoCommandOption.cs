@@ -102,8 +102,6 @@ public static class CoCategoryOption
 
         CustomRoles.MadTeller,
 
-        CustomRoles.JackalSeer,
-
         CustomRoles.EvilTeller,
 
     };
@@ -212,6 +210,36 @@ public static class CoLog
 
         AddonEntries.Clear();
 
+    }
+
+    /// <summary>
+    /// 指定したプレイヤーが/coでCOした表示テキストと色を取得する。
+    /// COしていない場合はnullを返す。
+    /// 「COした役職を役職名の前に表示する」設定から、役職公開時のプレフィックスとして使う。
+    /// </summary>
+    public static (string DisplayText, UnityEngine.Color DisplayColor)? GetCoDisplay(byte playerId)
+    {
+        if (RoleEntries.TryGetValue(playerId, out var entry))
+            return (entry.DisplayText, entry.DisplayColor);
+        return null;
+    }
+
+    /// <summary>
+    /// 指定したプレイヤーが/acoでCOした属性の一覧(表示名, 色)を取得する。
+    /// 1人が複数の属性をCOできるため、リストで返す。COが無ければ空リスト。
+    /// 「COした属性をマークで表示する」設定から、属性マークとして使う。
+    /// </summary>
+    public static List<(string DisplayText, UnityEngine.Color DisplayColor)> GetCoAddonDisplays(byte playerId)
+    {
+        var result = new List<(string, UnityEngine.Color)>();
+        if (AddonEntries.TryGetValue(playerId, out var entry))
+        {
+            foreach (var role in entry.Roles)
+            {
+                result.Add((UtilsRoleText.GetRoleName(role), UtilsRoleText.GetRoleColor(role)));
+            }
+        }
+        return result;
     }
 
 

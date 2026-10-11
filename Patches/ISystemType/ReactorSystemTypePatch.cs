@@ -110,6 +110,8 @@ public static class ReactorSystemTypeUpdateSystemPatch
 
                 case CustomGameMode.SuddenDeath: __instance.Countdown = SuddenDeathMode.SuddenDeathReactortime.GetFloat(); return;
 
+                case CustomGameMode.Kedoro: __instance.Countdown = Options.KedoroSabotageTime.GetFloat(); return;
+
                 case CustomGameMode.MurderMystery: __instance.Countdown = 60; return;
 
             }

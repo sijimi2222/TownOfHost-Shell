@@ -2970,6 +2970,22 @@ namespace TownOfHost
 
                             rolebutton.Add(option.CustomRole, button);
 
+                            if (option.CustomRole.IsNewRole())
+                            {
+                                var badgeSprite = UtilsSprite.LoadSprite("TownOfHost.Resources.TOHhm.Label.NewBadge.png", 1350f);
+                                if (badgeSprite != null)
+                                {
+                                    var badge = Object.Instantiate(stringOption.LabelBackground, stringOption.transform);
+                                    badge.gameObject.name = "NewRoleBadge";
+                                    badge.sprite = badgeSprite;
+                                    badge.color = Color.white;
+                                    badge.drawMode = SpriteDrawMode.Simple;
+                                    badge.transform.localPosition = new Vector3(-4.10f, 0.55f, -10.2f);
+                                    badge.transform.localScale = Vector3.one;
+                                    badge.sortingOrder = 50;
+                                }
+                            }
+
 
 
                             {

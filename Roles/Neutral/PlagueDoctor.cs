@@ -8,6 +8,7 @@ using AmongUs.GameOptions;
 
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 
 namespace TownOfHost.Roles.Neutral;
 
@@ -177,8 +178,18 @@ public sealed class PlagueDoctor : RoleBase, IKiller
     public void OnCheckMurderAsKiller(MurderInfo info)
     {
         var (killer, target) = info.AttemptTuple;
+        info.DoKill = false;
         if (InfectCount > 0)
         {
+            if (target.Is(CustomRoles.Madpsycho))
+            {
+                if (Madpsycho.CanPsycho)
+                {
+                    PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                    target.RpcMurderPlayer(Player);
+                    return;
+                }
+            }
             InfectCount--;
             killer.RpcProtectedMurderPlayer(target);
             DirectInfect(target);

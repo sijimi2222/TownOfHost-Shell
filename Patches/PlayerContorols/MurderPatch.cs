@@ -117,7 +117,7 @@ namespace TownOfHost
     class MurderPlayerPatch
     {
         private static readonly LogHandler logger = Logger.Handler(nameof(PlayerControl.MurderPlayer));
-        public static void Prefix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target, [HarmonyArgument(1)] MurderResultFlags resultFlags, ref bool __state /* 成功したキルかどうか */ )
+        public static bool Prefix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target, [HarmonyArgument(1)] MurderResultFlags resultFlags, ref bool __state /* 成功したキルかどうか */ )
         {
             logger.Info($"{__instance.GetNameWithRole().RemoveHtmlTags()} => {target.GetNameWithRole().RemoveHtmlTags()}{(target.protectedByGuardianThisRound ? "(Protected)" : "")} ({resultFlags})");
             var isProtectedByClient = resultFlags.HasFlag(MurderResultFlags.DecisionByHost) && target.IsProtected();
@@ -161,8 +161,9 @@ namespace TownOfHost
                         target.RpcShapeshift(target, false);
                     }
                 }
-                //if (!Camouflager.NowUse) Camouflage.RpcSetSkin(target, ForceRevert: true, RevertToDefault: true);
+                                //if (!Camouflager.NowUse) Camouflage.RpcSetSkin(target, ForceRevert: true, RevertToDefault: true);
             }
+            return true;
         }
         public static void Postfix(PlayerControl __instance, [HarmonyArgument(0)] PlayerControl target, bool __state)
         {
@@ -175,6 +176,7 @@ namespace TownOfHost
             if (!target.Data.IsDead || !AmongUsClient.Instance.AmHost) return;
             //以降ホストしか処理しない
             // 処理は全てCustomRoleManager側で行う
+            Roles.Neutral.RaccoonParent.ReleaseForPlayer(target);
             CustomRoleManager.OnMurderPlayer(__instance, target);
 
             // 死亡したプレイヤーのペットを消す

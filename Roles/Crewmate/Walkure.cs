@@ -7,6 +7,7 @@ using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Impostor;
+using TownOfHost.Roles.Madmate;
 using static TownOfHost.Modules.SelfVoteManager;
 
 namespace TownOfHost.Roles.Crewmate;
@@ -24,8 +25,9 @@ public sealed class Walkure : RoleBase, ISelfVoter, IKiller
             SetupOptionItem,
             "wk",
             "#78d7ff",
-             (3, 6),
-            isDesyncImpostor: true
+            (3, 6),
+            true,
+            from: From.TownOfHost_Pko
         );
 
     private static OptionItem OptionMeetingRevealLimit;
@@ -213,7 +215,26 @@ public sealed class Walkure : RoleBase, ISelfVoter, IKiller
             Utils.SendMessage(GetString("WalkureRevealInvalid"), Player.PlayerId);
             return;
         }
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                string send = "";
+                if (!Player.IsAlive())
+                {
+                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
+                }
+                else
+                {
+                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
+                }
+                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
 
+                return;
+            }
+        }
         var limit = OptionMeetingRevealLimit.GetInt();
         if (limit != 0 && meetingRevealCount >= limit)
         {
@@ -303,7 +324,7 @@ public sealed class Walkure : RoleBase, ISelfVoter, IKiller
 
     public override bool OnCheckMurderAsTarget(MurderInfo info)
     {
-        info.GuardPower = 99;
+        info.GuardPower = 9;
         var (killer, target) = info.AppearanceTuple;
         killer.SetKillCooldown(target: target);
         return false;

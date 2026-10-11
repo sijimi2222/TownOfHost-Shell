@@ -25,6 +25,9 @@ namespace TownOfHost.Roles.Crewmate;
 public sealed class Santa : RoleBase, IKiller
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     bool IKiller.IsKiller => true;
 

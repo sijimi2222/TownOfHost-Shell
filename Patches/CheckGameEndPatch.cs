@@ -33,7 +33,6 @@ using TownOfHost.Roles.Ghost;
 using TownOfHost.Roles.Impostor;
 
 using TownOfHost.Roles.Neutral;
-
 using UnityEngine;
 
 
@@ -215,18 +214,18 @@ namespace TownOfHost
 
             var lockWinner = lockSabotageWinner || lockDrawWinner;
 
-
+            var team = CustomWinnerHolder.WinnerTeam;
 
             if (!lockWinner)
 
             {
+                DarkHide.CheckWin(ref reason);
 
-                Zombie.TryTakeOverCrewWin(ref reason);
+                Zombie.TryTakeOverCrewWin(ref reason, team);
 
                 Onmyoji.TryTakeOverCrewWin(ref reason);
 
                 BatGirl.TryTakeOverSoloWin(ref reason);
-
             }
 
 
@@ -257,7 +256,7 @@ namespace TownOfHost
 
                                 .Do(pc => CustomWinnerHolder.WinnerIds.Add(pc.PlayerId));
 
-                            //if (Monochromer.CheckWin(reason)) break;
+                            if (Monochromer.CheckWin(reason)) break;
 
                             foreach (var pc in PlayerCatch.AllPlayerControls)
 
@@ -359,26 +358,10 @@ namespace TownOfHost
 
                 {
 
-                    if (!reason.Equals(GameOverReason.CrewmatesByTask))
-
-                    {
-
-                        Lovers.LoversSoloWin(ref reason);
-
-                    }
-
-                    if (reason.Equals(GameOverReason.CrewmatesByTask))
-
-                    {
-
-                        PlayerCatch.AllPlayerControls
-
-                            .Where(pc => pc.IsLovers())
-
-                            .Do(lover => CustomWinnerHolder.CantWinPlayerIds.Add(lover.PlayerId));
-
-                    }
-
+                    // タスク勝利でもラバーズの単独勝利・追加勝利を適用する。
+                    // タスク勝利時だけラバーズをCantWinへ入れていたため、
+                    // 全タスク完了時にラバーズが勝者になれなかった。
+                    Lovers.LoversSoloWin(ref reason);
                     Lovers.LoversAddWin();
 
 
@@ -460,6 +443,7 @@ namespace TownOfHost
                 {
 
                     CurseMaker.CheckWin();
+                    DarkHide.CheckWin(ref reason);
 
                     Fox.SFoxCheckWin(ref reason);
 
@@ -474,7 +458,7 @@ namespace TownOfHost
                     Chatter.CheckWin(ref reason);
                     TownOfHost.Roles.Neutral.Tiger.TryChooseWinner();
 
-                    Zombie.TryTakeOverCrewWin(ref reason);
+                    Zombie.TryTakeOverCrewWin(ref reason, team);
 
 
 
@@ -587,6 +571,8 @@ namespace TownOfHost
 
 
                 Ruler.ApplyGameEndRules();
+                TownOfHost.Roles.Neutral.Streamer.ApplyEndWinners();
+                TownOfHost.Roles.Neutral.Prankster.ApplyAdditionalWinners();
 
 
 
@@ -1003,6 +989,12 @@ namespace TownOfHost
 
                     break;
 
+                case CustomGameMode.Kedoro:
+
+                    SetPredicateToKedoro();
+
+                    break;
+
                 default:
 
                     SetPredicateToNormal();
@@ -1018,6 +1010,8 @@ namespace TownOfHost
         public static void SetPredicateToNormal() => predicate = new NormalGameEndPredicate();
 
         public static void SetPredicateToHideAndSeek() => predicate = new HideAndSeekGameEndPredicate();
+
+        public static void SetPredicateToKedoro() => predicate = new Kedoro.KedoroGameEndPredicate();
 
         public static void SetPredicateToTaskBattle() => predicate = new TaskBattle.TaskBattleGameEndPredicate();
 

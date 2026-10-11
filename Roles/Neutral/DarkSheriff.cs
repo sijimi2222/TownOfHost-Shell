@@ -20,6 +20,8 @@ public sealed class DarkSheriff : RoleBase, IKiller
             "dsh",
             "#f8cd46",
             OptionSort: (7, 1),
+            // インポスター・マッドメイトを含め、シェリフ判定で対象を選択できる基盤にする。
+            isDesyncImpostor: true,
             from: From.TownOfHost_hamo
         );
 

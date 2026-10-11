@@ -29,6 +29,9 @@ namespace TownOfHost.Roles.Neutral;
 public sealed class StandMaster : RoleBase, ILNKiller, IUsePhantomButton
 
 {
+    bool IKiller.UsesDirectKillCooldown => (standCreated || standHadDied)
+        && (EnableKillAbility || (standHadDied && StandDeathGrantsKill));
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 

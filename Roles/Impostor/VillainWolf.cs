@@ -36,7 +36,7 @@ namespace TownOfHost.Roles.Impostor;
 
 // 条件達成で覚醒し、キルクールダウンが短縮される。設定次第で覚醒時に属性(AddOn)を1つ付与できる。
 
-public sealed class VillainWolf : RoleBase, IImpostor
+public sealed class VillainWolf : RoleBase, IImpostor, IKiller
 
 {
 

@@ -92,9 +92,14 @@ public sealed class President : RoleBase, ISelfVoter
     public override (byte? votedForId, int? numVotes, bool doVote) ModifyVote(byte voterId, byte sourceVotedForId, bool isIntentional)
     {
         var (votedForId, numVotes, doVote) = base.ModifyVote(voterId, sourceVotedForId, isIntentional);
-        var baseVote = (votedForId, numVotes, doVote);
-        if (usedAbility || !isIntentional || !Canuseability() || voterId != Player.PlayerId
-            || sourceVotedForId == Player.PlayerId || sourceVotedForId >= 253 || !Player.IsAlive())
+                var baseVote = (votedForId, numVotes, doVote);
+        // 自動投票・スキップ・無効な対象では大統領の能力を発動しない。
+        // 特に会議終了時の再計算でModifyVoteが呼ばれるケースを防ぐ。
+        var target = sourceVotedForId < 253 ? PlayerCatch.GetPlayerById(sourceVotedForId) : null;
+        if (usedAbility || !isIntentional || !doVote || !Canuseability() || voterId != Player.PlayerId
+            || sourceVotedForId == Player.PlayerId || sourceVotedForId >= 253 || !Player.IsAlive()
+            || target == null || !target.IsAlive())
+
         {
             return baseVote;
         }
@@ -106,7 +111,7 @@ public sealed class President : RoleBase, ISelfVoter
     private void ExecuteForceExile(byte targetId)
     {
         var target = PlayerCatch.GetPlayerById(targetId);
-        if (target == null) return;
+        if (target == null || !target.IsAlive() || target.PlayerId == Player.PlayerId) return;
 
         usedAbility = true;
 

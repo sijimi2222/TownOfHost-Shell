@@ -156,7 +156,7 @@ public sealed class Mafia : RoleBase, IImpostor, IUsePhantomButton
 
         var target = Player.GetKillTarget(true);
 
-        if (target == null || target.GetCustomRole() is CustomRoles.King or CustomRoles.Merlin or CustomRoles.AlienHijack || (target.IsTeammate(Player) && !SuddenDeathMode.NowSuddenDeathTemeMode)) return;
+        if (target == null || target.GetCustomRole() is CustomRoles.MadProxy or CustomRoles.King or CustomRoles.Merlin or CustomRoles.AlienHijack || (target.IsTeammate(Player) && !SuddenDeathMode.NowSuddenDeathTemeMode)) return;
 
 
 

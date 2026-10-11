@@ -43,6 +43,13 @@ public static class AbilityButtonDoClickPatch
     {
         var player = PlayerControl.LocalPlayer;
 
+        // hamo beta Infect: host-local button uses the same authoritative action as Vanilla.
+        if (AmongUsClient.Instance.AmHost && player.GetRoleClass() is TownOfHost.Roles.Impostor.Infect infect)
+        {
+            infect.OnSuicideButtonClicked();
+            return false;
+        }
+
         if (!AmongUsClient.Instance.AmHost || HudManager._instance.AbilityButton.isCoolingDown
         || !player.CanMove || !player.IsAlive()
         || (Utils.IsActive(SystemTypes.MushroomMixupSabotage) && player.Data.RoleType == RoleTypes.Shapeshifter)) return true;

@@ -126,9 +126,9 @@ namespace TownOfHost
 
         public const string BepInExPluginVersion = PluginShowVersion;
 
-        public const string PluginVersion = "4.00.00.21";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
+        public const string PluginVersion = "4.00.32.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "2.0.0";
+        public const string PluginShowVersion = "2.1.0";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
@@ -896,6 +896,8 @@ namespace TownOfHost
         Crewmate = CustomRoles.Crewmate,
 
         Tiger = CustomRoles.Tiger,
+        Streamer = CustomRoles.Streamer,
+        Prankster = CustomRoles.Prankster,
         NDPlayer = CustomRoles.NDPlayer,
 
         Jester = CustomRoles.Jester,
@@ -1021,6 +1023,11 @@ namespace TownOfHost
         Pirate = CustomRoles.Pirate,
 
         Victim = CustomRoles.Victim,
+        Dracula = CustomRoles.Dracula,
+        Mermaid = CustomRoles.Mermaid,
+        Muter = CustomRoles.Muter,
+        Mario = CustomRoles.Mario,
+        DarkHide = CustomRoles.DarkHide,
 
 
 

@@ -5,6 +5,7 @@ using Hazel;
 using AmongUs.GameOptions;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using TownOfHost.Roles.Crewmate;
 using TownOfHost.Roles.AddOns.Common;
 using TownOfHost.Roles.AddOns.Neutral;
@@ -85,6 +86,15 @@ public sealed class UnFortuner : RoleBase, IImpostor, IUsePhantomButton
             AdjustKillCooldown = true;
             ResetCooldown = false;
             return;
+        }
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
         }
         AdjustKillCooldown = false;
         ResetCooldown = true;

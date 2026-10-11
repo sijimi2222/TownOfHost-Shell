@@ -368,14 +368,21 @@ OptCrushTime.GetFloat(),
             UtilsNotifyRoles.NotifyRoles(NoCache: true);
         }
     }
+    // This cooldown stops at its bounds; other numeric options retain their wrap behavior.
+    private sealed class DestroyerCooldownRule : FloatValueRule
+    {
+        public DestroyerCooldownRule() : base(20f, 50f, 1f) { }
+        public override int RepeatIndex(int value)
+            => System.Math.Clamp(value, 0, (int)((MaxValue - MinValue) / Step));
+    }
     private static void SetupOptionItem()
     {
         OptKillCooldown = FloatOptionItem.Create(
     RoleInfo,
     10,
     GeneralOption.KillCooldown,
-    new(30f, 40f, 1f),
-    30f,
+    new DestroyerCooldownRule(),
+    40f,
     false
 ).SetValueFormat(OptionFormat.Seconds)
  .SetOptionName(() => "キルクール");

@@ -9,6 +9,7 @@ using TownOfHost.Roles.Core;
 using static TownOfHost.Modules.SelfVoteManager;
 using Hazel;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 
 namespace TownOfHost.Roles.Crewmate;
 
@@ -158,6 +159,26 @@ public sealed class Satellite : RoleBase, ISelfVoter
 
     public void UseAbility(byte votedForId)
     {
+        var target = PlayerCatch.GetPlayerById(votedForId);
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                string send = "";
+                if (!Player.IsAlive())
+                {
+                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
+                }
+                else
+                {
+                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
+                }
+                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
+                return;
+            }
+        }
         if (Utils.IsActive(SystemTypes.Comms))
         {
             Utils.SendMessage(string.Format(GetString("SatelliteModeInfoFall") + string.Format(GetString("EvilSateliteSkillInfo3"), maximum - UsedSkillCount), Player.PlayerId, $"<{RoleInfo.RoleColorCode}>{string.Format(GetString("SatelliteTitle"), UtilsName.GetPlayerColor(votedForId))}"), Player.PlayerId);

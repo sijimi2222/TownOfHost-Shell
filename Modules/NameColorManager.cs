@@ -46,6 +46,9 @@ namespace TownOfHost
 
             }
 
+            if (Roles.Madmate.MadCleaner.KnowsAlly(seer, target))
+                colorCode = "FF0000";
+
             // Destroyer owns only this temporary overlay, not TargetColorData.
             if (Destroyer.HasCrushNameColor(target, isMeeting))
                 colorCode = "ff1919";
@@ -107,6 +110,10 @@ namespace TownOfHost
                 }
 
             }
+
+            // Jack's public reveal persists for every seer, including after Prankster's death.
+            if (Roles.Neutral.Prankster.IsRevealed(target))
+                colorCode = Roles.Neutral.Prankster.RoleInfo.RoleColorCode;
 
             //会議中で決まってない場合は白
 
@@ -311,6 +318,8 @@ namespace TownOfHost
                         string playername = seen.GetRealName(isMeeting: true);
 
                         playername = playername.ApplyNameColorData(seer, seen, true);
+                        playername += TownOfHost.Roles.Crewmate.Chief.MeetingMark(seer, seen);
+                        playername += TownOfHost.Roles.Neutral.Prankster.GetCurseMark(seer, seen, true);
 
 
 
@@ -347,6 +356,8 @@ namespace TownOfHost
                     string playername = pc.GetRealName(isMeeting: true);
 
                     playername = playername.ApplyNameColorData(seer, pc, true);
+                        playername += TownOfHost.Roles.Crewmate.Chief.MeetingMark(seer, pc);
+                        playername += TownOfHost.Roles.Neutral.Prankster.GetCurseMark(seer, pc, true);
 
                     if (clientId == -1) continue;
 

@@ -1,6 +1,8 @@
 using AmongUs.GameOptions;
+using TownOfHost.Roles.AddOns.Common;
 using TownOfHost.Roles.Core;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace TownOfHost.Roles.Crewmate
 {
@@ -32,6 +34,7 @@ namespace TownOfHost.Roles.Crewmate
         {
             PukupukuGuardCount,
             PukupukuPostDeathTurnLimit,
+            PukupukuNotifyOnGuard
         }
 
         private bool tasksCompleted = false;

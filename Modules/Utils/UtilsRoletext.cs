@@ -19,7 +19,6 @@ using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Impostor;
 
 using TownOfHost.Roles.AddOns.Common;
-
 using TownOfHost.Roles.AddOns.Impostor;
 
 using TownOfHost.Roles.AddOns.Neutral;
@@ -95,6 +94,9 @@ namespace TownOfHost
             seen ??= seer;
 
             var seerrole = seer.GetCustomRole();
+            // 全員視認が有効な場合でも、インヘリタンスの属性マークのみを公開し、主役職名は公開しない。
+            var inheritanceVisibleToAll = PlayerState.GetByPlayerId(seen.PlayerId)?.SubRoles.Contains(CustomRoles.Inheritance) == true
+                                      && Inheritance.OptionVisibleToAll?.GetBool() == true;
 
             //デフォルト値
 
@@ -144,6 +146,8 @@ namespace TownOfHost
 
 
 
+            addon |= inheritanceVisibleToAll;
+
             var (roleColor, roleText) = GetTrueRoleNameData(seen.PlayerId, addon);
 
             var text = roleText;
@@ -182,7 +186,42 @@ namespace TownOfHost
 
 
 
-            return enabled ? ColorString(roleColor, roleText) : "";
+            if (!enabled && inheritanceVisibleToAll)
+                return Inheritance.SubRoleMark;
+
+            // 「COした属性をマークで表示する」設定がONの場合、属性が公開されている場面(addon=true)でのみ、
+            // /acoでCOした属性を小さいマークとして役職名の後ろに付け足す。
+            string coAddonMarks = "";
+            if (addon && Options.OptionShowCoAddonMark.GetBool())
+            {
+                var coAddons = CoLog.GetCoAddonDisplays(seen.PlayerId);
+                if (coAddons.Count > 0)
+                {
+                    var sb = new StringBuilder();
+                    foreach (var (displayText, displayColor) in coAddons)
+                        sb.Append(ColorString(displayColor, $"[{displayText}]"));
+                    coAddonMarks = sb.ToString();
+                }
+            }
+
+            // 「COした役職を役職名の前に表示する」設定がONの場合、/coでCOした役職名を表示する。
+            // ・役職が公開されている場面(enabled=true) : 「(CO役職名)本当の役職名」の形で表示
+            // ・役職が非公開の場面(enabled=false)       : 「(CO役職名)」だけを表示
+            if (Options.OptionShowCoRoleWithRole.GetBool())
+            {
+                var coDisplay = CoLog.GetCoDisplay(seen.PlayerId);
+                if (coDisplay != null)
+                {
+                    var coPrefix = ColorString(coDisplay.Value.DisplayColor, $"({coDisplay.Value.DisplayText})");
+                    return enabled
+                        ? $"{coPrefix}{ColorString(roleColor, roleText)}{coAddonMarks}"
+                        : $"{coPrefix}{coAddonMarks}";
+                }
+            }
+
+            if (!enabled) return coAddonMarks;
+
+            return $"{ColorString(roleColor, roleText)}{coAddonMarks}";
 
         }
 
@@ -208,7 +247,16 @@ namespace TownOfHost
 
 
 
-            if (mainRole < CustomRoles.NotAssigned)
+            // 元は「mainRole < CustomRoles.NotAssigned」で「本当のメイン役職か」を
+            // 判定していたが、これは「CustomRoles列挙体の値がNotAssigned(500)より
+            // 小さいか」という並び順(数値)だけに頼った判定だった。
+            // TownOfHost-hamoで追加された役職の多くが、列挙体の定義上
+            // NotAssigned(500)より後ろ(値が500超)に追加されてしまっているため、
+            // この判定に引っかかり、名前の上に自分の役職名が一切表示されない
+            // (roleTextが空のまま扱われる)不具合が起きていた。
+            // 「メイン役職として割り当てられているか(NotAssignedそのものではないか)」
+            // だけを見れば十分なため、値の大小ではなくNotAssignedとの一致判定に変更する。
+            if (mainRole != CustomRoles.NotAssigned)
 
             {
 
@@ -328,6 +376,8 @@ namespace TownOfHost
 
                         case CustomRoles.Serial: sb.Append(Serial.SubRoleMark); break;
 
+                        case CustomRoles.BountyGuesser: sb.Append(BountyGuesser.SubRoleMark); break;
+
                         case CustomRoles.Connecting: if (main != CustomRoles.WolfBoy) sb.Append(Connecting.SubRoleMark); break;
 
                         case CustomRoles.Watching: sb.Append(Watching.SubRoleMark); break;
@@ -399,6 +449,7 @@ namespace TownOfHost
                         case CustomRoles.Sunglasses: sb.Append(Sunglasses.SubRoleMark); break;
 
                         case CustomRoles.Reporting: sb.Append(Reporting.SubRoleMark); break;
+                        case CustomRoles.Inheritance: sb.Append(Inheritance.SubRoleMark); break;
 
                     }
 

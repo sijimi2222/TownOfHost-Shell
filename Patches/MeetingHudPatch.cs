@@ -170,6 +170,12 @@ public static class MeetingHudPatch
             }
 
             var votefor = PlayerCatch.GetPlayerById(suspectPlayerId);
+            // スキップ／無投票以外で投票先が切断済みなら、会議終了中にnull参照しないよう無視する。
+            if (votefor == null && suspectPlayerId != 253 && suspectPlayerId != 254)
+            {
+                Logger.Warn($"投票先が見つからないため投票を無視します: {suspectPlayerId}", nameof(CastVotePatch));
+                return false;
+            }
 
             if (votefor == null && suspectPlayerId != 253 && suspectPlayerId != 254)
             {
@@ -560,7 +566,12 @@ public static class MeetingHudPatch
 
             }
 
+            Tuner.MeetingStarted();
+            TownOfHost.Roles.Madmate.MadCleaner.ResetCleanedBodies();
             CustomRoleManager.AllActiveRoles.Values.Do(role => role.OnStartMeeting());
+
+            // インフェクト/インフェクデッドの感染ターン経過処理(会議開始時に1回だけ進める)。
+            TownOfHost.Modules.InfectedTracker.TickAndTransform();
 
             RoomTaskAssign.AllRoomTasker.Values.Do(tasker => tasker.OnStartMeeting());
 

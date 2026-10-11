@@ -63,6 +63,7 @@ class GhostRoleCore
         Watching.Init();
 
         Serial.Init();
+        BountyGuesser.Init();
 
         Management.Init();
 
@@ -145,6 +146,8 @@ class GhostRoleCore
         Absorb.Init();
 
         LastCrewmate.Init();
+        Inheritance.Init();
+        Roles.Impostor.SurrogateSystem.Init();
 
         Reversal.Init();
 
@@ -161,7 +164,7 @@ class GhostRoleCore
         LastImpostor.SetupCustomOption();
 
         LastCrewmate.SetupCustomOption();
-
+        Inheritance.SetupCustomOption();
         LastNeutral.SetupCustomOption();
 
         Workhorse.SetupCustomOption();
@@ -179,6 +182,7 @@ class GhostRoleCore
         Guesser.SetupCustomOption();
 
         Serial.SetupCustomOption();
+        BountyGuesser.SetupCustomOption();
 
         MagicHand.SetupCustomOption();
 

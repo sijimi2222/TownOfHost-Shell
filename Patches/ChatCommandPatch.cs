@@ -562,6 +562,46 @@ namespace TownOfHost
 
 
 
+                // 現在のアンケートが「Discordで入力型」の場合は、番号ではなく自由記述として扱う。
+                // 番号入力(numberTexts.Split('.'))とは違い、テキストには空白が含まれる可能性があるため、
+                // args[1]だけでなく、コマンド名の後ろ全体(rawText)を回答として使う。
+                if (SurveySystem.IsFreeTextMode)
+                {
+                                        // rawTextがコマンド全体の場合と回答本文だけの場合の両方に対応する。
+                    var freeTextBody = rawText?.Trim() ?? "";
+                    if (freeTextBody.StartsWith("/cmd ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var commandParts = freeTextBody.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                        freeTextBody = commandParts.Length >= 3 ? commandParts[2].Trim() : "";
+                    }
+                    else if (freeTextBody.StartsWith("/aq ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var commandParts = freeTextBody.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                        freeTextBody = commandParts.Length >= 2 ? commandParts[1].Trim() : "";
+                    }
+                    else if (args.Length >= 2)
+                    {
+                        freeTextBody = string.Join(" ", args.Skip(1)).Trim();
+                    }
+
+                    if (string.IsNullOrEmpty(freeTextBody))
+                    {
+                        SendMessage("回答が入力されていません。使い方: 「/cmd aq (回答)」複数回答は「/cmd aq (回答1).(回答2)」", sender.PlayerId);
+                        return;
+                    }
+
+                    // 複数回答の区切りは番号投票と同じく"."(ピリオド)を使う。例: "/cmd aq りんご.みかん"
+                    var freeTexts = freeTextBody
+                        .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .ToList();
+
+                    if (DebugModeManager.AmDebugger) Logger.Info($"HandleSurveyVoteCommand: 入力型の投票処理を開始します freeTexts=[{string.Join(",", freeTexts)}]", "SurveyDebug");
+                    _ = HandleSurveyVoteFreeTextAsync(sender, freeTexts);
+                    return;
+                }
+
+
+
                 // 複数投票の区切りは"."(ピリオド)を使う。例: "/cmd aq 1.2"
 
                 var numberTexts = args[1].Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -635,6 +675,36 @@ namespace TownOfHost
             {
 
                 Logger.Error($"HandleSurveyVoteAsyncで例外が発生しました: {ex}", "SurveyDebug");
+
+                SendMessage("⚠️ 投票処理でエラーが発生しました。", sender.PlayerId);
+
+            }
+
+        }
+
+
+
+        private static async System.Threading.Tasks.Task HandleSurveyVoteFreeTextAsync(PlayerControl sender, List<string> freeTexts)
+
+        {
+
+            try
+
+            {
+
+                var resultText = await SurveySystem.VoteFreeTextAsync(sender, freeTexts).ConfigureAwait(false);
+
+                if (DebugModeManager.AmDebugger) Logger.Info($"HandleSurveyVoteFreeTextAsync: 結果テキストを取得しました(長さ={resultText?.Length ?? -1})", "SurveyDebug");
+
+                SendMessage(resultText, sender.PlayerId);
+
+            }
+
+            catch (System.Exception ex)
+
+            {
+
+                Logger.Error($"HandleSurveyVoteFreeTextAsyncで例外が発生しました: {ex}", "SurveyDebug");
 
                 SendMessage("⚠️ 投票処理でエラーが発生しました。", sender.PlayerId);
 
@@ -879,6 +949,17 @@ namespace TownOfHost
             }
 
             var text = __instance.freeChatField.textArea.text;
+
+            // Candy replies use the existing host-only command RPC for modded clients.
+            if (Prankster.TryParseCandyCommand(text, out _))
+            {
+                if (AmongUsClient.Instance.AmHost)
+                    Prankster.TryHandleCandyCommand(PlayerControl.LocalPlayer, text);
+                else
+                    RequestCommandProcessingFromHost(text);
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
 
             // Shell AIの質問は通常チャットやチャット履歴へ流さない。
             if (ShellAI.TryParseCommand(text, out var aiQuestion, out var aiPublicReply))
@@ -4642,6 +4723,13 @@ namespace TownOfHost
 
             }
 
+            // Handle both Vanilla chat and the existing mod-client command RPC before route filters.
+            if (Prankster.TryHandleCandyCommand(player, text))
+            {
+                canceled = true;
+                return;
+            }
+
             // Vanillaの/aiと既存の/cmd aiの両方をホストで処理する。
             if (ShellAI.TryParseCommand(text, out var aiQuestion, out var aiPublicReply))
             {
@@ -4852,6 +4940,12 @@ namespace TownOfHost
                 case "/cr":
 
                     ExecuteInGameRoleChange(player, args);
+
+                    break;
+
+                case "/mc":
+
+                    TownOfHost.Roles.Neutral.Muter.HandleRemainingChatCommand(player, args);
 
                     break;
 

@@ -159,6 +159,7 @@ public sealed class Vulture : RoleBase, IKillFlashSeeable, IAdditionalWinner
     Dictionary<byte, float> Viperkilledplayers = new();//とける予定の死体
 
     static List<byte> staticEatedPlayers = new();//食べられたおにく
+    public static bool IsEatenBody(byte id) => staticEatedPlayers.Contains(id);
 
     int turneat;
 

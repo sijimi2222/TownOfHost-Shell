@@ -251,9 +251,9 @@ public sealed class Seer : RoleBase, IKillFlashSeeable
 
     public override void CheckWinner(GameOverReason reason)
     {
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[0], Receivedcount);
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[1], Receivedcount);
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[2], Receivedcount);
+        if (achievements.TryGetValue(0, out var a0)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a0, Receivedcount);
+        if (achievements.TryGetValue(1, out var a1)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a1, Receivedcount);
+        if (achievements.TryGetValue(2, out var a2)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a2, Receivedcount);
     }
 
     public static System.Collections.Generic.Dictionary<int, Achievement> achievements = new();
@@ -498,9 +498,9 @@ public sealed class Seer : RoleBase, IKillFlashSeeable
     public override CustomRoles Misidentify() => Awakened ? CustomRoles.NotAssigned : CustomRoles.Crewmate;
     public override void CheckWinner(GameOverReason reason)
     {
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[0], Receivedcount);
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[1], Receivedcount);
-        Achievements.RpcCompleteAchievement(Player.PlayerId, 1, achievements[2], Receivedcount);
+        if (achievements.TryGetValue(0, out var a0)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a0, Receivedcount);
+        if (achievements.TryGetValue(1, out var a1)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a1, Receivedcount);
+        if (achievements.TryGetValue(2, out var a2)) Achievements.RpcCompleteAchievement(Player.PlayerId, 1, a2, Receivedcount);
     }
     public static System.Collections.Generic.Dictionary<int, Achievement> achievements = new();
     [Attributes.PluginModuleInitializer]

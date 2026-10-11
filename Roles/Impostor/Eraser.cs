@@ -6,6 +6,7 @@ using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Crewmate;
+using TownOfHost.Roles.Madmate;
 
 namespace TownOfHost.Roles.Impostor;
 
@@ -22,7 +23,7 @@ public sealed class Eraser : RoleBase, IImpostor, IUsePhantomButton
             SetupOptionItem,
             "Er",
             OptionSort: (6, 3),
-            from: From.TownOfHost_K
+            from: From.TheOtherRoles
         );
     public Eraser(PlayerControl player)
     : base(
@@ -101,6 +102,15 @@ public sealed class Eraser : RoleBase, IImpostor, IUsePhantomButton
         if (!target.IsAlive()) return;
         if (EraseMarkTargets.Contains(target.PlayerId)) return;
         if (MaxUseCount <= UseCount) return;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
 
         AdjustKillCooldown = false;
         ResetCooldown = true;

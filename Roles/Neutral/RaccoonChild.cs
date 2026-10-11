@@ -7,6 +7,8 @@ namespace TownOfHost.Roles.Neutral;
 
 public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
 {
+    bool IKiller.UsesDirectKillCooldown => Awakened && GrabbedTargetId != byte.MaxValue;
+
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
             typeof(RaccoonChild),
@@ -20,6 +22,8 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
             "racc",
             "#c9a27a",
             OptionSort: (7, 3),
+            // 全陣営を手動照準できるインポスター基盤として扱う。
+            isDesyncImpostor: true,
             from: From.TownOfHost_hamo
         );
 
@@ -32,16 +36,19 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
         OriginalRole = CustomRoles.NotAssigned;
     }
 
-    static OptionItem OptionKillCooldown;
-    static OptionItem OptionKillOnMeetingIfGrabbing;
-
-    enum OptionName { RaccoonChildKillCooldown, RaccoonChildKillOnMeetingIfGrabbing }
-
     static void SetupOptionItem()
     {
-        OptionKillCooldown = FloatOptionItem.Create(RoleInfo, 10, OptionName.RaccoonChildKillCooldown, new(0f, 180f, 0.5f), 35f, false)
-            .SetValueFormat(OptionFormat.Seconds);
-        OptionKillOnMeetingIfGrabbing = BooleanOptionItem.Create(RoleInfo, 11, OptionName.RaccoonChildKillOnMeetingIfGrabbing, false, false);
+        // アライグマの子は親が作る子役職。設定はアライグマ親内へ統合する。
+        if (Options.CustomRoleSpawnChances != null && Options.CustomRoleSpawnChances.TryGetValue(CustomRoles.RaccoonChild, out var spawn))
+        {
+            spawn.SetValue(0, true, false);
+            spawn.SetHidden(true);
+        }
+        if (Options.CustomRoleCounts != null && Options.CustomRoleCounts.TryGetValue(CustomRoles.RaccoonChild, out var count))
+        {
+            count.SetValue(0, true, false);
+            count.SetHidden(true);
+        }
     }
 
     public byte GrabbedTargetId;
@@ -66,14 +73,14 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
 
     public override void ApplyGameOptions(IGameOptions opt)
     {
-        if (Awakened) AURoleOptions.KillCooldown = RaccoonParent.GetKillCooldown();
+        if (Awakened) AURoleOptions.KillCooldown = RaccoonParent.GetChildKillCooldown();
     }
 
     public bool CanUseSabotageButton() => false;
 
     public override void OnStartMeeting()
     {
-        if (GrabbedTargetId != byte.MaxValue && OptionKillOnMeetingIfGrabbing.GetBool())
+        if (GrabbedTargetId != byte.MaxValue && RaccoonParent.ChildKillOnMeetingIfGrabbing)
         {
             var target = GrabbedTargetId.GetPlayerControl();
             if (target != null && target.IsAlive() && AmongUsClient.Instance.AmHost)
@@ -175,7 +182,10 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
             investigateReady = false;
             grabFollowState = 0;
             var target = info.AttemptTarget;
-            target.GetPlayerState().CanMove = false;
+            // 位置はFixedUpdateで運搬側へ強制追従させる。
+            // CanMoveをfalseにすると掴まれたキラーのキルボタンも止まるため、
+            // 能力操作は維持し、移動床のみ禁止する。
+            target.GetPlayerState().CanMove = true;
             target.GetPlayerState().CanUseMovingPlatform = false;
             MyState.CanUseMovingPlatform = false;
             target.MarkDirtySettings();
@@ -214,6 +224,9 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
             target.MarkDirtySettings();
         }
         MyState.CanUseMovingPlatform = true;
+        // 掴み側のキル・移動オプションも即時に再計算する。
+        // 対象が別役職に倒された場合でも、古い掴み状態でボタンが止まらないようにする。
+        Player.MarkDirtySettings();
         grabFollowState = 0;
         GrabbedTargetId = byte.MaxValue;
         if (!keepInvestigation)
@@ -222,6 +235,19 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
             investigateReady = false;
         }
         SendRpc();
+    }
+
+    /// <summary>
+    /// 掴み側または掴み対象が死亡・追放・切断した際に、残った掴み状態を即時に解除する。
+    /// 親の共通解除処理から呼び出される。
+    /// </summary>
+    public bool ReleaseGrabIfInvolves(PlayerControl player)
+    {
+        if (player == null) return false;
+        if (Player.PlayerId != player.PlayerId && GrabbedTargetId != player.PlayerId) return false;
+
+        ReleaseGrab();
+        return true;
     }
 
     public bool IsAssignRoomTask() => Awakened && GrabbedTargetId != byte.MaxValue && !investigateReady;

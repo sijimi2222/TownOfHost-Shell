@@ -7,6 +7,7 @@ using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using Hazel;
 using TownOfHost.Roles.Neutral;
+using TownOfHost.Roles.Crewmate;
 using System.Linq;
 
 namespace TownOfHost.Roles.Impostor
@@ -106,6 +107,8 @@ namespace TownOfHost.Roles.Impostor
         public void OnCheckMurderAsKiller(MurderInfo info)
         {
             var Targets = new List<PlayerControl>(PlayerCatch.AllAlivePlayerControls);//.Where(pc => !Player)
+            Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
+
             if (Limit)
             {
                 info.DoKill = false;

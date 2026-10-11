@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using AmongUs.GameOptions;
 using Hazel;
-
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Crewmate;
+using TownOfHost.Roles.Madmate;
+using UnityEngine;
 
 namespace TownOfHost.Roles.Impostor
 {
@@ -37,6 +38,8 @@ namespace TownOfHost.Roles.Impostor
             BomberExplosion = OptionBomberExplosion.GetInt();
             Cooldown = OptionCooldown.GetFloat();
             maxbomb = 0;
+            IsDetectioned = false;
+            Bombed = false;
         }
 
         static OptionItem OptionKillDelay;
@@ -54,7 +57,9 @@ namespace TownOfHost.Roles.Impostor
         static float Blastrange;
         static float Cooldown;
         int BomberExplosion;
+        bool Bombed;
 
+        public static bool IsDetectioned;
         public bool CanBeLastImpostor { get; } = false;
         Dictionary<byte, float> BomberExplosionPlayers = new(14);
 
@@ -83,7 +88,16 @@ namespace TownOfHost.Roles.Impostor
             var target = Player.GetKillTarget(true);
             Logger.Info($"{Player?.Data?.GetLogPlayerName() ?? "???"} => {target?.Data?.GetLogPlayerName() ?? "失敗"}", "Bomber");
             if (target == null || BomberExplosionPlayers.ContainsKey(target?.PlayerId ?? byte.MaxValue)) return;
-
+            if (target.Is(CustomRoles.Madpsycho))
+            {
+                if (Madpsycho.CanPsycho)
+                {
+                    PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                    target.RpcMurderPlayer(Player);
+                    return;
+                }
+            }
+            Jizo.BomCheckroom(Player.GetPlainShipRoom(), Player);
             AdjustKillCooldown = false;
             if (!BomberExplosionPlayers.TryAdd(target.PlayerId, 0f)) return;
             BomberExplosion--;
@@ -102,6 +116,11 @@ namespace TownOfHost.Roles.Impostor
             {
                 if (KillDelay <= timer)
                 {
+                    if (IsDetectioned)
+                    {
+                        Jizo.BomKilled = true;
+                    }
+                    Bombed = true;
                     var target = PlayerCatch.GetPlayerById(targetId);
                     if (target.IsAlive())
                     {
@@ -132,6 +151,12 @@ namespace TownOfHost.Roles.Impostor
 
         public override void OnReportDeadBody(PlayerControl _, NetworkedPlayerInfo __)
         {
+            if (!Bombed)
+            {
+                Jizo.BomClear();
+            }
+            Bombed = false;
+
             BomberExplosionPlayers.Clear();
         }
         public override bool OverrideAbilityButton(out string text)
@@ -145,6 +170,13 @@ namespace TownOfHost.Roles.Impostor
         {
             AURoleOptions.PhantomCooldown = BomberExplosion <= 0 ? 200f : Cooldown;
         }
+
+        public override void AfterMeetingTasks()
+        {
+            IsDetectioned = false;
+            Bombed = false;
+        }
+
         public override string GetLowerText(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false, bool isForHud = false)
         {
             seen ??= seer;
@@ -160,6 +192,10 @@ namespace TownOfHost.Roles.Impostor
         }
         int maxbomb;
         public static Dictionary<int, Achievement> achievements = new();
+        public void OnCheckMurderAsKiller(MurderInfo info)
+        {
+            Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
+        }
         [Attributes.PluginModuleInitializer]
         public static void Load()
         {

@@ -77,6 +77,7 @@ public sealed class Eater : RoleBase, IKiller, IUsePhantomButton, IKillFlashSeea
 
     readonly Dictionary<byte, Vector3> deadBodyPositions = new();
     static readonly HashSet<byte> EatenBodies = new();
+    public static bool IsEatenBody(byte id) => EatenBodies.Contains(id);
 
     int eatOrSwallowCount;
     bool eatMode;

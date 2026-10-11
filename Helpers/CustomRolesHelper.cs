@@ -8,6 +8,8 @@ using TownOfHost.Roles.AddOns.Impostor;
 
 using TownOfHost.Roles.AddOns.Neutral;
 
+using TownOfHost.Roles.AddOns.Common;
+
 using TownOfHost.Roles.Core;
 
 using TownOfHost.Roles.Madmate;
@@ -41,6 +43,15 @@ namespace TownOfHost
         public static readonly CustomRoleTypes[] AllRoleTypes = EnumHelper.GetAllValues<CustomRoleTypes>();
 
 
+
+        /// <summary>
+        /// 役職設定ボタン左上へNEWバッジを表示するかを返す。
+        /// 通常役職はSimpleRoleInfoのisNewRole、属性は各属性本体のフラグで指定する。
+        /// </summary>
+        public static bool IsNewRole(this CustomRoles role)
+        {
+            return false;
+        }
 
         public static bool IsImpostor(this CustomRoles role)
 
@@ -175,6 +186,7 @@ namespace TownOfHost
                 CustomRoles.Connecting or
 
                 CustomRoles.Serial or
+                CustomRoles.BountyGuesser or
 
                 CustomRoles.PlusVote or
 
@@ -199,6 +211,8 @@ namespace TownOfHost
                 CustomRoles.Symbol or
 
                 CustomRoles.LastCrewmate or
+
+                CustomRoles.Inheritance or
 
                 //デバフ
 
@@ -267,6 +281,7 @@ namespace TownOfHost
                 CustomRoles.Connecting or
 
                 CustomRoles.Serial or
+                CustomRoles.BountyGuesser or
 
                 CustomRoles.PlusVote or
 
@@ -286,7 +301,9 @@ namespace TownOfHost
 
                 CustomRoles.Powerful or
 
-                CustomRoles.Absorb
+                CustomRoles.Absorb or
+
+                CustomRoles.Inheritance
 
                 ;
 

@@ -86,7 +86,18 @@ public sealed class BlackMadMate : RoleBase
 
     {
 
-        RoleAddAddons.Create(RoleInfo, 30, MadMate: true, DefaaultOn: true);
+        // ブラックマッドメイトはブラックビジョナーが作る子役職。
+        // 出現率・最大数・追加属性設定は親役職内へ統合するため、単独行は表示しない。
+        if (Options.CustomRoleSpawnChances != null && Options.CustomRoleSpawnChances.TryGetValue(CustomRoles.BlackMadMate, out var spawn))
+        {
+            spawn.SetValue(0, true, false);
+            spawn.SetHidden(true);
+        }
+        if (Options.CustomRoleCounts != null && Options.CustomRoleCounts.TryGetValue(CustomRoles.BlackMadMate, out var count))
+        {
+            count.SetValue(0, true, false);
+            count.SetHidden(true);
+        }
 
     }
 

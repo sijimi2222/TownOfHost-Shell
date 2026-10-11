@@ -6,6 +6,7 @@ using AmongUs.GameOptions;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Neutral;
+using TownOfHost.Roles.Crewmate;
 
 namespace TownOfHost.Roles.Impostor
 {
@@ -32,23 +33,44 @@ namespace TownOfHost.Roles.Impostor
         )
         {
             KillDelay = OptionKillDelay.GetFloat();
+            leaveBloodstain = OptionLeaveBloodstain.GetBool();
+            bloodstainLifeTime = OptionBloodstainLifeTime.GetFloat();
 
             BittenPlayers.Clear();
             Spped = SpeedDownCount.GetFloat();
             tmpSpeed = Main.NormalOptions.PlayerSpeedMod;
+
+            pendingBloodstainPositions.Clear();
+            activeBloodstains.Clear();
+            wasInTask = GameStates.IsInTask;
         }
         static OptionItem OptionKillCool;
         static OptionItem OptionKillDelay;
         static OptionItem SpeedDown;
         static OptionItem SpeedDownCount;
+        static OptionItem OptionLeaveBloodstain;
+        static OptionItem OptionBloodstainLifeTime;
         enum OptionName
         {
-            VampireKillDelay, VampireSpeedDown, VampireSpeedDownCount
+            VampireKillDelay, VampireSpeedDown, VampireSpeedDownCount,
+            VampireLeaveBloodstain, VampireBloodstainLifeTime
         }
 
         static float KillDelay;
         static float Spped;
         static float tmpSpeed;
+        // 血痕を残すかどうか
+        readonly bool leaveBloodstain;
+        // 血痕が消えるまでの時間
+        readonly float bloodstainLifeTime;
+        // 会議中に噛んだ相手の座標を一時的に貯めておくリスト。
+        // 会議が終わりタスクフェーズへ戻ったタイミングでまとめて血痕をスポーンさせる。
+        readonly List<Vector2> pendingBloodstainPositions = new();
+        // 現在表示中の血痕一覧(寿命管理用)
+        readonly List<VampireBloodStain> activeBloodstains = new();
+        // 直前のFixedUpdateでタスクフェーズだったかどうか(会議→タスクへの切り替わり検出用)
+        bool wasInTask;
+        bool disposed;
         public bool CanBeLastImpostor { get; } = false;
         Dictionary<byte, float> BittenPlayers = new(14);
 
@@ -61,6 +83,11 @@ namespace TownOfHost.Roles.Impostor
             SpeedDown = BooleanOptionItem.Create(RoleInfo, 11, OptionName.VampireSpeedDown, true, false);
             SpeedDownCount = FloatOptionItem.Create(RoleInfo, 12, OptionName.VampireSpeedDownCount, new(0f, 1000f, 1f), 10f, false, SpeedDown)
             .SetValueFormat(OptionFormat.Seconds);
+            // 噛んだ相手の足元に血痕を残すか。ONの場合、噛んだ瞬間ではなく
+            // 「その会議が終わってタスクフェーズに戻ったタイミング」で血痕が出現する。
+            OptionLeaveBloodstain = BooleanOptionItem.Create(RoleInfo, 13, OptionName.VampireLeaveBloodstain, false, false);
+            OptionBloodstainLifeTime = FloatOptionItem.Create(RoleInfo, 14, OptionName.VampireBloodstainLifeTime, new(1f, 300f, 1f), 15f, false, OptionLeaveBloodstain)
+                .SetValueFormat(OptionFormat.Seconds);
         }
 
         public float CalculateKillCooldown() => OptionKillCool.GetFloat();
@@ -69,9 +96,11 @@ namespace TownOfHost.Roles.Impostor
             if (!info.CanKill) return; //キル出来ない相手には無効
             var (killer, target) = info.AttemptTuple;
 
-            if (target.Is(CustomRoles.Bait)) return;
-            if (target.Is(CustomRoles.InSender)) return;
-            if (info.IsFakeSuicide) return;
+            if (target.Is(CustomRoles.Bait) || target.Is(CustomRoles.InSender) || info.IsFakeSuicide)
+            {
+                Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
+                return;
+            }
             if (info.CheckHasGuard())
             {
                 info.IsGuard = true;
@@ -81,14 +110,61 @@ namespace TownOfHost.Roles.Impostor
             //誰かに噛まれていなければ登録
             if (!BittenPlayers.ContainsKey(target.PlayerId))
             {
+                Jizo.Checkroom(Player.GetPlainShipRoom(), Player);
                 killer.SetKillCooldown();
                 BittenPlayers.Add(target.PlayerId, 0f);
+
+                // 血痕を残す設定がONの場合、噛んだ瞬間の相手の足元座標を記録しておく。
+                // 実際に血痕が出現するのは、この会議が終わってタスクフェーズへ戻った後。
+                if (leaveBloodstain)
+                {
+                    pendingBloodstainPositions.Add(target.GetTruePosition());
+                    Logger.Info($"Vampire: {target.name}の血痕位置を記録しました " +
+                        $"(保留中:{pendingBloodstainPositions.Count}件)", "Vampire.Bloodstain");
+                }
             }
             info.DoKill = false;
         }
-        public override void OnFixedUpdate(PlayerControl _)
+        public override void OnFixedUpdate(PlayerControl player)
         {
-            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask) return;
+            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask)
+            {
+                wasInTask = GameStates.IsInTask;
+                return;
+            }
+
+            // 会議中(またはロビー)からタスクフェーズへ切り替わった瞬間を検出する。
+            // 【重要】血痕は噛んだ瞬間ではなく、その会議が終わってタスクフェーズに
+            // 戻ったこのタイミングで初めて出現させる、という要望に基づく処理。
+            // 【重要・不具合対策】CustomNetObjectの生成キューは1体あたり約0.4秒かかる
+            // 設計のため、複数体を同一フレームでnewすると生成処理が競合し、2体目以降が
+            // 正しく表示されないことがあった。LateTaskで少しずつ間隔を空けて生成する。
+            if (!wasInTask && pendingBloodstainPositions.Count > 0)
+            {
+                Logger.Info($"Vampire: タスクフェーズ開始を検知、保留中の血痕{pendingBloodstainPositions.Count}件をスポーンします", "Vampire.Bloodstain");
+                var positions = new List<Vector2>(pendingBloodstainPositions);
+                for (int i = 0; i < positions.Count; i++)
+                {
+                    var pos = positions[i];
+                    var delay = i * 0.6f;
+                    var task = new LateTask(() =>
+                    {
+                        if (disposed || !GameStates.IsInTask || AmongUsClient.Instance?.AmHost != true) return;
+                        activeBloodstains.Add(new VampireBloodStain(pos, bloodstainLifeTime));
+                        Logger.Info($"Vampire: 血痕をスポーンしました position={pos}", "Vampire.Bloodstain");
+                    }, delay, $"Vampire.SpawnBloodstain.{i}", true);
+                }
+                pendingBloodstainPositions.Clear();
+            }
+            wasInTask = true;
+
+            // 表示中の血痕の寿命を進める。
+            for (int i = activeBloodstains.Count - 1; i >= 0; i--)
+            {
+                var stain = activeBloodstains[i];
+                stain.Tick(Time.fixedDeltaTime);
+                if (!stain.IsAlive) activeBloodstains.RemoveAt(i);
+            }
 
             foreach (var (targetId, timer) in BittenPlayers.ToArray())
             {
@@ -180,6 +256,14 @@ namespace TownOfHost.Roles.Impostor
                 (roleclass as JackalAlien)?.mode is Alien.AlienMode.Vampire ||
                 roleclass is Vampire)
                 Achievements.RpcCompleteAchievement(Player.PlayerId, 0, achievements[2]);
+        }
+        public override void OnDestroy()
+        {
+            disposed = true;
+            // 表示中の血痕を確実に片付ける(死亡・役職変化時のリーク防止)。
+            foreach (var stain in activeBloodstains) stain.Remove();
+            activeBloodstains.Clear();
+            pendingBloodstainPositions.Clear();
         }
         public static Dictionary<int, Achievement> achievements = new();
         [Attributes.PluginModuleInitializer]

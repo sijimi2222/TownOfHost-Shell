@@ -62,6 +62,9 @@ namespace TownOfHost
 
         public static bool NowSend;
 
+        // main.csでNotifyRolesタグは通常無効化される。無効時はログ文字列・StackFrameも生成しない。
+        private static bool IsDebugLogEnabled => Logger.isEnable && !Logger.disableList.Contains("NotifyRoles");
+
         /// <summary>
 
         /// タスクターン中の役職名の変更
@@ -132,15 +135,16 @@ namespace TownOfHost
 
             if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default && !Main.DontGameSet) return;
 
-            var caller = new StackFrame(1, false);
-
-            var callerMethod = caller?.GetMethod();
-
-            string callerMethodName = callerMethod?.Name ?? "ぬーるっ!!";
-
-            string callerClassName = callerMethod?.DeclaringType?.FullName ?? "null!!";
-
-            Logger.Info($"Call :{callerClassName}.{callerMethodName}", "NotifyRoles");
+            // 通常プレイ中は通知ごとのStackFrame生成と詳細ログを行わない。
+            // デバッグログを有効にした時だけ従来どおり呼び出し元を記録する。
+            if (IsDebugLogEnabled)
+            {
+                var caller = new StackFrame(1, false);
+                var callerMethod = caller?.GetMethod();
+                string callerMethodName = callerMethod?.Name ?? "ぬーるっ!!";
+                string callerClassName = callerMethod?.DeclaringType?.FullName ?? "null!!";
+                Logger.Info($"Call :{callerClassName}.{callerMethodName}", "NotifyRoles");
+            }
 
             HudManagerPatch.NowCallNotifyRolesCount++;
 
@@ -418,7 +422,7 @@ namespace TownOfHost
 
                         sendedcount++;
 
-                        Logger.Info($"{seer?.Data?.GetLogPlayerName()} (Me) => {SelfName}", "NotifyRoles");
+                        if (IsDebugLogEnabled) Logger.Info($"{seer?.Data?.GetLogPlayerName()} (Me) => {SelfName}", "NotifyRoles");
 
                         sender.StartRpc(seer.NetId, (byte)RpcCalls.SetName)
 
@@ -496,7 +500,8 @@ namespace TownOfHost
 
                         //targetがseer自身の場合は何もしない
 
-                        if (target?.PlayerId == seer?.PlayerId || target == null) continue;
+                        // 切断途中・ダミーを除外し、無効なPlayerControlへの名前RPCを防止する。
+                        if (target == null || target.Data == null || target.Data.Disconnected || target.notRealPlayer || target.PlayerId == seer.PlayerId) continue;
 
 
 
@@ -794,7 +799,7 @@ namespace TownOfHost
 
                             {
 
-                                Logger.Info($"{seer?.Data?.GetLogPlayerName() ?? "null"} => {target?.Data?.GetLogPlayerName() ?? "null"} {TargetName}", "NotifyRoles");
+                                if (IsDebugLogEnabled) Logger.Info($"{seer?.Data?.GetLogPlayerName() ?? "null"} => {target?.Data?.GetLogPlayerName() ?? "null"} {TargetName}", "NotifyRoles");
 
 
 
@@ -1209,7 +1214,7 @@ namespace TownOfHost
 
                     SelfName = SelfName.RemoveDeltext("color=#", "#");
 
-                    Logger.Info($"{seer.Data?.GetLogPlayerName() ?? "???"}(Me) => {SelfName}", "NotifyRoles");
+                    if (IsDebugLogEnabled) Logger.Info($"{seer.Data?.GetLogPlayerName() ?? "???"}(Me) => {SelfName}", "NotifyRoles");
 
                     //適用
 
@@ -1245,7 +1250,7 @@ namespace TownOfHost
 
                         //targetがseer自身の場合は何もしない
 
-                        if (target == seer || target == null) continue;
+                        if (target == null || target.Data == null || target.Data.Disconnected || target.notRealPlayer || target == seer) continue;
 
 
 
@@ -1619,7 +1624,7 @@ namespace TownOfHost
 
                             TargetName = TargetName.RemoveDeltext("color=#", "#");
 
-                            Logger.Info($"{target?.Data?.GetLogPlayerName() ?? "???"} =>{TargetName}", "NotifyRoles");
+                            if (IsDebugLogEnabled) Logger.Info($"{target?.Data?.GetLogPlayerName() ?? "???"} =>{TargetName}", "NotifyRoles");
 
 
 

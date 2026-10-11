@@ -3,6 +3,7 @@ using UnityEngine;
 
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using Hazel;
 
 namespace TownOfHost.Roles.Neutral;
@@ -120,7 +121,15 @@ public sealed class PhantomThief : RoleBase, IKiller, IKillFlashSeeable, IRoomTa
 
         if (OptionCantSetCount.GetFloat() > PlayerCatch.AllAlivePlayersCount) return;
         if (targetId != byte.MaxValue) return;
-
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
         killer.ResetKillCooldown();
         targetId = target.PlayerId;
         this.target = target;

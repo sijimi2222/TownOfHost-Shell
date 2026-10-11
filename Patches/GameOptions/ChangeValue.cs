@@ -35,6 +35,7 @@ namespace TownOfHost
             }
             __instance.OnValueChanged = new Action<OptionBehaviour>((o) => { });
             __instance.TitleText.text = size + "<b>" + option.GetName(isoption: true) + mark + option.Fromtext + "</b></size>"/* + addinfo*/;
+            PranksterSettingsIcon.Refresh(option, __instance);
 
             __instance.Value = __instance.oldValue = option.CurrentValue;
             __instance.ValueText.text = option.GetString();

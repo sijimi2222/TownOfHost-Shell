@@ -79,6 +79,7 @@ public sealed class Turncoat : RoleBase, IKiller
             if (pc.PlayerId == Player.PlayerId) return false;
             if (pc.Is(CustomRoles.GM)) return false;
             if (pc.Is(CustomRoles.Turncoat)) return false;
+            if (pc.IsAlive() is false && GameStates.AfterIntro) return false;
 
             var role = pc.GetCustomRole().GetCustomRoleTypes();
 

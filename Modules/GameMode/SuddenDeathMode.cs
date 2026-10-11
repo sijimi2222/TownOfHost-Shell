@@ -657,6 +657,7 @@ namespace TownOfHost.Modules
             CustomRoles.HASTroll,
             CustomRoles.GM,
             CustomRoles.TaskPlayerB,
+            CustomRoles.Emptiness,
         };
         public static void SideKickChangeTeam(this PlayerControl target, PlayerControl Owner)
         {

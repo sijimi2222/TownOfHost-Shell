@@ -322,6 +322,13 @@ namespace TownOfHost.Modules
 
             }
 
+            if (CurrentGameMode == CustomGameMode.Kedoro && Kedoro.IsRunner(player))
+
+            {
+                Kedoro.ApplyGameOptions(player, opt);
+                return opt;
+            }
+
             if (CurrentGameMode == CustomGameMode.TaskBattle)
 
             {
@@ -606,7 +613,8 @@ namespace TownOfHost.Modules
 
                 }
 
-                if (SyncButtonMode.GetBool() && SyncedButtonCount.GetValue() <= UsedButtonCount)
+                if (SyncButtonMode.GetBool() && SyncedButtonCount.GetValue() <= UsedButtonCount
+                    && !(Options.firstturnmeeting && MeetingStates.FirstMeeting))
 
                 {
 
@@ -794,6 +802,7 @@ namespace TownOfHost.Modules
 
 
             MeetingTimeManager.ApplyGameOptions(opt);
+            TownOfHost.Roles.Crewmate.Tuner.ApplyCooldown(player, opt);
 
             Ruler.ApplyVisionRule(player, opt);
             if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tigerVision) tigerVision.ApplyPredationVision(opt);

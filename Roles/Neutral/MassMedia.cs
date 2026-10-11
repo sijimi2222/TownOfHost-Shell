@@ -168,7 +168,9 @@ public sealed class MassMedia : RoleBase, IKiller, IKillFlashSeeable
 
     {
 
-        SoloWinOption.Create(RoleInfo, 9, defo: 1);
+        // 通常の最大数とは別の「単独勝利人数」設定。最大数と同名に見えないよう明示する。
+        var soloWin = SoloWinOption.Create(RoleInfo, 9, defo: 1);
+        soloWin.OptionWin.SetOptionName(() => "単独勝利人数");
 
         OptionKillCoolDown = FloatOptionItem.Create(RoleInfo, 10, GeneralOption.Cooldown, new(0f, 180f, 0.5f), 20f, false)
 

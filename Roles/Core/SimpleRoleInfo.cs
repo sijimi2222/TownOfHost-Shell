@@ -52,6 +52,8 @@ public class SimpleRoleInfo
     public string ChatCommand;
     /// <summary>本人視点のみインポスターに見える役職</summary>
     public bool IsDesyncImpostor;
+    /// <summary>役職設定ボタン左上にNEWバッジを表示するか</summary>
+    public bool IsNewRole;
     private Func<AudioClip> introSound;
     public AudioClip IntroSound => introSound?.Invoke();
     private Func<bool> canMakeMadmate;
@@ -89,7 +91,8 @@ public class SimpleRoleInfo
         From from,
         bool isCantSeeTeammates,
         Func<CustomRoles?> addhaverole,
-        Func<string> Desc
+        Func<string> Desc,
+        bool isNewRole
     )
     {
         ClassType = classType;
@@ -111,6 +114,7 @@ public class SimpleRoleInfo
         IsCantSeeTeammates = isCantSeeTeammates;
         AddHaveRole = addhaverole;
         this.Desc = Desc;
+        IsNewRole = isNewRole;
 
         if (colorCode == "")
             colorCode = customRoleType switch
@@ -138,7 +142,12 @@ public class SimpleRoleInfo
         // 役職一覧・設定・抽選対象へ登録しない。
         // 復活させる場合はこの条件を削除する。
         if (roleName is not CustomRoles.Snowman
-            and not CustomRoles.Android)
+            and not CustomRoles.Android
+            and not CustomRoles.Slugger
+            and not CustomRoles.DummySpawner
+            and not CustomRoles.JackalSeer
+            and not CustomRoles.Oblivion
+            and not CustomRoles.Moira)
         {
             CustomRoleManager.AllRolesInfo.Add(roleName, this);
             CustomRoleManager.CustomRoleIds.Add(configId, roleName);
@@ -165,7 +174,8 @@ public class SimpleRoleInfo
         From from = From.None,
         bool isCantSeeTeammates = false,
         Func<CustomRoles?> AddHaveRole = null,
-        Func<string> Desc = null
+        Func<string> Desc = null,
+        bool isNewRole = false
     )
     {
         countType ??= customRoleType == CustomRoleTypes.Impostor ?
@@ -194,7 +204,8 @@ public class SimpleRoleInfo
             from,
             isCantSeeTeammates,
             AddHaveRole,
-            Desc
+            Desc,
+            isNewRole
             );
         roleInfo.Description = new SingleRoleDescription(roleInfo);
         return roleInfo;
@@ -321,7 +332,8 @@ public class SimpleRoleInfo
             from,
             false,
             null,
-            null);
+            null,
+            false);
         roleInfo.Description = new VanillaRoleDescription(roleInfo, baseRoleType);
         return roleInfo;
     }

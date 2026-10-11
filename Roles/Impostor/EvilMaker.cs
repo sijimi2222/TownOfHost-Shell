@@ -112,7 +112,7 @@ public sealed class EvilMaker : RoleBase, IImpostor, IUsePhantomButton
 
         if (target == null) return;
 
-        if ((target.GetCustomRole() is CustomRoles.SKMadmate or CustomRoles.King or CustomRoles.Merlin or CustomRoles.AlienHijack || target.IsTeammate(Player)) && !SuddenDeathMode.NowSuddenDeathMode) return;
+        if ((target.GetCustomRole() is CustomRoles.SKMadmate or CustomRoles.MadProxy or CustomRoles.King or CustomRoles.Merlin or CustomRoles.AlienHijack || target.IsTeammate(Player)) && !SuddenDeathMode.NowSuddenDeathMode) return;
 
 
 

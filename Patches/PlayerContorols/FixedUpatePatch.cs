@@ -262,6 +262,10 @@ namespace TownOfHost
 
 
 
+                        //ケイドロのサボ発動待機タイマー
+                        if (Options.CurrentGameMode == CustomGameMode.Kedoro)
+                            Kedoro.FixedUpdate();
+
                         //サドンデスモード
 
                         if (SuddenDeathMode.NowSuddenDeathMode)

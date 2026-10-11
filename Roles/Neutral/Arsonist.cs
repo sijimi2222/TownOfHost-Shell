@@ -6,6 +6,7 @@ using AmongUs.GameOptions;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Modules;
+using TownOfHost.Roles.Madmate;
 
 namespace TownOfHost.Roles.Neutral;
 
@@ -147,7 +148,17 @@ public sealed class Arsonist : RoleBase, IKiller, IUsePhantomButton
     public void OnCheckMurderAsKiller(MurderInfo info)
     {
         var (killer, target) = info.AttemptTuple;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            info.DoKill = false;
 
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
         Logger.Info("Arsonist start douse", "OnCheckMurderAsKiller");
         killer.SetKillCooldown(DouseTime);
         if (!IsDoused[target.PlayerId] && TargetInfo == null)
@@ -317,11 +328,14 @@ public sealed class Arsonist : RoleBase, IKiller, IUsePhantomButton
                 else
                     RPC.PlaySoundRPC(pc.PlayerId, Sounds.KillSound);
             }
-            if (CustomWinnerHolder.ResetAndSetAndChWinner(CustomWinner.Arsonist, Player.PlayerId))
+                        if (CustomWinnerHolder.ResetAndSetAndChWinner(CustomWinner.Arsonist, Player.PlayerId))
             {
                 CustomWinnerHolder.NeutralWinnerIds.Add(Player.PlayerId);
+                // 能力側で勝者が確定した場合も、終了判定の次回呼び出しを待たず終了する。
+                GameManager.Instance?.RpcEndGame(GameOverReason.ImpostorsByKill, false);
             }
             Achievements.RpcCompleteAchievement(Player.PlayerId, 0, achievements[0]);
+
             if (10 <= i) Achievements.RpcCompleteAchievement(Player.PlayerId, 0, achievements[1]);
             return;
         }

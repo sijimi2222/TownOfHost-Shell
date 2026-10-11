@@ -624,7 +624,12 @@ namespace TownOfHost
 
 
 
-                foreach (var option in OptionItem.AllOptions)
+                bool shellHeaderPlaced = false;
+                bool otherHeaderPlaced = false;
+                ShellRoleSettingsGroup.HideHeader(__instance);
+                PortSourceSettingsRow.Hide(__instance);
+
+                foreach (var option in ShellRoleSettingsGroup.DisplayOptions(tab))
 
                 {
 
@@ -982,6 +987,17 @@ namespace TownOfHost
 
                     {
 
+                        if (isroleoption && ShellRoleSettingsGroup.IsRoleTab(tab))
+                        {
+                            int group = ShellRoleSettingsGroup.Group(option);
+                            if ((group == 1 && !shellHeaderPlaced) || (group == 2 && !otherHeaderPlaced))
+                            {
+                                ShellRoleSettingsGroup.PlaceHeader(__instance, ref offset, group);
+                                if (group == 1) shellHeaderPlaced = true;
+                                else otherHeaderPlaced = true;
+                            }
+                        }
+
                         opt.color = color;
 
                         opt.size = size;
@@ -997,6 +1013,10 @@ namespace TownOfHost
                             option.OptionBehaviour.transform.localPosition.z);//-120f);
 
                         y -= option.IsHeader ? 0.68f : 0.45f;
+
+                        if (option == Options.GameMode && Options.CurrentGameMode == CustomGameMode.NaturalDisasters
+                            && option.OptionBehaviour is StringOption modeRow)
+                            PortSourceSettingsRow.Place(__instance, modeRow, ref offset);
 
 
 

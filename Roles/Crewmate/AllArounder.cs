@@ -8,6 +8,7 @@ using TownOfHost.Modules.ChatManager;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Impostor;
+using TownOfHost.Roles.Madmate;
 using TownOfHost.Roles.Neutral;
 using UnityEngine;
 using static TownOfHost.Modules.SelfVoteManager;
@@ -247,6 +248,26 @@ public sealed class AllArounder : RoleBase, ISystemTypeUpdateHook, IKillFlashSee
         PlayerState state;
         var target = PlayerCatch.GetPlayerById(votedForId);
         if (!target.IsAlive()) return;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                string send = "";
+                if (!Player.IsAlive())
+                {
+                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
+                }
+                else
+                {
+                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
+                }
+                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
+
+                return;
+            }
+        }
         if (!AmongUsClient.Instance.AmHost) return;
         var meetingHud = MeetingHud.Instance;
         var hudManager = DestroyableSingleton<HudManager>.Instance.KillOverlay;

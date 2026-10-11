@@ -13,6 +13,9 @@ namespace TownOfHost.Roles.Impostor;
 
 public sealed class Puppeteer : RoleBase, IImpostor
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
             typeof(Puppeteer),

@@ -2,6 +2,7 @@ using AmongUs.Data;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using TownOfHost.Modules;
+using TownOfHost.Roles.AddOns.Common;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Impostor;
 using TownOfHost.Roles.Neutral;
@@ -91,10 +92,17 @@ namespace TownOfHost
                         roleClass.OnExileWrapUp(exiled, ref DecidedWinner);
                     }
 
-                    if (CustomWinnerHolder.WinnerTeam != CustomWinner.Terrorist) PlayerState.GetByPlayerId(exiled.PlayerId).SetDead();
+                    // 【重要・不具合修正】リピーター等、OnExileWrapUp内で対象を蘇生させる役職がいる場合、
+                    // ここで無条件にSetDead()を呼ぶと、OnExileWrapUpで戻したIsDead=falseの状態を
+                    // 直後に上書きして再度死亡扱いにしてしまい、蘇生が機能していなかった。
+                    // OnExileWrapUpの結果、対象のNetworkedPlayerInfo.IsDeadがfalse(蘇生済み)なら、
+                    // ここでの死亡確定処理はスキップする。
+                    var exiledState = PlayerState.GetByPlayerId(exiled.PlayerId);
+                    if (CustomWinnerHolder.WinnerTeam != CustomWinner.Terrorist && exiled.IsDead) exiledState.SetDead();
                 }
             }
             AfterMeetingTasks();
+            Prankster.MeetingEnded();
         }
         public static void AfterMeetingTasks()
         {
@@ -135,6 +143,7 @@ namespace TownOfHost
             FallFromLadder.Reset();
             PlayerCatch.CountAlivePlayers(true);
             Utils.AfterMeetingTasks();
+            TownOfHost.Roles.Crewmate.Tuner.MeetingFinished();
 
             if (AmongUsClient.Instance.AmHost && Main.NormalOptions.MapId != 4)
             {
@@ -314,10 +323,12 @@ namespace TownOfHost
                 {
                     if (SecondBegin)
                     {
+                        init.wasOverruled = result.Value.OverrideExiled != byte.MaxValue;
                         __instance.completeString = string.Format(Translator.GetString(StringNames.ExileTextNonConfirm), result.Value.Exiled.GetLogPlayerName());
                         SecondBegin = false;
                         return true;
                     }
+                    modinit.wasOverruled = result.Value.OverrideExiled != byte.MaxValue;
                     modinit.networkedPlayer = result.Value.Exiled;
                     modinit.outfit = Camouflage.PlayerSkins.TryGetValue(result.Value.Exiled.PlayerId, out var skin) ? skin : result.Value.Exiled.DefaultOutfit;
                     modinit.voteTie = false;
@@ -326,6 +337,8 @@ namespace TownOfHost
                     return false;
                 }
             }
+            if (result.HasValue && result.Value.OverrideExiled == byte.MaxValue)
+                init.wasOverruled = false;
             return true;
         }
         public static void Postfix(ExileController __instance)
@@ -348,6 +361,10 @@ namespace TownOfHost
                 else if (result.Value.Exiled.Object?.GetRoleClass() is Assassin && Assassin.NowUse)
                 {
                     __instance.completeString = MeetingVoteManager.Voteresult + "<size=0>";
+                }
+                else if (result.Value.OverrideExiled == byte.MaxValue)
+                {
+                    __instance.completeString = string.Format(Translator.GetString(StringNames.ExileTextNonConfirm), result.Value.Exiled.GetLogPlayerName());
                 }
             }
             SecondBegin = false;

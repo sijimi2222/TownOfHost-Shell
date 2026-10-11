@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using AmongUs.GameOptions;
 
 using TownOfHost.Roles.Core;
@@ -22,11 +23,18 @@ public sealed class Viper : RoleBase, IImpostor
         player
     )
     {
-        ViperDissolveTime = OptViperDissolveTime.GetFloat();
-        killcool = OptKillcool.GetFloat();
+        ViperDissolveTime = OptViperDissolveTime?.GetFloat() ?? 15f;
+        killcool = OptKillcool?.GetFloat() ?? 30f;
+
+        dissolvingPlayers.Clear();
+        staticDissolvedPlayers.Clear();
+        CustomRoleManager.MarkOthers.Add(GetMarkOthers);
     }
     static OptionItem OptKillcool; static float killcool;
     public static OptionItem OptViperDissolveTime; public static float ViperDissolveTime;
+    readonly Dictionary<byte, float> dissolvingPlayers = new();
+
+    static readonly HashSet<byte> staticDissolvedPlayers = new();
     public static void SetUpCustomOption()
     {
         OptKillcool = FloatOptionItem.Create(RoleInfo, 4, GeneralOption.KillCooldown, OptionBaseCoolTime, 30, false)
@@ -38,12 +46,57 @@ public sealed class Viper : RoleBase, IImpostor
     {
         AURoleOptions.ViperDissolveTime = ViperDissolveTime;
     }
+        
+    bool IKiller.CanUseKillButton() => Player.IsAlive();
     float IKiller.CalculateKillCooldown() => killcool;
+
     bool IKiller.OverrideKillButtonText(out string text)
     {
         text = GetString(StringNames.ViperAbility);
         return true;
     }
+
+
+    public void OnMurderPlayerAsKiller(MurderInfo info)
+    {
+        var target = info.AttemptTarget;
+        if (target == null) return;
+
+        dissolvingPlayers[target.PlayerId] = ViperDissolveTime;
+    }
+
+    public override void OnFixedUpdate(PlayerControl player)
+    {
+        if (!AmongUsClient.Instance.AmHost || dissolvingPlayers.Count == 0) return;
+
+        foreach (var (targetId, timer) in dissolvingPlayers.ToArray())
+        {
+            var newTimer = timer - UnityEngine.Time.fixedDeltaTime;
+            if (newTimer <= 0f)
+            {
+                dissolvingPlayers.Remove(targetId);
+                staticDissolvedPlayers.Add(targetId);
+            }
+            else
+            {
+                dissolvingPlayers[targetId] = newTimer;
+            }
+        }
+    }
+
+    public static string GetMarkOthers(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false)
+    {
+        seen ??= seer;
+        if (isForMeeting && staticDissolvedPlayers.Contains(seen.PlayerId))
+            return $"<{RoleInfo.RoleColorCode}>×</color>";
+        return "";
+    }
+
+    public override void AfterMeetingTasks()
+    {
+        staticDissolvedPlayers.Clear();
+    }
+
     public static Dictionary<int, Achievement> achievements = new();
     [Attributes.PluginModuleInitializer]
     public static void Load()

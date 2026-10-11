@@ -10,6 +10,9 @@ namespace TownOfHost.Roles.Crewmate;
 
 public sealed class EvilSanta : RoleBase, IImpostor, IUsePhantomButton
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
     bool IKiller.IsKiller => true;
     bool IKiller.CanKill => true;
 

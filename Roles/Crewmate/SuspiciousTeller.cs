@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using Hazel;
-using UnityEngine;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
+using UnityEngine;
 using static TownOfHost.Modules.SelfVoteManager;
 
 namespace TownOfHost.Roles.Crewmate;
@@ -24,7 +25,8 @@ public sealed class SuspiciousTeller : RoleBase, ISelfVoter
             "spt",
             "#6b3ec3",
             (3, 2),
-            introSound: () => GetIntroSound(RoleTypes.Scientist)
+            introSound: () => GetIntroSound(RoleTypes.Scientist),
+            from: From.TownOfHost_Pko
         );
 
     private static readonly CustomRoles[] ForbiddenChangeRoles =
@@ -250,8 +252,27 @@ public sealed class SuspiciousTeller : RoleBase, ISelfVoter
     private void UseTellAbility(byte votedForId)
     {
         var target = PlayerCatch.GetPlayerById(votedForId);
-        if (target == null || target.Data.Disconnected || !target.IsAlive() || target.PlayerId == Player.PlayerId) return;
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                string send = "";
+                if (!Player.IsAlive())
+                {
+                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
+                }
+                else
+                {
+                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
+                }
+                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
 
+                return;
+            }
+        }
+        if (target == null || target.Data.Disconnected || !target.IsAlive() || target.PlayerId == Player.PlayerId) return;
         usedCount++;
         meetingUsedCount++;
 

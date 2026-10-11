@@ -25,6 +25,9 @@ namespace TownOfHost.Roles.Crewmate;
 public sealed class Milkman : RoleBase, IKiller
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 
@@ -52,8 +55,8 @@ public sealed class Milkman : RoleBase, IKiller
 
             true,
 
-            introSound: () => GetIntroSound(RoleTypes.Crewmate)
-
+            introSound: () => GetIntroSound(RoleTypes.Crewmate),
+            from: From.TownOfHost_Pko
         );
 
 

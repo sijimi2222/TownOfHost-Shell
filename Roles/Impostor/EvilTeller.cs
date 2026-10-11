@@ -4,6 +4,7 @@ using UnityEngine;
 
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
+using TownOfHost.Roles.Madmate;
 using Hazel;
 
 namespace TownOfHost.Roles.Impostor;
@@ -96,7 +97,15 @@ public sealed class EvilTeller : RoleBase, IImpostor, IUsePhantomButton
         var target = Player.GetKillTarget(true);
         if (target == null) { ResetCooldown = false; return; }
         if (target.IsTeammate(Player)) { ResetCooldown = false; return; }
-
+        if (target.Is(CustomRoles.Madpsycho))
+        {
+            if (Madpsycho.CanPsycho)
+            {
+                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
+                target.RpcMurderPlayer(Player);
+                return;
+            }
+        }
         if (seentarget.ContainsKey(target.PlayerId) || TargetInfo != null) { ResetCooldown = false; return; }
 
         TargetInfo = new(target.PlayerId, 0f);

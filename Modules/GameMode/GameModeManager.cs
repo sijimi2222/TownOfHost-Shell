@@ -34,6 +34,11 @@ class GameModeManager
                 result.Add(CustomOptionTags.GameOption);
                 result.Add(CustomOptionTags.OtherOption);
                 break;
+            case CustomGameMode.Kedoro:
+                result.Add(CustomOptionTags.Kedoro);
+                result.Add(CustomOptionTags.GameOption);
+                result.Add(CustomOptionTags.OtherOption);
+                break;
             case CustomGameMode.SuddenDeath:
                 result.Add(CustomOptionTags.Standard);
                 result.Add(CustomOptionTags.SuddenDeath);
@@ -53,11 +58,12 @@ class GameModeManager
                 result.Add(CustomOptionTags.GameOption);
                 result.Add(CustomOptionTags.OtherOption);
                 break;
-            case CustomGameMode.DummyHunter:
+                        case CustomGameMode.DummyHunter:
                 result.Add(CustomOptionTags.DummyHunter);
                 result.Add(CustomOptionTags.GameOption);
                 result.Add(CustomOptionTags.OtherOption);
                 break;
+
         }
 
         return result.ToArray();

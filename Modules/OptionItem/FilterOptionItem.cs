@@ -16,6 +16,16 @@ namespace TownOfHost
         public Func<CustomRoles[]> NotAssin;
         public (bool impostor, bool madmate, bool crewmate, bool neutral, bool addon) roles;
 
+        // Saved filters store list indices. Keep pre-beta Shell roles (including 496-499)
+        // before the newly allocated beta range, rather than shifting existing selections.
+        private static IEnumerable<CustomRoles> OrderedRoles => EnumHelper.GetAllValues<CustomRoles>()
+            .Where(role => role < CustomRoles.NotAssigned)
+            .OrderBy(role => (int)role >= 312 && (int)role <= 349 ? 1 : 0)
+            .ThenBy(role => (int)role);
+
+        public static int GetDefaultIndex(CustomRoles role)
+            => role == CustomRoles.NotAssigned ? 0 : OrderedRoles.ToList().IndexOf(role) + 1;
+
         // コンストラクタ
         public FilterOptionItem(int id, string name, int defaultValue, TabGroup tab, bool isSingleValue, bool imp = false, bool mad = false, bool crew = false, bool neu = false, bool addon = false, Func<CustomRoles[]> notassing = null)
         : base(id, name, defaultValue, tab, isSingleValue)
@@ -25,7 +35,7 @@ namespace TownOfHost
                 { CustomRoles.NotAssigned ,0 }
             };
             Sele = [CustomRoles.NotAssigned];
-            EnumHelper.GetAllValues<CustomRoles>().Where(role => role < CustomRoles.NotAssigned).Do(role =>
+            OrderedRoles.Do(role =>
             {
                 Selections.Add(role, Selections.Count);
                 Sele.Add(role);

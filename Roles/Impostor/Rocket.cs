@@ -25,6 +25,9 @@ namespace TownOfHost.Roles.Impostor;
 public sealed class Rocket : RoleBase, IImpostor, IUsePhantomButton
 
 {
+    // KillCooldown controls a repurposed ability, not a direct kill.
+    bool IKiller.UsesDirectKillCooldown => false;
+
 
     public static readonly SimpleRoleInfo RoleInfo =
 
