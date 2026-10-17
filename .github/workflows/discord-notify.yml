@@ -1,0 +1,45 @@
+name: Discord update notification
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  notify:
+    if: ${{ !github.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Notify Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$DISCORD_WEBHOOK" ]]; then
+            echo "::error::DISCORD_WEBHOOK secret is not configured."
+            exit 1
+          fi
+
+          # Read commit text as data, and escape it with jq rather than inserting it into shell code.
+          # Notify once per push using the latest commit; shorten long messages for Discord.
+          jq --arg actor "$GITHUB_ACTOR" \
+             --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" '
+            (.head_commit.message // "（コミットメッセージなし）") as $message |
+            {
+              content: ("🔔 TownOfHost-Shell が更新されました！\n👤 更新者: " + $actor
+                + "\n📝 コミットメッセージ:\n"
+                + (if ($message | length) > 600 then $message[:600] + "…" else $message end)
+                + "\n🔗 コミットへのリンク: " + $url),
+              allowed_mentions: {parse: []}
+            }
+          ' "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/discord-notification.json"
+
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --header 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/discord-notification.json" \
+            "$DISCORD_WEBHOOK"
