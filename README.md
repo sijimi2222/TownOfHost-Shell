@@ -91,6 +91,13 @@ Modが使えなくなるよ!<br>
 
 ※本家TownOfHost,TownOfHost_PKO,<br>TownOfHosthamo様の開発者はここでは省略させていただきます
 #### クレジット
+
+##### 役職制作協力
+
+**トラくんの家【泰然】**
+一部の役の制作
+
+#### MODクレジット
 [Town Of Host](https://github.com/tukasa0001/TownOfHost)<br>
 　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Shellでも大体実装されています<br>
 
