@@ -32,7 +32,7 @@ public sealed class Daoshi : RoleBase, IKiller, IKillFlashSeeable
             "dao",
             "#7986CB",
             isDesyncImpostor: true,
-            countType: CountTypes.Crew,
+            countType: CountTypes.Daoshi,
             isNewRole: true
         );
 

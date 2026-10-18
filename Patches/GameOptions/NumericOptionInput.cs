@@ -140,7 +140,7 @@ namespace TownOfHost
             activeOutput?.gameObject.SetActive(true);
             activeCaretTimer = 0f;
             Input.imeCompositionMode = IMECompositionMode.Auto;
-            activeInput.GiveFocus();
+            SafeFocus.Give(activeInput);
             UpdateCaret();
         }
 
@@ -177,7 +177,7 @@ namespace TownOfHost
             activeOutput?.gameObject.SetActive(true);
             activeCaretTimer = 0f;
             Input.imeCompositionMode = IMECompositionMode.Auto;
-            activeInput.GiveFocus();
+            SafeFocus.Give(activeInput);
             UpdateCaret();
         }
 

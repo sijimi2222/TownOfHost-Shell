@@ -3140,39 +3140,7 @@ namespace TownOfHost
 
 
 
-                                        // roleCommands辞書はGetRolesInfoの初回呼び出し時に遅延初期化されるため、
-
-                                        // まだ未初期化(null)の場合に備え、空引数で一度呼んで初期化だけ済ませておく。
-
-                                        if (ChatCommands.roleCommands == null)
-
-                                        {
-
-                                            UtilsRoleInfo.GetRolesInfo("", byte.MaxValue);
-
-                                        }
-
-
-
-                                        var chatCommand = ChatCommands.roleCommands != null && ChatCommands.roleCommands.TryGetValue(option.CustomRole, out var cmd)
-
-                                            ? cmd
-
-                                            : option.CustomRole.GetRoleInfo()?.ChatCommand;
-
-                                        if (string.IsNullOrEmpty(chatCommand)) return;
-
-
-
-                                        // "/cmd h r <役職コマンド名>" と同じ処理だが、
-
-                                        // 送信先をホスト自身だけでなく全員(byte.MaxValue)にする。
-
-                                        // SendMessage内部で「ホストでなければ何もしない」処理が
-
-                                        // 既にあるため、実質的に「ホストが押した時だけ全員に送られる」形になる。
-
-                                        UtilsRoleInfo.GetRolesInfo(chatCommand, byte.MaxValue);
+                                        UtilsRoleInfo.GetRolesInfo(option.CustomRole.ToString(), byte.MaxValue);
 
                                     }));
 

@@ -57,6 +57,9 @@ namespace TownOfHost
                         case CustomRoles.Jackaldoll:
                             hasTasks = false;
                             break;
+                        case CustomRoles.Experiencer:
+                            hasTasks = !ForRecompute;
+                            break;
                         case CustomRoles.Clockworker:
                             hasTasks = roleClass is TownOfHost.Roles.Impostor.Clockworker cw && cw.InTaskMode && !ForRecompute;
                             break;

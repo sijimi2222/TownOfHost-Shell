@@ -3775,7 +3775,7 @@ namespace TownOfHost
 
             if (role.GetCombination() is not CustomRoles.NotAssigned) CustomRoleManager.SortCustomRoles.Add(role.GetCombination());
 
-            var spawnOption = IntegerOptionItem.Create(id, combination == CombinationRoles.None ? role.ToString() : combination.ToString(), new(0, 100, 10), 0, tab, false, from)
+            var spawnOption = IntegerOptionItem.Create(ShellOptionIds.SpawnChanceId(role, id), combination == CombinationRoles.None ? role.ToString() : combination.ToString(), new(0, 100, 10), 0, tab, false, from)
 
                     .SetColorcode(UtilsRoleText.GetRoleColorCode(role))
 
@@ -3811,7 +3811,7 @@ namespace TownOfHost
 
 
 
-            var countOption = IntegerOptionItem.Create(id + 1, "Maximum", assignCountRule, defo is -1 ? assignCountRule.Step : defo, tab, false, HideValue: hidevalue)
+            var countOption = IntegerOptionItem.Create(ShellOptionIds.MaximumId(role, id + 1), "Maximum", assignCountRule, defo is -1 ? assignCountRule.Step : defo, tab, false, HideValue: hidevalue)
 
                 .SetParent(spawnOption)
 

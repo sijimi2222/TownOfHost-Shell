@@ -754,15 +754,12 @@ namespace TownOfHost
                             if (seer.KnowDeathReason(target))
 
                                 TargetDeathReason = $"<size=75%>({GetVitalText(target.PlayerId, seer.PlayerId.CanDeathReasonKillerColor() == true ? true : null)})</size>";
-
-
-
                             if (((IsActive(SystemTypes.Comms) && Options.CommsCamouflage.GetBool())
-
-                            || (role is CustomRoles.Monochromer && seerisAlive)
-
+                            || (role is CustomRoles.Monochromer && seerisAlive && target != seer)
+                            || (role is CustomRoles.Daoshi && seerisAlive && target != seer)
+                            || (role is CustomRoles.BlackVisioner && seerisAlive && target != seer)
+                            || (role is CustomRoles.BlackMadMate && seerisAlive && target != seer)
                             //|| Camouflager.NowUse
-
                             || (SuddenDeathMode.SuddenCannotSeeName && !TemporaryName))
 
                             && (!((targetrole as Jumper)?.Jumping == true)))

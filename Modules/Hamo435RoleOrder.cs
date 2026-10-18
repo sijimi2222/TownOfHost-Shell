@@ -34,6 +34,7 @@ internal static class Hamo435RoleOrder
         [CustomRoles.Comorbidity] = -124,
         [CustomRoles.Murder] = -125,
         [CustomRoles.BetrayGuesser] = -126,
+        [CustomRoles.Experiencer] = -127,
     };
     internal static bool Contains(CustomRoles role) => Priority.ContainsKey(role);
 }

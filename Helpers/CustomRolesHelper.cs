@@ -861,7 +861,9 @@ namespace TownOfHost
 
         StandMaster,
 
-        Villain
+        Villain,
+
+        Daoshi
 
     }
 

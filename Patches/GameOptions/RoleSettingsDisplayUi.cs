@@ -10,12 +10,15 @@ namespace TownOfHost;
 internal static class RoleSettingsDisplayUi
 {
     private static PassiveButton Button;
+    private static PassiveButton ExpandButton;
     private static readonly Dictionary<GameOptionsMenu, Dictionary<string, CategoryHeaderMasked>> Headers = new();
 
     internal static void Reset()
     {
         if (Button != null) UnityEngine.Object.Destroy(Button.gameObject);
         Button = null;
+        if (ExpandButton != null) UnityEngine.Object.Destroy(ExpandButton.gameObject);
+        ExpandButton = null;
         Headers.Clear();
         RoleSettingsDisplay.Reset();
     }
@@ -78,6 +81,31 @@ internal static class RoleSettingsDisplayUi
         }
         ConfigureLabel(Button, fontSource);
         UpdateLabel(Button, true);
+        // The next free square to the right; never move or replace Shell's mode switch.
+        ExpandButton = UnityEngine.Object.Instantiate(Button, Button.transform.parent);
+        ExpandButton.gameObject.name = "RoleHeadersExpandAll";
+        ExpandButton.transform.localPosition = Button.transform.localPosition + new Vector3(.762f, 0f, 0f);
+        ExpandButton.OnClick = new();
+        ExpandButton.OnMouseOver = new();
+        ExpandButton.OnMouseOut = new();
+        ExpandButton.OnClick.AddListener((Action)(() =>
+        {
+            if (!TryGetRoleList(out var tab, out var menu)) return;
+            NumericOptionInput.Close(false);
+            ToolTip.Hide();
+            RoleSettingsDisplay.SetAllCollapsed(tab, !RoleSettingsDisplay.AnyCollapsed(tab));
+            // All-close can greatly shrink the scroll bounds. Start at the visible headers.
+            var scroller = ModSettingsTab.scrollBar;
+            scroller.velocity = Vector2.zero;
+            var position = scroller.Inner.localPosition;
+            scroller.Inner.localPosition = new Vector3(position.x, 0f, position.z);
+            scroller.ScrollRelative(Vector2.zero);
+            GameOptionsMenuUpdatePatch.RefreshLayout(menu);
+            Refresh();
+        }));
+        ExpandButton.OnMouseOut.AddListener((Action)ToolTip.Hide);
+        ConfigureLabel(ExpandButton, fontSource);
+        ExpandButton.gameObject.SetActive(false);
         Button.gameObject.SetActive(false);
     }
 
@@ -104,9 +132,23 @@ internal static class RoleSettingsDisplayUi
     {
         if (Button == null) return;
         bool wasVisible = Button.gameObject.activeSelf;
-        bool visible = TryGetRoleList(out _, out _);
+        bool visible = TryGetRoleList(out var tab, out _);
         Button.gameObject.SetActive(visible);
         UpdateLabel(Button, visible && !wasVisible);
+        if (ExpandButton != null)
+        {
+            bool wasExpandedVisible = ExpandButton.gameObject.activeSelf;
+            ExpandButton.gameObject.SetActive(visible);
+            var text = ExpandButton.buttonText;
+            string label = visible && RoleSettingsDisplay.AnyCollapsed(tab) ? "全部\nひらく" : "全部\nとじる";
+            if (text != null && (text.text != label || (visible && !wasExpandedVisible)))
+            {
+                text.text = label;
+                text.enabled = true;
+                text.gameObject.SetActive(true);
+                text.ForceMeshUpdate(true);
+            }
+        }
     }
 
     // Reparent out of the cloned FontPlacer/state containers: their offsets and active state
@@ -174,11 +216,12 @@ internal static class RoleSettingsDisplayUi
             if (header != null) header.gameObject.SetActive(false);
     }
 
-    internal static void PlaceHeader(GameOptionsMenu menu, RoleSettingsDisplay.Origin origin, ref float offset)
+    internal static void PlaceHeader(GameOptionsMenu menu, TabGroup tab, RoleSettingsDisplay.Origin origin, ref float offset)
     {
         if (!Headers.TryGetValue(menu, out var headers))
             Headers.Add(menu, headers = new());
-        if (!headers.TryGetValue(origin.Key, out var header) || header == null)
+        string headerKey = RoleSettingsDisplay.CurrentMode + ":" + origin.Key;
+        if (!headers.TryGetValue(headerKey, out var header) || header == null)
         {
             var source = ModSettingsTab.transform.Find("Scroller/SliderInner/ChancesTab/CategoryHeaderMasked");
             if (source == null) return;
@@ -191,9 +234,24 @@ internal static class RoleSettingsDisplayUi
             header.Title.fontSizeMax = header.Title.fontSize;
             header.Title.fontSizeMin = .6f;
             header.Title.enableAutoSizing = true;
-            headers[origin.Key] = header;
+            headers[headerKey] = header;
+            var button = header.gameObject.AddComponent<PassiveButton>();
+            var collider = header.gameObject.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(5f, .6f);
+            button.Colliders = new Collider2D[] { collider };
+            button.OnClick = new();
+            button.OnMouseOut = new();
+            button.OnMouseOver = new();
+            button.OnClick.AddListener((Action)(() =>
+            {
+                if (!TryGetRoleList(out var activeTab, out var activeMenu) || activeMenu != menu || activeTab != tab) return;
+                NumericOptionInput.Close(false);
+                RoleSettingsDisplay.ToggleHeader(tab, origin);
+                GameOptionsMenuUpdatePatch.RefreshLayout(menu);
+                Refresh();
+            }));
         }
-        header.Title.text = "<b>" + origin.Name + "</b>";
+        header.Title.text = "<b>" + (RoleSettingsDisplay.IsCollapsed(tab, origin) ? "[+] " : "[-] ") + origin.Name + "</b>";
         offset -= .68f;
         var position = header.transform.localPosition;
         header.transform.localPosition = new Vector3(position.x, offset - 1.65f, position.z);

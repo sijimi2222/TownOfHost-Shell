@@ -22,7 +22,7 @@ public sealed class LonelyWolf : RoleBase, IImpostor
             CustomRoleTypes.Impostor,
             92600,
             SetupOptionItem,
-            "lw",
+            "lwo",
             "#FF1919",
             isCantSeeTeammates: true,
             isNewRole: true

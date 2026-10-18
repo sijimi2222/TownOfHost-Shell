@@ -107,7 +107,6 @@ namespace TownOfHost
                 roleCommands.Add(CustomRoles.Detective, "Det");
                 roleCommands.Add(CustomRoles.Judge, "ju");
                 roleCommands.Add(CustomRoles.Influencer, "inf");
-                roleCommands.Add(CustomRoles.Influencer, "inf");
 
 
 

@@ -441,13 +441,9 @@ namespace TownOfHost
             if (GameStates.InGame && !GameStates.Intro && timer is 0)
 
             {
-
                 // 全員の外見復元は毎フレーム不要なため、役職表示の更新周期に合わせて間引く。
-
-                if (PlayerCatch.AllPlayerControls.Any(pc => pc.Is(CustomRoles.Monochromer)))
-
+                if (PlayerCatch.AllPlayerControls.Any(pc => pc.Is(CustomRoles.Monochromer) || pc.Is(CustomRoles.Daoshi) || pc.Is(CustomRoles.BlackVisioner)))
                 {
-
                     if (Camouflage.PlayerSkins.TryGetValue(__instance.PlayerId, out var outfit))
 
                     {
@@ -795,15 +791,12 @@ namespace TownOfHost
                         //seerに関わらず発動するSuffix
 
                         Suffix.Append(CustomRoleManager.GetSuffixOthers(seer, target));
-
-
-
                         if ((Utils.IsActive(SystemTypes.Comms) && Options.CommsCamouflage.GetBool())
-
-                        || (seer.Is(CustomRoles.Monochromer) && seer.IsAlive())
-
+                        || (seer.Is(CustomRoles.Monochromer) && seer.IsAlive() && target != seer)
+                        || (seer.Is(CustomRoles.Daoshi) && seer.IsAlive() && target != seer)
+                        || (seer.Is(CustomRoles.BlackVisioner) && seer.IsAlive() && target != seer)
+                        || (seer.Is(CustomRoles.BlackMadMate) && seer.IsAlive() && target != seer)
                         //|| Camouflager.NowUse
-
                         || (SuddenDeathMode.SuddenCannotSeeName && !TemporaryName)
 
                         // ブラックビジョナー/ブラックマッドメイトから見た他プレイヤーの名前を非表示にする(自分自身は除く)

@@ -116,6 +116,12 @@ public static class OptionSaver
         Dictionary<int, int> singleOptions = serializableOptionsData.SingleOptions;
         Dictionary<int, int[]> presetOptions = serializableOptionsData.PresetOptions;
         Dictionary<int, Dictionary<int, int[]>> assignOptions = serializableOptionsData.AssignOptions;
+        // No legacy value is copied to a recovered option. Old files have no entry for it.
+        foreach (var id in ShellOptionIds.RecoveredOptionIds)
+        {
+            if (!presetOptions.ContainsKey(id) && OptionItem.FastOptions.TryGetValue(id, out var recovered))
+                recovered.SetAllValues(null); // Fill every supported preset with its definition's default.
+        }
         foreach (var singleOption in singleOptions)
         {
             var id = singleOption.Key;
@@ -153,7 +159,8 @@ public static class OptionSaver
                         }
                         foreach (var roleid in item.Value)
                         {
-                            var roleopt = OptionItem.AllOptions.FirstOrDefault(opt => opt.Id == roleid);
+                            // AssignOptions stores role ConfigId, which may also be a non-role detail ID.
+                            var roleopt = OptionItem.AllOptions.FirstOrDefault(opt => opt.Id == roleid && opt.CustomRole != CustomRoles.NotAssigned);
 
                             if (roleopt is not null)
                             {

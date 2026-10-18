@@ -137,16 +137,8 @@ public sealed class EvilTracker : RoleBase, IImpostor, IKillFlashSeeable, ISidek
     public override void Add() => EvilTrackers.Add(this);
     public override void OnDestroy() => EvilTrackers.Remove(this);
 
-    public bool? CheckKillFlash(MurderInfo info) // IKillFlashSeeable
-    {
-        if (!CanSeeKillFlash) return false;
-
-        PlayerControl killer = info.AppearanceKiller, target = info.AttemptTarget;
-
-        //インポスターによるキルかどうかの判別
-        var realKiller = target.GetRealKiller() ?? killer;
-        return target.IsTeammate(Player) && realKiller != target;
-    }
+    public bool? CheckKillFlash(MurderInfo info)
+        => CanSeeKillFlash && !info.IsSuicide && !info.IsAccident && info.AttemptKiller.IsTeammate(Player);
     public bool CanMakeSidekick() => CanCreateSideKick; // ISidekickable
 
     public override void ReceiveRPC(MessageReader reader)

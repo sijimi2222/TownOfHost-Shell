@@ -108,10 +108,8 @@ class AddondataInfo
                 CustomRoles.ToughGuy => "Tg",
                 CustomRoles.Comorbidity => "Cm",
                 CustomRoles.Murder => "Md",
-                CustomRoles.BetrayGuesser => "Bg",
-
+                CustomRoles.BetrayGuesser => "Btg",
                 CustomRoles.Triplets => "三",
-
                 _ => ""
 
             };

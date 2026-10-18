@@ -234,6 +234,14 @@ namespace TownOfHost.Modules.ChatManager
                 ChatUpdatePatch.DoBlockChat = false;
             }
         }
+        // A missing private recipient must never become StartMessage(-1), which broadcasts.
+        private static bool TryGetMessageRecipient(PlayerControl recipient, out int clientId)
+        {
+            clientId = -1;
+            if (recipient == null || recipient.Data == null || recipient.Data.Disconnected) return false;
+            clientId = recipient.GetClientId();
+            return clientId >= 0;
+        }
         public static void IntaskCheckSendMessage(PlayerControl player)
         {
             if (PlayerControl.LocalPlayer.IsAlive() && !ChatUpdatePatch.DoBlockChat)
@@ -250,16 +258,10 @@ namespace TownOfHost.Modules.ChatManager
                     {
                         Main.MessagesToSend.Remove((msg, sendTo, title));
                         var sendpc = PlayerCatch.GetPlayerById(sendTo);
-                        int clientId = sendpc.GetClientId();
+                        if (!TryGetMessageRecipient(sendpc, out int clientId)) return;
                         if (sendpc != null)
                         {
                             var name = sendpc.Data.GetLogPlayerName();
-                            if (clientId == -1)
-                            {
-                                sendpc.SetName(title);
-                                DestroyableSingleton<HudManager>.Instance.Chat.AddChat(sendpc, msg);
-                                sendpc.SetName(name);
-                            }
                             var writer = CustomRpcSender.Create("MessagesToSend", SendOption.None);
                             writer.StartMessage(clientId);
                             writer.StartRpc(sendpc.NetId, (byte)RpcCalls.SetName)
@@ -287,15 +289,14 @@ namespace TownOfHost.Modules.ChatManager
             (string msg, byte sendTo, string title) = Main.MessagesToSend[0];
             var name = senderplayer.Data.GetLogPlayerName();
             var SendToPlayerControl = PlayerCatch.GetPlayerById(sendTo);
-            int clientId = sendTo == byte.MaxValue ? -1 : SendToPlayerControl.GetClientId();
-            if (msg == "") msg = ".";
-
-            if (sendTo != byte.MaxValue && SendToPlayerControl is null)
+            int clientId = -1;
+            if (sendTo != byte.MaxValue && !TryGetMessageRecipient(SendToPlayerControl, out clientId))
             {
                 Main.MessagesToSend.RemoveAt(0);
-                Logger.Error($"{sendTo}がnullの為弾きます。", "SendMassage");
                 return;
             }
+            if (msg == "") msg = ".";
+
             if (Options.ExRpcWeightR.GetBool()) Main.MegCount++;
             // バニラ鯖使用下の状況
             if (Utils.IsRestriction())
@@ -324,7 +325,7 @@ namespace TownOfHost.Modules.ChatManager
                         if (seer.PlayerId == PlayerControl.LocalPlayer.PlayerId) continue;
                         if (seer.PlayerId == sendTo || sendTo is byte.MaxValue)
                         {
-                            var seerclientid = seer.GetClientId();
+                            if (!TryGetMessageRecipient(seer, out int seerclientid)) continue;
 
                             GameDataSerializePatch.SerializeMessageCount++;
                             var Nwriter = CustomRpcSender.Create("MessagesToSend", SendOption.None);
@@ -373,7 +374,7 @@ namespace TownOfHost.Modules.ChatManager
                                 }, true);
                             }
                             GameDataSerializePatch.SerializeMessageCount--;
-                            Nwriter.StartRpc(senderplayer.Data.NetId, (byte)RpcCalls.SetName)
+                            Nwriter.StartRpc(senderplayer.NetId, (byte)RpcCalls.SetName)
                             .Write(senderplayer.Data.NetId)
                             .Write(name)
                             .EndRpc();
@@ -447,7 +448,7 @@ namespace TownOfHost.Modules.ChatManager
 
                 foreach (var seer in PlayerCatch.AllPlayerControls)
                 {
-                    int seerclientid = seer.GetClientId();
+                    if (!TryGetMessageRecipient(seer, out int seerclientid)) continue;
                     string playername = seer.GetRealName(isMeeting: true);
                     playername = playername.ApplyNameColorData(seer, seer, true);
                     if (Main.LastNotifyNames.TryGetValue((seer.PlayerId, seer.PlayerId), out var lastname))
@@ -525,7 +526,7 @@ namespace TownOfHost.Modules.ChatManager
 
                 foreach (var seer in Seers)
                 {
-                    int seerclientid = seer.GetClientId();
+                    if (!TryGetMessageRecipient(seer, out int seerclientid)) continue;
                     string playername = seer.GetRealName(isMeeting: true);
                     if (!GameStates.IsMeeting && Main.LastNotifyNames.TryGetValue((seer.PlayerId, seer.PlayerId), out var lastname))
                     {
@@ -568,7 +569,12 @@ namespace TownOfHost.Modules.ChatManager
             (string msg, byte sendTo, string title) = Main.MessagesToSend[0];
             var name = senderplayer.Data.GetLogPlayerName();
             var SendToPlayerControl = PlayerCatch.GetPlayerById(sendTo);
-            int clientId = sendTo == byte.MaxValue ? -1 : SendToPlayerControl.GetClientId();
+            int clientId = -1;
+            if (sendTo != byte.MaxValue && !TryGetMessageRecipient(SendToPlayerControl, out clientId))
+            {
+                Main.MessagesToSend.RemoveAt(0);
+                return;
+            }
 
             if (title.RemoveHtmlTags() == title) // ホストが送信した場合、
             {

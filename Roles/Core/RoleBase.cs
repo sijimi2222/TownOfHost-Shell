@@ -1190,6 +1190,8 @@ public abstract class RoleBase : IDisposable
 
         Impostor,
 
+        Kyonshi,
+
     }
 
 }

@@ -994,12 +994,17 @@ namespace TownOfHost
 
                     {
 
-                        if (RoleSettingsDisplay.CurrentMode == RoleSettingsDisplay.Mode.Mod
-                            && RoleSettingsDisplay.IsRoleList(tab))
+                        if (RoleSettingsDisplay.IsRoleList(tab))
                         {
-                            var origin = RoleSettingsDisplay.SectionFor(tab, option);
-                            if (origin != null && placedOrigins.Add(origin.Key))
-                                RoleSettingsDisplayUi.PlaceHeader(__instance, origin, ref offset);
+                            var section = RoleSettingsDisplay.HeaderFor(tab, option);
+                            if (section != null && placedOrigins.Add(section.Key))
+                                RoleSettingsDisplayUi.PlaceHeader(__instance, tab, section, ref offset);
+                            if (RoleSettingsDisplay.IsCollapsed(tab, section))
+                            {
+                                option.OptionBehaviour.gameObject.SetActive(false);
+                                numItems--;
+                                continue;
+                            }
                         }
 
                         opt.color = color;

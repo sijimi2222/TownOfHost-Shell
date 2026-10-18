@@ -11,7 +11,7 @@ internal static class ShellRoleOrigins
 {
     internal const string HamoDisplayName = "TownOfHost-hamo";
 
-    // Only the explicitly requested 25 roles/addons belong here.
+    // Only the explicitly requested 26 roles/addons belong here.
     private static readonly HashSet<CustomRoles> HamoRoles = new()
     {
         CustomRoles.Catalyst,
@@ -39,6 +39,7 @@ internal static class ShellRoleOrigins
         CustomRoles.Comorbidity,
         CustomRoles.Murder,
         CustomRoles.BetrayGuesser,
+        CustomRoles.Experiencer,
     };
 
     internal static bool HasOverride(CustomRoles role) => HamoRoles.Contains(role);

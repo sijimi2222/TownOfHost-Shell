@@ -122,6 +122,7 @@ internal static class RoleSettingsReadings
         ["EvilTrapper"] = "いひるとらつは",
         ["Evilgambler"] = "いひるきやんふら",
         ["Evolver"] = "えほるは",
+        ["Experiencer"] = "えくすぺりえんさー",
         ["Executioner"] = "えくすきゆしよな",
         ["Express"] = "えくすふれす",
         ["FakeJester"] = "ふえいくしえすた",

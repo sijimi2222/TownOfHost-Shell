@@ -32,9 +32,9 @@ using static Unity.Services.LevelPlay.LevelPlayBannerPosition;
 
 
 
-[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.PluginShowVersion)]
+[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.BepInExPluginVersion)]
 
-[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginShowVersion)]
+[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginReleaseVersion)]
 
 namespace TownOfHost
 
@@ -124,11 +124,13 @@ namespace TownOfHost
 
         public const string PluginGuid = "com.rar006.TownOfHost-Shell";
 
-        public const string BepInExPluginVersion = PluginShowVersion;
+        public const string BepInExPluginVersion = "2.2.0";
 
-        public const string PluginVersion = "4.00.35.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
+        public const string PluginVersion = "4.00.35.02";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "2.1.0";
+        public const string PluginShowVersion = "2.2.0β";
+
+        public const string PluginReleaseVersion = "2.2.0-beta.1";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
@@ -159,7 +161,7 @@ namespace TownOfHost
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 
         // Public releases are compared separately from the internal compatibility version.
-        public static readonly Version ShellVersion = Version.Parse(PluginShowVersion);
+        public static readonly Version ShellVersion = Version.Parse(BepInExPluginVersion);
 
         public static Version version = Version.Parse(PluginVersion);
 

@@ -18,7 +18,7 @@ public static class UserRoles2026
         if (args.Length > 0 && args[0].Equals("/cmd", System.StringComparison.OrdinalIgnoreCase)) args = args.Skip(1).ToArray();
         if (args.Length == 0) return false;
         var command = args[0].TrimStart('/').ToLowerInvariant();
-        if (command is not ("mes" or "mm")) return false;
+        if (command is not ("mes" or "mm" or "en")) return false;
         args[0] = "/" + command;
         return true;
     }
@@ -51,6 +51,12 @@ public static class UserRoles2026
         if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return false;
         switch (args[0].ToLowerInvariant())
         {
+            case "/en":
+                if (player.GetRoleClass() is not TownOfHost.Roles.Impostor.Experiencer) return false;
+                if (args.Length == 2 && int.TryParse(args[1], out var enchant))
+                    TownOfHost.Roles.Impostor.Experiencer.Tryentrant(enchant, player);
+                else Utils.SendMessage("使い方: /cmd en 1～6", player.PlayerId);
+                return true;
             case "/mm":
                 if (player.GetRoleClass() is not TownOfHost.Roles.Madmate.MadMagic magic) return false;
                 magic.HandleCommand(args);

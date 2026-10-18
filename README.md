@@ -18,7 +18,9 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**最新版は[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.1.0)**<re><br>
+**v2.2.0β（プレリリース予定）**<br>
+公開後の配布先: [TownOfHost-Shell v2.2.0β](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.0-beta.1)<br>
+マッチメイキング機能は現在メンテナンス中です。<re><br>
 過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
 
 ## 公開ルームについて

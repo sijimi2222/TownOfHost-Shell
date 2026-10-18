@@ -67,7 +67,8 @@ public static class OptionSerializer
         foreach (var option in options)
         {
             var value = option.GetValue();
-            if (value == 0)
+            // Recovered IDs must be explicit even at zero, so absence means an old preset.
+            if (value == 0 && !ShellOptionIds.IsRecoveredOption(option.Id))
             {
                 continue;
             }
@@ -178,7 +179,8 @@ public static class OptionSerializer
             {
                 continue;
             }
-            var optionvalue = parsedModOptions.TryGetValue(option.Id, out var value) ? value : 0;
+            var optionvalue = parsedModOptions.TryGetValue(option.Id, out var value) ? value
+                : ShellOptionIds.IsRecoveredOption(option.Id) ? option.DefaultValue : 0;
             if (option.GetValue() == optionvalue) continue;
             option.SetValue(optionvalue, false);
         }

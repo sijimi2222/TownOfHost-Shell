@@ -32,8 +32,55 @@ internal static class RoleSettingsDisplay
         internal int Count;
         internal readonly List<OptionItem> Options = new();
         internal readonly Dictionary<OptionItem, Origin> Origins = new();
+        internal readonly Dictionary<OptionItem, Origin> Headers = new();
     }
     private static readonly Dictionary<TabGroup, Plan> Plans = new();
+    private static readonly HashSet<(Mode Mode, TabGroup Tab, string Key)> Collapsed = new();
+
+    // Pure presentation state: no option IDs, persisted values, or RPCs.
+    internal static Origin HeaderFor(TabGroup tab, OptionItem option)
+    {
+        if (!IsRoleList(tab) || RootRole(option) == CustomRoles.NotAssigned) return null;
+        var plan = GetPlan(tab);
+        if (plan.Headers.TryGetValue(option, out var cached)) return cached;
+        var header = CreateHeader(tab, option);
+        plan.Headers[option] = header;
+        return header;
+    }
+    private static Origin CreateHeader(TabGroup tab, OptionItem option)
+    {
+        if (CurrentMode == Mode.Mod) return SectionFor(tab, option);
+        var reading = RoleSettingsReadings.Key(RootRole(option));
+        if (reading.Length == 0) return new("kana:unknown", "読み未設定");
+        const string starts = "あかさたなはまやらわ";
+        var c = reading[0];
+        if (c >= 'あ' && c <= 'ん')
+        {
+            int index = 0;
+            while (index + 1 < starts.Length && c >= starts[index + 1]) index++;
+            return new("kana:" + starts[index], starts[index] + "行");
+        }
+        // Keep the existing lexical order even for names without a kana reading.
+        return new("initial:" + c, c.ToString());
+    }
+    internal static bool IsCollapsed(TabGroup tab, Origin header)
+        => header != null && Collapsed.Contains((CurrentMode, tab, header.Key));
+    internal static bool AnyCollapsed(TabGroup tab)
+        => DisplayOptions(tab).Select(option => HeaderFor(tab, option)).Any(header => IsCollapsed(tab, header));
+    internal static void ToggleHeader(TabGroup tab, Origin header)
+    {
+        if (header == null) return;
+        var key = (CurrentMode, tab, header.Key);
+        if (!Collapsed.Remove(key)) Collapsed.Add(key);
+    }
+    internal static void SetAllCollapsed(TabGroup tab, bool collapsed)
+    {
+        foreach (var header in DisplayOptions(tab).Select(option => HeaderFor(tab, option)).Where(header => header != null))
+        {
+            var key = (CurrentMode, tab, header.Key);
+            if (collapsed) Collapsed.Add(key); else Collapsed.Remove(key);
+        }
+    }
 
     internal static bool IsRoleList(TabGroup tab) => tab is TabGroup.ImpostorRoles
         or TabGroup.MadmateRoles or TabGroup.CrewmateRoles or TabGroup.NeutralRoles
@@ -44,7 +91,7 @@ internal static class RoleSettingsDisplay
     internal static bool IsLegacyGroupHeader(OptionItem option)
         => option is ObjectOptionitem { IsHedderObject: true } && option.Name == "Group-Addon";
 
-    internal static void Reset() { CurrentMode = Mode.Gojuon; Plans.Clear(); }
+    internal static void Reset() { CurrentMode = Mode.Gojuon; Plans.Clear(); Collapsed.Clear(); }
     internal static void Toggle() { CurrentMode = CurrentMode == Mode.Gojuon ? Mode.Mod : Mode.Gojuon; Plans.Clear(); }
 
     internal static CustomRoles RootRole(OptionItem option)

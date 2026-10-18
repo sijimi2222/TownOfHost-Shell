@@ -20,7 +20,7 @@ public sealed class MadInvisible : RoleBase, IKillFlashSeeable, IDeathReasonSeea
             CustomRoleTypes.Madmate,
             92900,
             SetupOptionItem,
-            "mi",
+            "minv",
             "#FFFFFF",
             countType: CountTypes.None, // 生存人数にカウントされない
             introSound: () => GetIntroSound(RoleTypes.Impostor),

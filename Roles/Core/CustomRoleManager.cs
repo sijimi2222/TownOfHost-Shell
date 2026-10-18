@@ -611,6 +611,7 @@ public static class CustomRoleManager
 
             CheckMurderInfos[appearanceKiller.PlayerId] = info;
 
+            if (killerRole is Experiencer experiencer && experiencer.TryNoBodyKill(info)) return true;
             if (info.TigerPredation) Tiger.SendPredationKill(info);
             else appearanceKiller.RpcMurderPlayer(appearanceTarget);
 
@@ -2426,6 +2427,7 @@ public enum CustomRoles
     Sender = 366,
     MadSender = 367,
     Parity = 368,
+    Experiencer = 369,
     Arsene = 578,
     Kyonshi = 579,
     Surviving = 7010,
