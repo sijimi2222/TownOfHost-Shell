@@ -35,6 +35,11 @@ internal static class Hamo435RoleOrder
         [CustomRoles.Murder] = -125,
         [CustomRoles.BetrayGuesser] = -126,
         [CustomRoles.Experiencer] = -127,
+        [CustomRoles.StepBomber] = -128,
+        [CustomRoles.Locksmith] = -129,
+        [CustomRoles.Coroner] = -130,
+        [CustomRoles.Nova] = -131,
+        [CustomRoles.Eliminator] = -132,
     };
     internal static bool Contains(CustomRoles role) => Priority.ContainsKey(role);
 }

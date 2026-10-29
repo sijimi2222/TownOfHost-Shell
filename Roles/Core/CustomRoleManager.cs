@@ -161,6 +161,7 @@ public static class CustomRoleManager
 
 
 
+        if (force != true && TaskTurnFortune.TryHandleKill(attemptKiller, attemptTarget)) return false;
         var killerRole = attemptKiller.GetRoleClass();
 
         var targetRole = attemptTarget.GetRoleClass();
@@ -606,6 +607,8 @@ public static class CustomRoleManager
                 appearanceKiller = info.AppearanceKiller;
                 appearanceTarget = info.AppearanceTarget;
             }
+
+            TownOfHost.Roles.Crewmate.Marshall.RecordConfirmedKill(attemptTarget.PlayerId);
 
             //MurderPlayer用にinfoを保存
 
@@ -1270,13 +1273,15 @@ public static class CustomRoleManager
 
     /// <param name="rpcType"></param>
 
-    public static void DispatchRpc(MessageReader reader)
+    public static void DispatchRpc(MessageReader reader, bool trustedHost = false)
 
     {
 
         var playerId = reader.ReadByte();
 
-        GetByPlayerId(playerId)?.ReceiveRPC(reader);
+        var role = GetByPlayerId(playerId);
+        if (PrivateRoleStateSync.TryRead(role, reader, trustedHost)) return;
+        role?.ReceiveRPC(reader);
 
     }
 
@@ -2428,6 +2433,21 @@ public enum CustomRoles
     MadSender = 367,
     Parity = 368,
     Experiencer = 369,
+        StepBomber = 370,
+        Locksmith = 371,
+        Coroner = 372,
+    Damocles = 373,
+    Idol = 374,
+    Marshall = 375,
+    LessThan = 376,
+    Eliminator = 382,
+    // Added without changing any existing Shell role/add-on IDs.
+    MadKind = 377,
+    Framer = 378,
+    NiceHacker = 379,
+    Romeo = 380,
+    Juliet = 381,
+    Nova = 588,
     Arsene = 578,
     Kyonshi = 579,
     Surviving = 7010,

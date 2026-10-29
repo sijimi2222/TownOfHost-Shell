@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using System.Linq;
 
@@ -526,13 +526,11 @@ namespace TownOfHost
             IUsePhantomButton.IPPlayerKillCooldown.TryGetValue(__instance.PlayerId, out TurnTimer);
 
             Main.AllPlayerKillCooldown.TryGetValue(__instance.PlayerId, out var killcool);
-
             /* 初手で、キルク修正がオフでキルクが10s以上で、10sのまま*/
-
-            if (MeetingStates.FirstMeeting && !Options.FixFirstKillCooldown.GetBool() && killcool > 10 &&
-
+            if (MeetingStates.FirstMeeting && InitialKillCooldownOption.TryGet(__instance, out var initialCooldown))
+                killcool = initialCooldown; // 役職ごとの初期キルクール
+            else if (MeetingStates.FirstMeeting && !Options.FixFirstKillCooldown.GetBool() && killcool > 10 &&
             (PlayerState.GetByPlayerId(__instance.PlayerId)?.Is10secKillButton == true))
-
                 killcool = 10;
 
             float cooldown = killcool - TurnTimer;
@@ -804,6 +802,13 @@ namespace TownOfHost
     class CoEnterVentPatch
 
     {
+        // A suppressed coroutine still needs a non-null iterator for the vanilla RPC caller.
+        public static void Postfix(ref Il2CppSystem.Collections.IEnumerator __result)
+        {
+            if (__result == null) __result = BepInEx.Unity.IL2CPP.Utils.Collections.CollectionExtensions.WrapToIl2Cpp(EmptyRoutine());
+        }
+        static System.Collections.IEnumerator EmptyRoutine() { yield break; }
+
 
         public static Dictionary<byte, float> VentPlayers = new();
 
@@ -1167,6 +1172,13 @@ namespace TownOfHost
     class ExitVentPatch
 
     {
+        // A suppressed coroutine still needs a non-null iterator for the vanilla RPC caller.
+        public static void Postfix(ref Il2CppSystem.Collections.IEnumerator __result)
+        {
+            if (__result == null) __result = BepInEx.Unity.IL2CPP.Utils.Collections.CollectionExtensions.WrapToIl2Cpp(EmptyRoutine());
+        }
+        static System.Collections.IEnumerator EmptyRoutine() { yield break; }
+
 
         public static bool Prefix(PlayerPhysics __instance)
 

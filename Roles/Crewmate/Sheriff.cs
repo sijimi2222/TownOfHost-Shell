@@ -234,6 +234,22 @@ public sealed class Sheriff : RoleBase, IKiller, ISchrodingerCatOwner
 
             if (neutral is CustomRoles.SchrodingerCat) continue;
 
+            // New roles must not shift existing sequential target-option IDs.
+            if (neutral is CustomRoles.Romeo or CustomRoles.Juliet)
+            {
+                SetUpKillTargetOption(neutral, (neutral == CustomRoles.Romeo ? 992716 : 992816) - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
+            if (neutral == CustomRoles.Eliminator)
+            {
+                SetUpKillTargetOption(neutral, 993013 - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
+            if (neutral == CustomRoles.LessThan)
+            {
+                SetUpKillTargetOption(neutral, 40317 - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
             SetUpKillTargetOption(neutral, idOffset, true, CanKillNeutrals);
 
             idOffset++;
@@ -962,6 +978,9 @@ public sealed class Sheriff : RoleBase, IKiller, ISchrodingerCatOwner
 
         if (cRole == CustomRoles.Jackaldoll) return CanKillNeutrals.GetValue() == 0 || (!KillTargetOptions.TryGetValue(CustomRoles.Jackal, out var option) && option.GetBool()) || (!KillTargetOptions.TryGetValue(CustomRoles.JackalMafia, out var op) && op.GetBool());
 
+        // The new target uses its reserved option; do not alter existing target-role behavior.
+        if (cRole == CustomRoles.Eliminator)
+            return CanKillNeutrals.GetValue() == 0 || (KillTargetOptions.TryGetValue(cRole, out var eliminatorTargetOption) && eliminatorTargetOption.GetBool());
         if (cRole == CustomRoles.SKMadmate) return KillTargetOptions.TryGetValue(CustomRoles.Madmate, out var option) && option.GetBool();
 
         if (player.Is(CustomRoles.Amanojaku)) return CanKillNeutrals.GetValue() == 0;

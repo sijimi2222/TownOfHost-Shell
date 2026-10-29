@@ -124,13 +124,13 @@ namespace TownOfHost
 
         public const string PluginGuid = "com.rar006.TownOfHost-Shell";
 
-        public const string BepInExPluginVersion = "2.2.0";
+        public const string BepInExPluginVersion = "2.2.1";
 
-        public const string PluginVersion = "4.00.35.02";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
+        public const string PluginVersion = "4.00.40.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "2.2.0β";
+        public const string PluginShowVersion = "2.2.1β";
 
-        public const string PluginReleaseVersion = "2.2.0-beta.1";
+        public const string PluginReleaseVersion = "2.2.1-beta.1";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
@@ -157,6 +157,12 @@ namespace TownOfHost
     "https://toh-shell-relay.toh-shell.workers.dev";
 
         // Recruitment authentication uses short-lived Relay session capabilities.
+#if SHELL_MATCHMAKING_DEVELOPMENT
+        private static ConfigEntry<string> DevelopmentMatchmakingRelayEndpoint;
+        public static string MatchmakingDevelopmentRelayUrl => DevelopmentMatchmakingRelayEndpoint?.Value ?? "none";
+#else
+        public static string MatchmakingDevelopmentRelayUrl => "";
+#endif
 
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 
@@ -229,6 +235,8 @@ namespace TownOfHost
 
         public static ConfigEntry<bool> ShowRoomCode { get; private set; }
 
+        public static ConfigEntry<bool> DisableWaveAnimation { get; private set; }
+
         public static ConfigEntry<float> MapTheme { get; private set; }
 
         public static ConfigEntry<bool> ViewPingDetails { get; private set; }
@@ -286,6 +294,12 @@ namespace TownOfHost
         public static ConfigEntry<string> JoinWord { get; private set; }
 
         public static ConfigEntry<string> RemoveWord { get; private set; }
+        public static ConfigEntry<bool> ShowStreamComments { get; private set; }
+        public static ConfigEntry<float> StreamCommentPosX { get; private set; }
+        public static ConfigEntry<float> StreamCommentPosY { get; private set; }
+        public static ConfigEntry<string> StreamURLConfig { get; private set; }
+        public static ConfigEntry<bool> ObsOverlay { get; private set; }
+        public static ConfigEntry<int> ObsShowRoles { get; private set; }
 
         //Other Configs
 
@@ -442,6 +456,10 @@ namespace TownOfHost
             UseYomiage = Config.Bind("Client Options", "UseYomiage", false);
 
             CustomName = Config.Bind("Client Options", "CustomName", true);
+#if SHELL_MATCHMAKING_DEVELOPMENT
+            DevelopmentMatchmakingRelayEndpoint = Config.Bind("Matchmaking Development", "Loopback Relay URL", "none",
+                "Development builds only: literal loopback URL of an offline mock Relay. Production endpoints are rejected here.");
+#endif
 
             ShowGameSettingsTMP = Config.Bind("Client Options", "Show GameSettings", true);
 
@@ -468,6 +486,7 @@ namespace TownOfHost
             ShowPlayerCount = Config.Bind("Client Options", "Show Player Count", false);
 
             ShowRoomCode = Config.Bind("Client Options", "Show Room Code", false);
+            DisableWaveAnimation = Modules.ClientOptions.WaveAnimationPreferences.Bind(Config);
 
             MapTheme = Config.Bind("Client Options", "MapTheme", AmongUs.Data.Settings.AudioSettingsData.DEFAULT_MUSIC_VOLUME);
 
@@ -486,6 +505,12 @@ namespace TownOfHost
             JoinWord = Config.Bind("StreamMenu", "JoinWord", "");
 
             RemoveWord = Config.Bind("StreamMenu", "RemoveWord", "");
+            ShowStreamComments = Config.Bind("StreamMenu", "ShowComments", false);
+            StreamCommentPosX = Config.Bind("StreamMenu", "CommentPosX", 0.35f);
+            StreamCommentPosY = Config.Bind("StreamMenu", "CommentPosY", 1.25f);
+            StreamURLConfig = Config.Bind("StreamMenu", "StreamURL", "");
+            ObsOverlay = Config.Bind("StreamMenu", "ObsOverlay", false);
+            ObsShowRoles = Config.Bind("StreamMenu", "ObsShowRoles", 0);
 
             DebugKeyInput = Config.Bind("Authentication", "Debug Key", "");
 
@@ -525,7 +550,7 @@ namespace TownOfHost
 
             {
 
-                TownOfHost.Logger.Error("System.Console.OutputEncodingの変更に失敗", "Main");
+                TownOfHost.Logger.Warn("Console output encoding could not be changed; file logging remains available.", "Main");
 
             }
 
@@ -700,6 +725,7 @@ namespace TownOfHost
             Application.quitting += new Action(SaveStatistics.Save);
 
             Application.quitting += new Action(AchievementSaver.Save);
+            Application.quitting += new Action(() => DiscordMatchmakingRelayService.TryDelete("ApplicationQuit"));
 
             Application.quitting += new Action(TownOfHost.Modules.WatchdogLauncher.OnGameQuit);
 
@@ -901,6 +927,8 @@ namespace TownOfHost
         Tiger = CustomRoles.Tiger,
         Streamer = CustomRoles.Streamer,
         Prankster = CustomRoles.Prankster,
+        LessThan = CustomRoles.LessThan,
+        Romeo = CustomRoles.Romeo,
         Flatfish = CustomRoles.Flatfish,
         Lupin = CustomRoles.Lupin,
         Daoshi = CustomRoles.Daoshi,
@@ -1143,7 +1171,8 @@ namespace TownOfHost
 
         TheThreeLittlePigs,
         CatalystandConductor,
-        TraumaandSurmount
+        TraumaandSurmount,
+        RomeoandJuliet
     }
 
 }

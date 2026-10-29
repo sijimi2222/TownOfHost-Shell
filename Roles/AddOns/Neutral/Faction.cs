@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using System.Linq;
 
@@ -40,7 +40,7 @@ class Faction
 
         List<CustomRoles> AddWinners = [CustomRoles.Amanojaku];
 
-        foreach (var role in EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsNeutral()).OrderBy(x => x.GetRoleInfo()?.ConfigId ?? 100000))
+        foreach (var role in EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsNeutral() && role != CustomRoles.LessThan && role is not CustomRoles.Romeo and not CustomRoles.Juliet and not CustomRoles.Eliminator).OrderBy(x => x.GetRoleInfo()?.ConfigId ?? 100000))
 
         {
 
@@ -112,6 +112,12 @@ class Faction
 
         }
 
+        // Keep every historical sequential ID; the new role has its own reserved slot.
+        var eliminatorOption = BooleanOptionItem.Create(993014, "AssingroleType", true, TabGroup.Addons, false)
+            .SetSubRoleOptionItem(CustomRoles.Faction).SetEnabled(() => CustomRoles.Eliminator.IsEnable());
+        eliminatorOption.ReplacementDictionary = new Dictionary<string, string>
+            { { "%roletype%", UtilsRoleText.GetRoleColorAndtext(CustomRoles.Eliminator) } };
+        OptionRole.TryAdd(CustomRoles.Eliminator, eliminatorOption);
     }
 
 

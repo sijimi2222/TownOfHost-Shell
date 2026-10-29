@@ -158,6 +158,10 @@ namespace TownOfHost
                 GameOptionsSender.AllSenders.Add(new NormalGameOptionsSender());
                 /* Send SyncSettings RPC */
             }
+            // Record only after winner roles and exclusions are resolved above.
+            Modules.RoleWinStats.OnGameEnd();
+            Modules.MvpAnnouncer.OnGameEnd();
+            Modules.RoleRepeatAvoid.OnGameEnd();
             //オブジェクト破棄
             CustomRoleManager.Dispose();
 

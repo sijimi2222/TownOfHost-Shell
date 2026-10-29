@@ -128,7 +128,8 @@ namespace TownOfHost
 
         // (正しいクリップが分かればPlaySoundのcase内を差し替えるだけでよい)
 
-        GuardBreak
+        GuardBreak,
+        SabotageAlarm = 3
 
     }
 
@@ -568,7 +569,7 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
                 case CustomRPC.CustomRoleSync:
 
-                    CustomRoleManager.DispatchRpc(reader);
+                    CustomRoleManager.DispatchRpc(reader, __instance.GetClientId() == AmongUsClient.Instance.HostId);
 
                     break;
 
@@ -968,7 +969,8 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
         {
 
-            if (PlayerControl.LocalPlayer.PlayerId == playerID)
+            if (PlayerControl.LocalPlayer != null && (PlayerControl.LocalPlayer.PlayerId == playerID
+                || playerID == byte.MaxValue && sound == Sounds.SabotageAlarm))
 
                 switch (sound)
 
@@ -984,6 +986,11 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
                         _ = SoundManager.Instance.PlaySound(DestroyableSingleton<HudManager>.Instance.TaskCompleteSound, false, 0.8f);
 
+                        break;
+
+                    case Sounds.SabotageAlarm:
+                        if (ShipStatus.Instance != null && ShipStatus.Instance.SabotageSound != null)
+                            _ = SoundManager.Instance.PlaySound(ShipStatus.Instance.SabotageSound, false, 0.8f);
                         break;
 
                     case Sounds.GuardBreak:
@@ -1012,7 +1019,7 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
             RoleBase roleClass = CustomRoleManager.GetByPlayerId(targetId);
 
-            if (role < CustomRoles.NotAssigned)
+            if (role.IsMainRole())
 
             {
 
@@ -1030,7 +1037,7 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
             }
 
-            else if (role >= CustomRoles.NotAssigned)
+            else if (!role.IsMainRole())
 
             {
 
@@ -1052,7 +1059,7 @@ if (!((CustomRPC)callId is CustomRPC.VersionCheck or CustomRPC.RequestRetryVersi
 
             {
 
-                if (GameStates.AfterIntro && role < CustomRoles.NotAssigned)
+                if (GameStates.AfterIntro && role.IsMainRole())
 
                 {
 

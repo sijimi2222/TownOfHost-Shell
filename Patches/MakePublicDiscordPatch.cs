@@ -164,8 +164,9 @@ namespace TownOfHost
         private sealed class Recruitment
         {
             public LobbySnapshot Lobby = new();
-            public readonly Modules.MatchmakingRelayClient Relay = new(Client, Main.MatchmakingRelayUrl);
+            public readonly Modules.MatchmakingRelayClient Relay = new(Client, RelayUrl, allowLoopback: Modules.MatchmakingRelayEndpoint.DevelopmentBuild);
             public long LastSentAtMs;
+            public int ConsecutiveFailures;
             public long RetryAtMs;
             public string LastSnapshot = "";
             public string DeleteReason = "";
@@ -190,15 +191,20 @@ namespace TownOfHost
         private const int UpdateIntervalMs = 6000;
         private static GameStartManager _buttons;
         private static bool _failureNotice;
-        private static bool RelayConfigured => !string.IsNullOrWhiteSpace(Main.MatchmakingRelayUrl)
-            && !Main.MatchmakingRelayUrl.Equals("none", StringComparison.OrdinalIgnoreCase);
+        private static bool _maintenanceNotice;
+        private static bool _refreshButtons;
+        private static long _nextRecruitmentStartAtMs;
+        private const int MaxConsecutiveFailures = 5;
+        private const int RestartCooldownMs = 15000;
+        private static string RelayUrl => Modules.MatchmakingRelayEndpoint.Resolve(Main.MatchmakingRelayUrl, Main.MatchmakingDevelopmentRelayUrl);
+        private static bool RelayConfigured => !string.IsNullOrEmpty(RelayUrl);
 
 
         public static void ToggleRecruitment(GameStartManager gameStartManager)
 
         {
 
-            if (string.IsNullOrWhiteSpace(Main.MatchmakingRelayUrl) || Main.MatchmakingRelayUrl.Equals("none", StringComparison.OrdinalIgnoreCase))
+            if (!RelayConfigured)
 
             {
 
@@ -251,7 +257,12 @@ namespace TownOfHost
                 lock (Sync)
                 {
                     if (_activeRecruitment) return true;
-                    if (Recruitments.Count >= 4) return false;
+                    if (Recruitments.Count >= 4 || Environment.TickCount64 < _nextRecruitmentStartAtMs)
+                    {
+                        Logger.seeingame("募集を再開するまで少しお待ちください。");
+                        return false;
+                    }
+                    _nextRecruitmentStartAtMs = Environment.TickCount64 + RestartCooldownMs;
                     _current = new Recruitment { Lobby = lobby };
                     Recruitments.Add(_current);
                     _activeRecruitment = true;
@@ -262,9 +273,9 @@ namespace TownOfHost
                 }
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
+                Logger.Warn("募集処理を完了できませんでした。詳細情報は記録しません。", nameof(DiscordMatchmakingRelayService));
                 return false;
             }
         }
@@ -273,7 +284,19 @@ namespace TownOfHost
         {
             try
             {
-                if (Main.IsAndroid() || !RelayConfigured) return;
+                if (Main.IsAndroid()) return;
+                if (!RelayConfigured) TryDelete("ConfigurationDisabled");
+                if (_maintenanceNotice)
+                {
+                    _maintenanceNotice = false;
+                    Logger.seeingame("現在マッチメイキング機能を使うことができません。");
+                    UpdateRecruitmentButtons(_buttons, false);
+                }
+                if (_refreshButtons)
+                {
+                    _refreshButtons = false;
+                    UpdateRecruitmentButtons(_buttons, _activeRecruitment);
+                }
                 if (_failureNotice)
                 {
                     _failureNotice = false;
@@ -313,15 +336,15 @@ namespace TownOfHost
                     SendUpsert(_current, lobby, "Tick");
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
+                Logger.Warn("募集処理を完了できませんでした。詳細情報は記録しません。", nameof(DiscordMatchmakingRelayService));
             }
         }
 
         public static void TryDelete(string reason)
         {
-            if (Main.IsAndroid() || !RelayConfigured) return;
+            if (Main.IsAndroid()) return;
             lock (Sync)
             {
                 // Never derive a delete target from the room a guest happens to be in.
@@ -378,16 +401,33 @@ namespace TownOfHost
                         recruitment.LastSnapshot = recruitment.Relay.LastAppliedLobby;
                         recruitment.LastSentAtMs = Environment.TickCount64;
                         recruitment.RetryAtMs = 0;
+                        recruitment.ConsecutiveFailures = 0;
+                        _refreshButtons = true;
                     }
                     else if (result.Status == Modules.MatchmakingRelayClient.Outcome.Retry)
+                    {
                         recruitment.RetryAtMs = Environment.TickCount64 + retrySeconds * 1000L;
+                        recruitment.ConsecutiveFailures++;
+                        if (recruitment.ConsecutiveFailures >= MaxConsecutiveFailures)
+                        {
+                            recruitment.Closed = true;
+                            if (end || !recruitment.Relay.HasSession) Recruitments.Remove(recruitment);
+                            else recruitment.ConsecutiveFailures = 0; // separate bounded best-effort close budget
+                            if (ReferenceEquals(_current, recruitment))
+                            {
+                                _current = null; _activeRecruitment = false; _failureNotice = true;
+                            }
+                        }
+                    }
                     else
                     {
                         Recruitments.Remove(recruitment);
                         recruitment.Closed = true;
                         if (ReferenceEquals(_current, recruitment))
                         {
-                            _current = null; _activeRecruitment = false; _failureNotice = true;
+                            _current = null; _activeRecruitment = false;
+                            if (result.Status == Modules.MatchmakingRelayClient.Outcome.Maintenance) _maintenanceNotice = true;
+                            else _failureNotice = true;
                         }
                     }
                 }
@@ -449,11 +489,11 @@ namespace TownOfHost
 
             }
 
-            catch (Exception e)
+            catch (Exception)
 
             {
 
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
+                Logger.Warn("募集処理を完了できませんでした。詳細情報は記録しません。", nameof(DiscordMatchmakingRelayService));
 
             }
 
@@ -468,6 +508,8 @@ namespace TownOfHost
             if (gameStartManager == null) return;
 
             var statusText = recruiting ? "公開中" : "非公開";
+            if (recruiting) lock (Sync)
+                if (_current == null || _current.LastSentAtMs == 0) statusText = "募集準備中";
 
 
 
@@ -610,11 +652,11 @@ namespace TownOfHost
 
             }
 
-            catch (Exception e)
+            catch (Exception)
 
             {
 
-                Logger.Exception(e, nameof(DiscordMatchmakingRelayService));
+                Logger.Warn("募集処理を完了できませんでした。詳細情報は記録しません。", nameof(DiscordMatchmakingRelayService));
 
                 return 0;
 

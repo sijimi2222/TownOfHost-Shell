@@ -1,4 +1,4 @@
-
+﻿
 
 using System.Collections.Generic;
 
@@ -30,7 +30,7 @@ class AddondataInfo
 
                 CustomRoles.Serial => "∂",
 
-                CustomRoles.BountyGuesser => "؟",
+                CustomRoles.BountyGuesser => "¿",
 
                 CustomRoles.MagicHand => "ж",
 
@@ -100,7 +100,7 @@ class AddondataInfo
 
                 CustomRoles.Surrender => "s",
 
-                CustomRoles.Reporting => "Ⓡ",
+                CustomRoles.Reporting => "®",
 
                 CustomRoles.SilverBuzzer => "Sb",
                 CustomRoles.Surviving => "Sv",
@@ -308,6 +308,7 @@ class AddondataInfo
                     {CustomRoles.GhostRumour , "#707cab"},
 
                     {CustomRoles.GuardianAngel,"#7cc0fc"},
+                    {CustomRoles.Influencer,"#8cffff"},
 
                     {CustomRoles.DemonicTracker,"#824880"},
 

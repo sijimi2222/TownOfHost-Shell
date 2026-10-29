@@ -230,6 +230,8 @@ namespace TownOfHost
 
 
 
+            if (!lockWinner) LessThan.TryChooseWinner();
+
             if (CustomWinnerHolder.WinnerTeam is not CustomWinner.Default)
 
             {
@@ -563,6 +565,8 @@ namespace TownOfHost
 
 
 
+                if (!lockWinner) LessThan.TryChooseWinner();
+
                 if (lockDrawWinner)
 
                 {
@@ -577,6 +581,7 @@ namespace TownOfHost
                 TownOfHost.Roles.Neutral.Streamer.ApplyEndWinners();
                 TownOfHost.Roles.Neutral.Prankster.ApplyAdditionalWinners();
                 if (!lockDrawWinner) TownOfHost.Roles.AddOns.Common.UserAddons2026.CheckWin(reason);
+                LessThan.FinalizeSoloWinner();
 
 
 
@@ -601,6 +606,9 @@ namespace TownOfHost
                 }
 
 
+
+                // This role follows the final faction, after all takeovers and end-of-game deaths.
+                Eliminator.ApplyAdditionalWinners();
 
                 ShipStatus.Instance.enabled = false;
 
@@ -645,6 +653,8 @@ namespace TownOfHost
         {
 
             NaturalDisasters.FinishSurvival();
+            LessThan.EndRound();
+            Eliminator.EndRound();
             GameStates.IsOutro = true;
 
 

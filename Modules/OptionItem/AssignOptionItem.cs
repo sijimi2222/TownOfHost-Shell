@@ -31,7 +31,7 @@ namespace TownOfHost
             {
                 { CustomRoles.NotAssigned ,0 }
             };
-            EnumHelper.GetAllValues<CustomRoles>().Where(role => role < CustomRoles.NotAssigned).Do(role =>
+            EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsMainRole()).Do(role =>
             {
                 Selections.Add(role, Selections.Count);
             }

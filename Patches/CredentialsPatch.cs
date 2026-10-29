@@ -48,6 +48,85 @@ namespace TownOfHost
 
 
 
+        private static readonly Vector3[] headerWorldCorners = new Vector3[4];
+        private static bool headerPositioning, headerMissingGuideLogged, headerFailureLogged;
+        private static int headerDiagnosticCount;
+
+        private static void KeepHeaderClearOfGuide(bool refreshMesh = false)
+        {
+            if (headerPositioning || pingTrackerCredential == null || !pingTrackerCredential.gameObject.activeInHierarchy) return;
+            if (!RoleGuideButtonPatch.TryGetHeaderLeftEdge(out var guideLeft))
+            {
+                if (refreshMesh && !headerMissingGuideLogged)
+                {
+                    headerMissingGuideLogged = true;
+                    Logger.Info("HEADER_LAYOUT_V3_NO_GUIDE", "HeaderLayout");
+                }
+                return;
+            }
+            headerPositioning = true;
+            try
+            {
+                // TMP ink can extend outside the RectTransform. Rebuild AFTER text and native anchors update.
+                if (refreshMesh) pingTrackerCredential.ForceMeshUpdate();
+                pingTrackerCredential.rectTransform.GetWorldCorners(headerWorldCorners);
+                float rectangleRight = headerWorldCorners.Max(corner => corner.x);
+                var bounds = pingTrackerCredential.textBounds;
+                var transform = pingTrackerCredential.transform;
+                float inkRight = Mathf.Max(
+                    Mathf.Max(transform.TransformPoint(new Vector3(bounds.min.x, bounds.min.y, bounds.center.z)).x,
+                        transform.TransformPoint(new Vector3(bounds.min.x, bounds.max.y, bounds.center.z)).x),
+                    Mathf.Max(transform.TransformPoint(new Vector3(bounds.max.x, bounds.min.y, bounds.center.z)).x,
+                        transform.TransformPoint(new Vector3(bounds.max.x, bounds.max.y, bounds.center.z)).x));
+                float shift = HudHeaderLayout.RequiredLeftShift(Mathf.Max(rectangleRight, inkRight), guideLeft);
+                if (shift > .001f)
+                {
+                    var position = transform.position;
+                    transform.position = new Vector3(position.x - shift, position.y, position.z);
+                }
+                if (refreshMesh && headerDiagnosticCount < 3)
+                {
+                    headerDiagnosticCount++;
+                    Logger.Info(System.FormattableString.Invariant($"HEADER_LAYOUT_V3 rect={rectangleRight:F3};ink={inkRight:F3};guide={guideLeft:F3};shift={shift:F3}"), "HeaderLayout");
+                }
+            }
+            catch (System.Exception)
+            {
+                if (refreshMesh && !headerFailureLogged)
+                {
+                    headerFailureLogged = true;
+                    Logger.Warn("HEADER_LAYOUT_V3_DEFERRED", "HeaderLayout");
+                }
+            }
+            finally { headerPositioning = false; }
+        }
+
+        [HarmonyPatch(typeof(ModManager), nameof(ModManager.LateUpdate)), HarmonyPostfix, HarmonyPriority(Priority.Last)]
+        private static void HeaderLateLayout()
+        {
+            // All Update handlers (including PingTracker text assignment and AspectPosition) have finished.
+            KeepHeaderClearOfGuide(true);
+        }
+
+        [HarmonyPatch(typeof(AspectPosition), nameof(AspectPosition.AdjustPosition), new System.Type[] { })]
+        private static class HeaderAnchorAdjustedPatch
+        {
+            static void Postfix(AspectPosition __instance)
+            {
+                // Do not change any other label or UI anchor.
+                if (__instance != null && __instance == pingTrackerCredentialAspectPos) KeepHeaderClearOfGuide();
+            }
+        }
+
+        [HarmonyPatch(typeof(AspectPosition), nameof(AspectPosition.AdjustPosition), new System.Type[] { typeof(float) })]
+        private static class HeaderAnchorAspectAdjustedPatch
+        {
+            static void Postfix(AspectPosition __instance)
+            {
+                if (__instance != null && __instance == pingTrackerCredentialAspectPos) KeepHeaderClearOfGuide();
+            }
+        }
+
         [HarmonyPatch(typeof(PingTracker), nameof(PingTracker.Update))]
 
         class PingTrackerUpdatePatch
@@ -81,6 +160,7 @@ namespace TownOfHost
                     pingTrackerCredentialAspectPos.Alignment = AspectPosition.EdgeAlignments.RightTop;
 
                     pingTrackerCredential.gameObject.name = "CredentialText";
+                    headerDiagnosticCount = 0; headerMissingGuideLogged = headerFailureLogged = false;
 
 
 
@@ -108,7 +188,14 @@ namespace TownOfHost
 
                     if (RoleGuideButtonPatch.HasGuideButton) rightOffset += 0.72f;
 
-                    pingTrackerCredentialAspectPos.DistanceFromEdge = new(rightOffset, 0, 0);
+                    if (RoleGuideButtonPatch.TryGetHeaderRightOffset(out var measuredOffset))
+                        rightOffset = measuredOffset;
+                    if (Mathf.Abs(pingTrackerCredentialAspectPos.DistanceFromEdge.x - rightOffset) > .001f)
+                    {
+                        pingTrackerCredentialAspectPos.DistanceFromEdge = new(rightOffset, 0, 0);
+                        pingTrackerCredentialAspectPos.AdjustPosition();
+                    }
+                    KeepHeaderClearOfGuide();
 
                 }
 

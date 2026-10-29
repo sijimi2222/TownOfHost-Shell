@@ -3358,6 +3358,16 @@ namespace TownOfHost
 
             {
 
+                case "StreamCommentToggle":
+                    Main.ShowStreamComments.Value = !Main.ShowStreamComments.Value;
+                    break;
+                case "StreamCommentPasteURL":
+                    if (!StreamerInfo.TrySetStreamURL(GUIUtility.systemCopyBuffer))
+                        Logger.seeingame("YouTubeの配信URLを確認してください。");
+                    break;
+                case "StreamCommentResetPos":
+                    StreamCommentFrame.ResetPosition();
+                    break;
                 case "ShowSleld": ShowRandomSpawnOption.CreateSpawanOptionMenu(parent, MapNames.Skeld); break;
 
                 case "ShowMira": ShowRandomSpawnOption.CreateSpawanOptionMenu(parent, MapNames.MiraHQ); break;

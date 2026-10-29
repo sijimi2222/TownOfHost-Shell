@@ -26,11 +26,11 @@ namespace TownOfHost
 
         /// <summary>すべての役職(属性は含まない)</summary>
 
-        public static readonly CustomRoles[] AllRoles = EnumHelper.GetAllValues<CustomRoles>().Where(role => role < CustomRoles.NotAssigned).ToArray();
+        public static readonly CustomRoles[] AllRoles = EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsMainRole()).ToArray();
 
         /// <summary>すべての属性</summary>
 
-        public static readonly CustomRoles[] AllAddOns = EnumHelper.GetAllValues<CustomRoles>().Where(role => role > CustomRoles.NotAssigned).ToArray();
+        public static readonly CustomRoles[] AllAddOns = EnumHelper.GetAllValues<CustomRoles>().Where(role => role > CustomRoles.NotAssigned && role != CustomRoles.Nova).ToArray();
 
         /// <summary>スタンダードモードで出現できるすべての役職</summary>
 
@@ -381,7 +381,8 @@ namespace TownOfHost
 
         CustomRoles.Fool or CustomRoles.Nue or
         CustomRoles.Catalyst or CustomRoles.Conductor or
-        CustomRoles.Trauma or CustomRoles.Surmount;
+        CustomRoles.Trauma or CustomRoles.Surmount or
+        CustomRoles.Romeo or CustomRoles.Juliet;
 
         public static CustomRoles GetCombination(this CustomRoles role)
 
@@ -416,6 +417,8 @@ namespace TownOfHost
                 case CustomRoles.Nue: return CustomRoles.Fool;
                 case CustomRoles.Catalyst: return CustomRoles.Conductor;
                 case CustomRoles.Conductor: return CustomRoles.Catalyst;
+                case CustomRoles.Romeo: return CustomRoles.Juliet;
+                case CustomRoles.Juliet: return CustomRoles.Romeo;
                 case CustomRoles.Trauma: return CustomRoles.Surmount;
                 case CustomRoles.Surmount: return CustomRoles.Trauma;
 
@@ -425,7 +428,7 @@ namespace TownOfHost
 
         }
 
-        public static bool IsMainRole(this CustomRoles role) => role < CustomRoles.NotAssigned;
+        public static bool IsMainRole(this CustomRoles role) => role < CustomRoles.NotAssigned || role == CustomRoles.Nova;
 
         public static bool IsCrewmate(this RoleTypes role) =>
 
@@ -863,7 +866,8 @@ namespace TownOfHost
 
         Villain,
 
-        Daoshi
+        Daoshi,
+        LessThan
 
     }
 

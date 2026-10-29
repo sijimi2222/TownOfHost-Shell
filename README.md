@@ -18,8 +18,13 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**v2.2.0β（プレリリース予定）**<br>
-公開後の配布先: [TownOfHost-Shell v2.2.0β](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.0-beta.1)<br>
+**次回更新 v2.2.1β（準備中・未公開）**<br>
+製品バージョン: `2.2.1-beta.1`<br>
+予定内容: [リリースノート下書き](docs/releases/v2.2.1-beta.1-draft.md) / [Discord告知案](docs/releases/v2.2.1-beta.1-discord-draft.md)<br>
+※hamo 4.40.02の累積変更を選択的に統合・検証中です（4.40.01を統合済みとは仮定しません）。Novaは追加提供mainの公式実装をローカル統合しました（実機未検証・未公開）。詳細・保留事項は下書きを参照してください。<br>
+<br>
+**既存版 v2.2.0β**<br>
+既存版へのリンク: [TownOfHost-Shell v2.2.0β](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.0-beta.1)<br>
 マッチメイキング機能は現在メンテナンス中です。<re><br>
 過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
 

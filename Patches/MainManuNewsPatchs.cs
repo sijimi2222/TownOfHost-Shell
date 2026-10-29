@@ -1,4 +1,4 @@
-//TOH_Yを参考にさせて貰いました ありがとうございます
+﻿//TOH_Yを参考にさせて貰いました ありがとうございます
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using Assets.InnerNet;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Newtonsoft.Json.Linq;
+
 using TownOfHost;
 using UnityEngine.Networking;
 
@@ -202,24 +202,15 @@ public class ModNewsHistory
                 TownOfHost.Logger.Info("ModNews Error Fetch:" + request.responseCode.ToString(), "ModNews");
                 yield break;
             }
-            JObject json;
-            try
+            if (!TownOfHost.Modules.ShellJsonData.TryReadNews(request.downloadHandler.text, out var items))
             {
-                json = JObject.Parse(request.downloadHandler.text);
-            }
-            catch (Exception e)
-            {
-                // JSON解析に失敗しても、ここで完結させて他の処理に影響を与えないようにする。
                 downloaded = false;
-                TownOfHost.Logger.Info("ModNews Parse Error:" + e.Message, "ModNews");
+                TownOfHost.Logger.Warn("Mod news JSON format rejected", "ModNews");
                 yield break;
             }
-            for (var news = json["News"].First; news != null; news = news.Next)
-            {
-                JsonModNews n = new(
-                    int.Parse(news["Number"].ToString()), news["Title"]?.ToString(), news["Subtitle"]?.ToString(), news["Short"]?.ToString(),
-                    news["Body"]?.ToString(), news["Date"]?.ToString());
-            }
+            foreach (var news in items)
+                _ = new JsonModNews(news.Number, news.Title, news.Subtitle, news.Short, news.Body, news.Date);
+
         }
         __instance.StartCoroutine(FetchModNews().WrapToIl2Cpp());
     }

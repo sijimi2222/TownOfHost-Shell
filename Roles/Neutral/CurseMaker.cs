@@ -97,19 +97,9 @@ public sealed class CurseMaker : RoleBase, IKiller, IUsePhantomButton
     public void OnCheckMurderAsKiller(MurderInfo info)
     {
         fall = false;
-        var (killer, target) = info.AttemptTuple;
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            info.DoKill = false;
-
-            if (Madpsycho.CanPsycho)
-            {
-                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                target.RpcMurderPlayer(Player);
-                return;
-            }
-        }
         info.DoKill = false;
+        var (killer, target) = info.AttemptTuple;
+        if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1)) { info.DoKill = false; return; }
         if (CursedPlayers.ContainsKey(target.PlayerId) || TargetInfo != null) return;
 
         TargetInfo = new(target.PlayerId, 0f);

@@ -52,3 +52,9 @@ help rolesコマンドの日本語化<br>
 前から細かく書いたほうがいいかなと思ってて追加しました<br>
 
 
+
+
+## UchuAddon / Nova
+
+TOH-hamo mainのNova実装を元にTOH-Shellへ適合しています。上流の出典表記は`From.UchuAddon`です。
+提供されたmain ZIPのGNU GPL v3（LICENSE）を保持しています。個人名・既存クレジットは変更していません。

@@ -76,6 +76,8 @@ namespace TownOfHost
 
         private static ClientActionItem ShowRoomCode;
 
+        private static ClientActionItem DisableWaveAnimation;
+
         public static OptionsMenuBehaviour Instance;
 
 
@@ -286,6 +288,12 @@ namespace TownOfHost
 
             }
 
+            // Second page, next free slot: leave Discord presence and room-code entries in place.
+            if (DisableWaveAnimation == null || DisableWaveAnimation.ToggleButton == null)
+            {
+                DisableWaveAnimation = ClientOptionItem.Create("DisableWaveAnimation", Main.DisableWaveAnimation, __instance, page: 1);
+            }
+
 #if DEBUG
 
             if (ViewPingDetails == null || ViewPingDetails.ToggleButton == null)
@@ -492,9 +500,12 @@ namespace TownOfHost
 
     {
 
-        public static void Postfix()
+        public static void Postfix(OptionsMenuBehaviour __instance)
 
         {
+
+            // A cancelled Harmony original still runs postfixes: keep custom pages until the slide ends.
+            if (SeasideMainMenuPatch.DefersOptionsClose(__instance)) return;
 
             if (ClientActionItem.CustomBackground != null)
 

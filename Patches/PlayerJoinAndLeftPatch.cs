@@ -548,11 +548,14 @@ namespace TownOfHost
                     {
 
                         Logger.Info($"多重接続として切断: {data?.PlayerName ?? "('ω')"}", nameof(OnPlayerLeftPatch));
-
                     }
-
+                    // BAN済み・キック対象の人を参加直後に追い出した時も、キャラが出る前に抜けるのが普通なのでエラーにしない
+                    // (以前は「ロビーを作り直してください」のエラーが出ていた)
+                    else if (reason is DisconnectReasons.Banned or DisconnectReasons.Kicked)
+                    {
+                        Logger.Info($"参加直後に{reason}で退出: {data?.PlayerName ?? "('ω')"}", nameof(OnPlayerLeftPatch));
+                    }
                     else
-
                     {
 
                         isFailure = true;

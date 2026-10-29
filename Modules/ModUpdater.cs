@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -22,7 +22,7 @@ using HarmonyLib;
 
 using UnityEngine;
 
-using Newtonsoft.Json.Linq;
+
 
 using TownOfHost.Templates;
 
@@ -200,15 +200,17 @@ namespace TownOfHost
 
                 }
 
-                JObject data = all ? null : JObject.Parse(result);
+                string releaseBody = "";
+
 
                 if (beta)
 
                 {
 
-                    latestTitle = data["name"].ToString();
-
-                    downloadUrl = data["url"].ToString();
+                    if (!TownOfHost.Modules.ShellJsonData.TryReadBeta(result, out var betaName, out var betaUrl, out releaseBody))
+                        return false;
+                    latestTitle = betaName;
+                    downloadUrl = betaUrl;
 
                     hasUpdate = latestTitle != ThisAssembly.Git.Commit;
 
@@ -260,7 +262,7 @@ namespace TownOfHost
 
                         }
 
-                        release.OpenURL = $"https://github.com/rar006/TownOfHost-Shell/releases/tag/{tag}";
+                        release.OpenURL = $"https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/{tag}";
 
 
 
@@ -314,51 +316,20 @@ namespace TownOfHost
 
                 {
 
-                    latestVersion = new(data["tag_name"]?.ToString().TrimStart('v')?.Trim('S')?.Trim('s'));
-
-                    latestTitle = $"Ver. {latestVersion}";
-
-                    JArray assets = (JArray)data["assets"];
-
-                    for (int i = 0; i < assets.Count; i++)
-
+                    string platform = Constants.GetPlatformType() == Platforms.StandaloneSteamPC ? "Steam"
+                        : Constants.GetPlatformType() == Platforms.StandaloneEpicPC ? "Epic" : "";
+                    if (!TownOfHost.Modules.ShellReleaseMetadata.TryRead(result, platform, out var latest))
                     {
-
-                        if (assets[i]["name"].ToString() == "TownOfHost-Shell_Steam.dll" && Constants.GetPlatformType() == Platforms.StandaloneSteamPC)
-
-                        {
-
-                            downloadUrl = assets[i]["browser_download_url"].ToString();
-
-                            break;
-
-                        }
-
-                        if (assets[i]["name"].ToString() == "TownOfHost-Shell_Epic.dll" && Constants.GetPlatformType() == Platforms.StandaloneEpicPC)
-
-                        {
-
-                            downloadUrl = assets[i]["browser_download_url"].ToString();
-
-                            break;
-
-                        }
-
-                        if (assets[i]["name"].ToString() == "TownOfHost-Shell.dll")
-
-                            downloadUrl = assets[i]["browser_download_url"].ToString();
-
+                        Logger.Warn("Shell release metadata is invalid or has no matching Shell asset.", "CheckRelease");
+                        return false;
                     }
-
-                    var body = data["body"].ToString();
-
-                    bool? check = body?.Contains("IsforceUpdate") ?? null;
-
-                    hasUpdate = latestVersion.CompareTo(Main.ShellVersion) > 0 ||
-
-                    //最後のアプデのcheckが有効で～最終バージョンと現バージョンが一緒じゃない
-
-                    (check is true && latestVersion.CompareTo(Main.ShellVersion) is not 0);
+                    latestVersion = latest.Version;
+                    latestTitle = latest.Title;
+                    downloadUrl = latest.DownloadUrl;
+                    releaseBody = latest.Body;
+                    bool forceUpdate = releaseBody.Contains("IsforceUpdate");
+                    hasUpdate = latestVersion.CompareTo(Main.ShellVersion) > 0
+                        || (forceUpdate && latestVersion.CompareTo(Main.ShellVersion) != 0);
 
                 }
 
@@ -378,7 +349,7 @@ namespace TownOfHost
 
                 isBroken = false;
 
-                var ages = data["body"].ToString().Split("## ");
+                var ages = releaseBody.Split("## ");
 
                 for (var i = 0; i < ages.Length - 1; i++)
 

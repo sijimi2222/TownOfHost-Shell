@@ -105,7 +105,7 @@ namespace TownOfHost
                 return false;
             }
             // キルが可能なプレイヤーか(遠隔は除く)
-            if (!info.IsFakeSuicide && !killer.CanUseKillButton() && !killer.Is(CustomRoles.UltraStar))
+            if (!info.IsFakeSuicide && !killer.CanUseKillButton() && !killer.Is(CustomRoles.UltraStar) && !TownOfHost.Roles.Madmate.Madpsycho.IsReflectionAttempt(info))
             {
                 Logger.Info(killer.GetNameWithRole().RemoveHtmlTags() + "はKillできないので、キルはキャンセルされました。", "CheckMurder");
                 return false;

@@ -1502,7 +1502,7 @@ namespace TownOfHost
 
         {
 
-            if (role < CustomRoles.NotAssigned)
+            if (role.IsMainRole())
 
             {
 

@@ -1,4 +1,4 @@
-using AmongUs.GameOptions;
+﻿using AmongUs.GameOptions;
 using Hazel;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
@@ -78,16 +78,20 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
 
     public bool CanUseSabotageButton() => false;
 
+    bool reportKillAttempted;
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target)
+    {
+        if (AmongUsClient.Instance?.AmHost != true || reportKillAttempted || !Player.IsAlive()
+            || GameStates.IsMeeting || MeetingHud.Instance != null || GrabbedTargetId == byte.MaxValue || !RaccoonParent.ChildKillOnMeetingIfGrabbing) return;
+        var grabbed = GrabbedTargetId.GetPlayerControl();
+        if (grabbed == null || !grabbed.IsAlive() || grabbed.Data.Disconnected) return;
+        reportKillAttempted = true;
+        CustomRoleManager.OnCheckMurder(Player, grabbed, grabbed, grabbed, true, false, 1, CustomDeathReason.Kill);
+    }
+
     public override void OnStartMeeting()
     {
-        if (GrabbedTargetId != byte.MaxValue && RaccoonParent.ChildKillOnMeetingIfGrabbing)
-        {
-            var target = GrabbedTargetId.GetPlayerControl();
-            if (target != null && target.IsAlive() && AmongUsClient.Instance.AmHost)
-            {
-                CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 1, CustomDeathReason.Kill);
-            }
-        }
+
         // ===== 修正 =====
         // 親(RaccoonParent)と同様、既に役職を調べ終えている(investigateReady=true)
         // 場合はGrabbedTargetIdをリセットせず、会議の最初だけ相手の役職を
@@ -117,6 +121,7 @@ public sealed class RaccoonChild : RoleBase, IKiller, IRoomTasker
 
     public override void AfterMeetingTasks()
     {
+        reportKillAttempted = false;
         // 保留SK以外で作られた既存の子にも互換性を保つ。
         if (!AmongUsClient.Instance.AmHost || Awakened || !Player.IsAlive()) return;
         AwakenFromSidekick();

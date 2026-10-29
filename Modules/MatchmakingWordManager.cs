@@ -118,6 +118,8 @@ public static class MatchmakingWordManager
         if (popup != null)
             popup.gameObject.SetActive(false);
 
+        // Closing ordinary main-menu options must not instantiate a gameplay HUD via Instance.
+        if (!HudManager.InstanceExists) { chatUiRefreshEnabled = false; return; }
         TryRestoreChatUiNow();
         ScheduleChatUiRefresh(8f, 0f);
     }
@@ -562,6 +564,7 @@ public static class MatchmakingWordManager
 
     private static void TryRestoreChatUiNow()
     {
+        if (!HudManager.InstanceExists) return;
         var hud = DestroyableSingleton<HudManager>.Instance;
         var chat = hud?.Chat;
         if (chat == null) return;

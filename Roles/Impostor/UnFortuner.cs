@@ -87,15 +87,7 @@ public sealed class UnFortuner : RoleBase, IImpostor, IUsePhantomButton
             ResetCooldown = false;
             return;
         }
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            if (Madpsycho.CanPsycho)
-            {
-                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                target.RpcMurderPlayer(Player);
-                return;
-            }
-        }
+        if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1)) { return; }
         AdjustKillCooldown = false;
         ResetCooldown = true;
         giveplayerid.Add(target.PlayerId);

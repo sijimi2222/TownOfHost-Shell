@@ -279,8 +279,8 @@ namespace TownOfHost
                     else
                     {
                         SelectRandomPreset();
-
                         SelectRandomMap();
+                        Modules.YouTubeMapVote.ApplyAtGameStart(); // YouTubeのマップ投票(便利機能)
                     }
                 }
                 else

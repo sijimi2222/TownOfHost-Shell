@@ -37,11 +37,14 @@ namespace TownOfHost
     [HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.CoStartGame))]
 
     class ChangeRoleSettings
-
     {
-
+        /// <summary>
+        /// 入ってきたばかりで色がまだ決まっていない人(-1)などがいても開始処理が止まらないよう、範囲外の色は白にする。
+        /// (以前はここで配列の範囲外エラーになり、開始処理が途中で壊れて未導入の人が落ちていた)
+        /// </summary>
+        static UnityEngine.Color SafePlayerColor(int colorId)
+            => colorId >= 0 && colorId < Palette.PlayerColors.Length ? Palette.PlayerColors[colorId] : UnityEngine.Color.white;
         public static void Postfix(AmongUsClient __instance)
-
         {
 
             //注:この時点では役職は設定されていません。
@@ -325,17 +328,9 @@ namespace TownOfHost
 
 
                     var colorId = pl.Data.DefaultOutfit.ColorId;
-
-
-
                     Main.AllPlayerNames[pc.PlayerId] = pl?.Data?.PlayerName;
-
-                    Main.PlayerColors[pc.PlayerId] = Palette.PlayerColors[colorId];
-
+                    Main.PlayerColors[pc.PlayerId] = SafePlayerColor(colorId);
                     pc.cosmetics.nameText.text = pl.name;
-
-
-
                     var outfit = pl.Data.DefaultOutfit;
 
                     Camouflage.PlayerSkins[pc.PlayerId] = new NetworkedPlayerInfo.PlayerOutfit().Set(outfit.PlayerName, outfit.ColorId, outfit.HatId, outfit.SkinId, outfit.VisorId, outfit.PetId);
@@ -373,17 +368,9 @@ namespace TownOfHost
                     {
 
                         Main.AllPlayerNames[pc.PlayerId] = pc?.Data?.PlayerName;
-
                     }
-
-
-
-                    Main.PlayerColors[pc.PlayerId] = Palette.PlayerColors[colorId];
-
+                    Main.PlayerColors[pc.PlayerId] = SafePlayerColor(colorId);
                     pc.cosmetics.nameText.text = pc.name;
-
-
-
                     var outfit = pc.Data.DefaultOutfit;
 
                     Camouflage.PlayerSkins[pc.PlayerId] = new NetworkedPlayerInfo.PlayerOutfit().Set(Options.ColorNameMode.GetBool() ? Palette.GetColorName(colorId) : outfit.PlayerName, outfit.ColorId, outfit.HatId, outfit.SkinId, outfit.VisorId, outfit.PetId);
@@ -1287,13 +1274,9 @@ namespace TownOfHost
                     else
 
                         Logger.Warn("AssignMadmateFromCrewmateSlot が有効ですが、この時点ではクルー枠候補が見つからなかったため、利用可能な全プレイヤーから割り当てます。", "AssignRolesDesync");
-
                 }
-
-                var player = candidatePlayers[rand.Next(0, candidatePlayers.Count)];
-
+                var player = Modules.RoleRepeatAvoid.Pick(candidatePlayers, role, rand); // 同じ役職が続かないように(便利機能)
                 AllPlayers.Remove(player);
-
                 PlayerState.GetByPlayerId(player.PlayerId).SetMainRole(role);
 
                 Logger.Info("役職設定:" + player?.Data?.GetLogPlayerName() + " = " + role.ToString(), "AssignRolesDesync");
@@ -1441,13 +1424,9 @@ namespace TownOfHost
             SetColorPatch.IsAntiGlitchDisabled = true;
 
             for (var i = 0; i < count; i++)
-
             {
-
-                var player = players[rand.Next(0, players.Count)];
-
+                var player = Modules.RoleRepeatAvoid.Pick(players, role, rand); // 同じ役職が続かないように(便利機能)
                 AssignedPlayers.Add(player);
-
                 players.Remove(player);
 
                 PlayerState.GetByPlayerId(player.PlayerId).SetMainRole(role);

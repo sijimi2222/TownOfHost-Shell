@@ -691,11 +691,19 @@ namespace TownOfHost
             if (GameModeManager.IsStandardClass()) roles = CustomRolesHelper.AllStandardRoles;
 
             if (GameModeManager.IsStandardClass()) addons = CustomRolesHelper.AllAddOns;
-
             if (Options.CurrentGameMode == CustomGameMode.HideAndSeek) roles = CustomRolesHelper.AllHASRoles;
-
+            // 陣営ごとにまとめてから並べる(インポスター→マッド→クルー→ニュートラル。陣営の中は今まで通りの順)。
+            // 役職の番号順のままだと、後から追加した役職が別の陣営の間に入り、「☆CrewMates」などの見出しが2回出ていた。
+            if (roles != null)
+                roles = roles.OrderBy(r => r.GetCustomRoleTypes() switch
+                {
+                    CustomRoleTypes.Impostor => 0,
+                    CustomRoleTypes.Madmate => 1,
+                    CustomRoleTypes.Crewmate => 2,
+                    CustomRoleTypes.Neutral => 3,
+                    _ => 4,
+                }).ToArray();
             var nowcount = 3;
-
             if (roles != null)
 
             {
@@ -2019,7 +2027,11 @@ namespace TownOfHost
 
                 case From.Love_Couple_Mod: Fromtext += "<#ff6be4>Love Couple Mod</color>"; break;
 
-                case From.TownOfHost_hamo: Fromtext += $"<#fb85ff>{(ShellRoleOrigins.HasOverride(role) ? ShellRoleOrigins.HamoDisplayName : "TownOfHost_hamo")}</color>"; break;
+                case From.TownOfHost_hamo: Fromtext += $"<{ShellRoleOrigins.HamoTextColor}>{(ShellRoleOrigins.HasOverride(role) ? ShellRoleOrigins.HamoDisplayName : "TownOfHost_hamo")}</color>"; break;
+
+                case From.TownOfHost_Temp: Fromtext += $"<{ShellRoleOrigins.TempTextColor}>{ShellRoleOrigins.TempDisplayName}</color>"; break;
+
+                case From.UchuAddon: Fromtext += "<#7b68ee>UchuAddon</color>"; break;
 
                 case From.TownOfHost_Shell: Fromtext += $"<#aa00ff>{(role == CustomRoles.Tiger ? "Town Of Host Shell" : "TownOfHost_Shell")}</color>"; break;
 

@@ -176,7 +176,7 @@ class CheckGetNomalAchievement
             var (imp, crew, mad, neu) = (0, 0, 0, 0);
             foreach (var roledata in statistics.Rolecount)
             {
-                if (roledata.Key > CustomRoles.NotAssigned)
+                if (roledata.Key > CustomRoles.NotAssigned && !roledata.Key.IsMainRole())
                 {
                     continue;
                 }

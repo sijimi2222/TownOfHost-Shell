@@ -755,6 +755,8 @@ namespace TownOfHost
 
 
 
+            TownOfHost.Roles.Crewmate.Marshall.PrepareMeeting();
+
             var meetingInfo = UtilsNotifyRoles.ExtendedMeetingText;
 
             foreach (var pc in PlayerCatch.AllPlayerControls)

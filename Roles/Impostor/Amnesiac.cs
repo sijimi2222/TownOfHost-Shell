@@ -1,4 +1,4 @@
-using AmongUs.GameOptions;
+﻿using AmongUs.GameOptions;
 using UnityEngine;
 
 using TownOfHost.Roles.Core;
@@ -48,6 +48,30 @@ public sealed class Amnesiac : RoleBase, IImpostor
 
         Realized = false;
         KillCount = 0;
+        mode = new PetModeSwitch(this);
+        petAction = () => { if (!Realized) mode.Toggle(); };
+    }
+    readonly PetModeSwitch mode;
+    readonly System.Action petAction;
+    public override void Add()
+    {
+        TownOfHost.Patches.PetActionManager.Register(Player.PlayerId, petAction);
+        mode.Start();
+    }
+    public override void OnDestroy()
+    {
+        mode.Dispose();
+        if (TownOfHost.Patches.PetActionManager.Handlers.TryGetValue(Player.PlayerId, out var handler) && handler == petAction)
+            TownOfHost.Patches.PetActionManager.Unregister(Player.PlayerId);
+    }
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target)
+    {
+        if (PetModeSwitch.Enabled && !Realized && Player.IsAlive()) mode.Set(true);
+    }
+    public override void AfterMeetingTasks()
+    {
+        if (!AmongUsClient.Instance.AmHost || !PetModeSwitch.Enabled || !Player.IsAlive()) return;
+        _ = new LateTask(() => { if (Player.IsAlive()) mode.Set(!Realized && mode.TaskMode); }, Main.LagTime + 0.5f, "Amnesiac.Mode", true);
     }
 
     static OptionItem OptCantKillImpostor;
@@ -60,6 +84,7 @@ public sealed class Amnesiac : RoleBase, IImpostor
     static OptionItem OptCanUseSabotage;
     static OptionItem OptNeedtoLastImpostor;
     static OptionItem OptIsWolfBoy;
+    static OptionItem OptRealizedKillCooldown;
 
     public static bool CantKillImpostor;
     public static bool MatchSettingstoSheriff;
@@ -89,7 +114,8 @@ public sealed class Amnesiac : RoleBase, IImpostor
         AmnesiacNeedtoLastImpostor,
         AmnesiacCanUseVent,
         AmnesiacCanUseSabotage,
-        AmnesiacIsWolfboy
+        AmnesiacIsWolfboy,
+        AmnesiacRealizedKillCooldown
     }
 
     public static void SetupCustomOption()
@@ -104,15 +130,26 @@ public sealed class Amnesiac : RoleBase, IImpostor
         OptCanUseVent = BooleanOptionItem.Create(RoleInfo, 16, Options.AmnesiacCanUseVent, false, false, OptRealize);
         OptCanUseSabotage = BooleanOptionItem.Create(RoleInfo, 17, Options.AmnesiacCanUseSabotage, false, false, OptRealize);
         OptIsWolfBoy = BooleanOptionItem.Create(RoleInfo, 20, Options.AmnesiacIsWolfboy, false, false);
+        OptRealizedKillCooldown = FloatOptionItem.Create(RoleInfo, 21, Options.AmnesiacRealizedKillCooldown, new(0f, 180f, 0.5f), 0f, false, OptRealize)
+            .SetValueFormat(OptionFormat.Seconds)
+            .SetZeroNotation(OptionZeroNotation.Hyphen)
+            .SetOptionName(() => Translator.GetString("AmnesiacRealizedKillCooldown"));
         SaruWarningOption.AddTo(RoleInfo);
     }
 
-    public float CalculateKillCooldown() => MatchSettingstoSheriff && !Realized ? ShKillCooldown : TownOfHost.Options.DefaultKillCooldown;
+    public float CalculateKillCooldown()
+    {
+        if (MatchSettingstoSheriff && !Realized) return ShKillCooldown;
+        // 思い出した後は、設定があればそのキルクール
+        if (Realized && OptRealizedKillCooldown != null && OptRealizedKillCooldown.GetFloat() > 0f) return OptRealizedKillCooldown.GetFloat();
+        return TownOfHost.Options.DefaultKillCooldown;
+    }
     public bool CanUseImpostorVentButton() => Realized && CanUseVent;
     public bool CanUseSabotageButton() => Realized && CanUseSabotage;
     public bool CanUseKillButton()
     {
         if (!Player.IsAlive()) return false;
+        if (!Realized && mode.TaskMode) return false; // タスクモード中はキルできない
         if (!MatchSettingstoSheriff || Realized) return true;
         return ShCanKillAllAlive || GameStates.AlreadyDied;
     }
@@ -159,6 +196,7 @@ public sealed class Amnesiac : RoleBase, IImpostor
 
         if (!Utils.RoleSendList.Contains(Player.PlayerId))
             Utils.RoleSendList.Add(Player.PlayerId);
+        if (PetModeSwitch.Enabled) mode.Set(false); // 思い出したらキルモードに固定
         Player.SetKillCooldown();
         UtilsNotifyRoles.NotifyRoles();
     }
@@ -197,7 +235,10 @@ public sealed class Amnesiac : RoleBase, IImpostor
         return true;
     }
 
-    public override string GetProgressText(bool comms = false, bool gamelog = false) => MatchSettingstoSheriff && !Realized ? Utils.ColorString(ShShotLimit - KillCount > 0 ? Color.yellow : Color.gray, $"({ShShotLimit - KillCount})") : "";
+    public override string GetProgressText(bool comms = false, bool gamelog = false)
+        => MatchSettingstoSheriff && !Realized
+            ? Utils.ColorString(ShShotLimit - KillCount > 0 ? Color.yellow : Color.gray, $"({ShShotLimit - KillCount})") + (GameStates.CalledMeeting || gamelog ? "" : mode.ModeText())
+            : "";
 
     public void SendRPC()
     {

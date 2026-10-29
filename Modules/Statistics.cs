@@ -30,10 +30,7 @@ namespace TownOfHost
             try
             {
                 SetLogFolder();
-                if (File.Exists($"{Application.persistentDataPath}/TownOfHost_K/Statistics.txt"))
-                {
-                    File.Move($"{Application.persistentDataPath}/TownOfHost_K/Statistics.txt", PATH);
-                }
+                TownOfHost.Modules.StatisticsStore.EnsureExists(PATH, null);
                 if (IsOldVersion) return;
 
                 if (Statistics.NowStatistics == null || Statistics.riset)
@@ -128,16 +125,9 @@ namespace TownOfHost
             try
             {
                 SetLogFolder();
-                if (File.Exists($"{Application.persistentDataPath}/TownOfHost_K/Statistics.txt"))
-                {
-                    File.Move($"{Application.persistentDataPath}/TownOfHost_K/Statistics.txt", PATH);
-                }
-                else
-                {
-                    File.WriteAllText(PATH, "");
-                }
-                CustomRoleManager.CustomRoleIds.Add(19100, CustomRoles.Amanojaku);
-                CustomRoleManager.CustomRoleIds.Add(22000, CustomRoles.AsistingAngel);
+                TownOfHost.Modules.StatisticsStore.EnsureExists(PATH, null);
+                CustomRoleManager.CustomRoleIds.TryAdd(19100, CustomRoles.Amanojaku);
+                CustomRoleManager.CustomRoleIds.TryAdd(22000, CustomRoles.AsistingAngel);
 
                 string Text = File.ReadAllText(PATH);
 
@@ -158,7 +148,7 @@ namespace TownOfHost
 
                 var rolea = age[1];
                 var roleage = rolea.Split("&");
-                foreach (var text in roleage)
+                foreach (var text in roleage.Where(value => !string.IsNullOrWhiteSpace(value)))
                 {
                     var subage = text.Split("$");
 
@@ -172,7 +162,7 @@ namespace TownOfHost
                 }
                 var killa = age[2];
                 var kage = killa.Split("&");
-                foreach (var text in kage)
+                foreach (var text in kage.Where(value => !string.IsNullOrWhiteSpace(value)))
                 {
                     var subage = text.Split("$");
                     if (subage.Count() != 2) { Logger.Error($"killのsubageが2以外({subage.Count()})", "Statistics"); continue; }
@@ -190,7 +180,7 @@ namespace TownOfHost
                     Statistics.riset = true;
                     return null;
                 }*/
-                foreach (var text in dieage)
+                foreach (var text in dieage.Where(value => !string.IsNullOrWhiteSpace(value)))
                 {
                     var subage = text.Split("$");
                     if (subage.Count() != 2) { Logger.Error($"dieのsubageが2以外({subage.Count()})", "Statistics"); continue; }
@@ -208,7 +198,7 @@ namespace TownOfHost
                 {
                     var mode = age[7];
                     var modeage = mode.Split("&");
-                    foreach (var text in modeage)
+                    foreach (var text in modeage.Where(value => !string.IsNullOrWhiteSpace(value)))
                     {
                         var subage = text.Split("$");
                         if (subage.Count() != 3) { Logger.Error($"modeのsubageが3以外({subage.Count()})", "Statistics"); continue; }
@@ -220,7 +210,7 @@ namespace TownOfHost
                         gamemodecount.TryAdd(gamemode, (count, win));
                     }
                     version = Version.Parse(age[8]);
-                    if (Main.version < version) IsOldVersion = true;
+                    // Upstream 4.40 keeps statistics enabled across newer/beta builds.
                 }
                 else
                 {
@@ -267,7 +257,7 @@ namespace TownOfHost
                 : $"<pos=70%>{GetRoleColorAndtext(roledata.Key)}：{roledata.Value.Item2}/{roledata.Value.Item1}<size=30%>({Getpercent(roledata.Value.Item2, roledata.Value.Item1)})</size></pos>";
                 i++;
 
-                if (roledata.Key > CustomRoles.NotAssigned) continue;
+                if (roledata.Key > CustomRoles.NotAssigned && !roledata.Key.IsMainRole()) continue;
 
                 var roleTypes = roledata.Key.GetCustomRoleTypes();
                 if (typecount.TryAdd(roleTypes, (roledata.Value.Item1, roledata.Value.Item2)) is false)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -192,10 +192,28 @@ public static class OptionSerializer
     /// <param name="source">オプション情報の文字列</param>
     public static void LoadVanillaOptionsString(string source)
     {
+        if (source == null || source.Length > 1048576) throw new InvalidDataException("Invalid vanilla settings size.");
         var bytes = Convert.FromBase64String(source);
         var options = GameOptionsManager.Instance.gameOptionsFactory.FromBytes(bytes);
-        GameOptionsManager.Instance.GameHostOptions = GameOptionsManager.Instance.CurrentGameOptions = options;
-        GameManager.Instance.LogicOptions.SetGameOptions(options);
-        GameManager.Instance.LogicOptions.SyncOptions();
+        if (options == null || !options.TryCast<NormalGameOptionsV12>(out _))
+            throw new InvalidDataException("Vanilla settings are missing or use an unsupported mode/version.");
+        var logic = GameManager.Instance?.LogicOptions;
+        if (logic == null) throw new InvalidOperationException("Game options are not initialized.");
+        var oldHost = GameOptionsManager.Instance.GameHostOptions;
+        var oldCurrent = GameOptionsManager.Instance.CurrentGameOptions;
+        try
+        {
+            GameOptionsManager.Instance.GameHostOptions = GameOptionsManager.Instance.CurrentGameOptions = options;
+            logic.SetGameOptions(options);
+            logic.SyncOptions();
+        }
+        catch
+        {
+            GameOptionsManager.Instance.GameHostOptions = oldHost;
+            GameOptionsManager.Instance.CurrentGameOptions = oldCurrent;
+            try { logic.SetGameOptions(oldCurrent); }
+            catch { Logger.Warn("Vanilla settings rollback needs a manual re-sync.", "OptionSerializer"); }
+            throw;
+        }
     }
 }

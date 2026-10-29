@@ -88,15 +88,7 @@ namespace TownOfHost.Roles.Impostor
             var target = Player.GetKillTarget(true);
             Logger.Info($"{Player?.Data?.GetLogPlayerName() ?? "???"} => {target?.Data?.GetLogPlayerName() ?? "失敗"}", "Bomber");
             if (target == null || BomberExplosionPlayers.ContainsKey(target?.PlayerId ?? byte.MaxValue)) return;
-            if (target.Is(CustomRoles.Madpsycho))
-            {
-                if (Madpsycho.CanPsycho)
-                {
-                    PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                    target.RpcMurderPlayer(Player);
-                    return;
-                }
-            }
+            if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1)) { return; }
             Jizo.BomCheckroom(Player.GetPlainShipRoom(), Player);
             AdjustKillCooldown = false;
             if (!BomberExplosionPlayers.TryAdd(target.PlayerId, 0f)) return;

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -204,8 +204,9 @@ namespace TownOfHost
         }
 
         [HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.SendOrDisconnect)), HarmonyPrefix]
-        public static bool SendOrDisconnectPatch(InnerNetClient __instance, MessageWriter msg)
+        public static bool SendOrDisconnectPatch(InnerNetClient __instance, MessageWriter msg, bool __runOriginal)
         {
+            if (!__runOriginal) return false;
             //分割するサイズ。大きすぎるとリトライ時不利、小さすぎると受信パケット取りこぼしが発生しうる。
             var limitSize = 1000;
 

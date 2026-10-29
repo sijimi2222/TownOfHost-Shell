@@ -43,7 +43,8 @@ public sealed class Daoshi : RoleBase, IKiller, IKillFlashSeeable
     static OptionItem OptionNotify;
     internal static OptionItem OptionKyonshiCooldown;
     internal static OptionItem OptionSightTime;
-    enum OptionName { DaoshiMaxKyonshi, DaoshiKillFlash, DaoshiBodyArrow, DaoshiNotify, KyonshiCooldown, KyonshiSightTime }
+    static OptionItem OptionCantKyonshiOwnKill;
+    enum OptionName { DaoshiMaxKyonshi, DaoshiKillFlash, DaoshiBodyArrow, DaoshiNotify, KyonshiCooldown, KyonshiSightTime, DaoshiCantKyonshiOwnKill }
 
     static void SetupOptionItem()
     {
@@ -55,6 +56,7 @@ public sealed class Daoshi : RoleBase, IKiller, IKillFlashSeeable
         OptionNotify = BooleanOptionItem.Create(RoleInfo, 14, OptionName.DaoshiNotify, true, false);
         OptionKyonshiCooldown = FloatOptionItem.Create(RoleInfo, 15, OptionName.KyonshiCooldown, new(0f, 180f, 1f), 25f, false).SetValueFormat(OptionFormat.Seconds);
         OptionSightTime = FloatOptionItem.Create(RoleInfo, 16, OptionName.KyonshiSightTime, new(0f, 999f, 1f), 3f, false).SetValueFormat(OptionFormat.Seconds);
+        OptionCantKyonshiOwnKill = BooleanOptionItem.Create(RoleInfo, 17, OptionName.DaoshiCantKyonshiOwnKill, false, false);
     }
 
     public Daoshi(PlayerControl player) : base(RoleInfo, player, () => HasTask.False) { }
@@ -186,6 +188,12 @@ public sealed class Daoshi : RoleBase, IKiller, IKillFlashSeeable
         lastReportAttempt = Time.time;
         lastReportTarget = target.PlayerId;
         if (kyonshi.Count >= OptionMaxKyonshi.GetInt()) { reason = DontReportreson.Other; return true; }
+        if (OptionCantKyonshiOwnKill.GetBool() && PlayerState.GetByPlayerId(target.PlayerId)?.GetRealKiller() == Player.PlayerId)
+        {
+            Utils.SendMessage(GetString("DaoshiCantKyonshiOwnKillNotice"), Player.PlayerId);
+            reason = DontReportreson.Other;
+            return true;
+        }
         var pc = PlayerCatch.GetPlayerById(target.PlayerId);
         _ = new LateTask(() =>
         {

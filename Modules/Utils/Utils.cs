@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Linq;
 
@@ -2096,7 +2096,7 @@ namespace TownOfHost
 
         #region Remove
 
-        public static string RemoveHtmlTags(this string str) => Regex.Replace(str, "<[^>]*?>", "");
+        public static string RemoveHtmlTags(this string str) => string.IsNullOrEmpty(str) ? str ?? "" : Regex.Replace(str, "<[^>]*?>", "");
 
         public static string RemoveColorTags(this string str)
 

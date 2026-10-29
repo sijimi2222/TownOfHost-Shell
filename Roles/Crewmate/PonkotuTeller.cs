@@ -11,7 +11,7 @@ using static TownOfHost.Modules.SelfVoteManager;
 
 namespace TownOfHost.Roles.Crewmate;
 
-public sealed class PonkotuTeller : RoleBase, ISelfVoter
+public sealed class PonkotuTeller : RoleBase, IKiller, ISelfVoter
 {
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
@@ -34,6 +34,7 @@ public sealed class PonkotuTeller : RoleBase, ISelfVoter
         player
     )
     {
+        taskTurn = new(this, TaskTurnSettings, () => Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount), id => UseTellAbility(id));
         collect = Optioncollect.GetInt();
         Max = OptionMaximum.GetFloat();
         Divination.Clear();
@@ -113,6 +114,7 @@ public sealed class PonkotuTeller : RoleBase, ISelfVoter
         MeisFT = BooleanOptionItem.Create(RoleInfo, 18, Option.PonkotuTellerMyisFT, false, false);
         OptionDontChengeGame = BooleanOptionItem.Create(RoleInfo, 20, Option.PonkotuDontChengeGame, false, false);
         SaruWarningOption.AddTo(RoleInfo);
+            TaskTurnSettings = TaskTurnFortune.CreateOptions(RoleInfo, 90);
     }
     private void SendRPC(byte targetId, CustomRoles role)
     {
@@ -138,10 +140,11 @@ public sealed class PonkotuTeller : RoleBase, ISelfVoter
         }
         return "";
     }
-    bool ISelfVoter.CanUseVoted() => Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0);
+    bool ISelfVoter.CanUseVoted() => (Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0)) && !taskTurn.BlocksMeeting;
 
     public override bool CheckVoteAsVoter(byte votedForId, PlayerControl voter)
     {
+        if (taskTurn.BlocksMeeting) return true;
         if (!Canuseability()) return true;
         if (Max > count && Is(voter) && MyTaskState.HasCompletedEnoughCountOfTasks((int)cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0))
         {
@@ -173,26 +176,7 @@ public sealed class PonkotuTeller : RoleBase, ISelfVoter
         int chance = IRandom.Instance.Next(0, 101);
         var target = PlayerCatch.GetPlayerById(votedForId);
         if (!target.IsAlive()) return;
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            if (Madpsycho.CanPsycho)
-            {
-                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                target.RpcMurderPlayer(Player);
-                string send = "";
-                if (!Player.IsAlive())
-                {
-                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
-                }
-                else
-                {
-                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
-                }
-                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
-
-                return;
-            }
-        }
+        if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1, true)) { return; }
         if (GameTell.TryGetValue(votedForId, out var telledrole) && OptionDontChengeGame.GetBool())
         {
             Logger.Info($"Player: {Player.name},Target: {target.name}, count: {count}(再掲)", "PonkotuTeller");
@@ -276,4 +260,22 @@ public sealed class PonkotuTeller : RoleBase, ISelfVoter
         achievements.Add(0, n1);
         achievements.Add(1, sp1);
     }
+
+    // ===== タスクターンで占う(ペットでタスク/占いモード切替・キルボタンで相手を選んで近くにいる) =====
+    static TaskTurnFortune.Settings TaskTurnSettings;
+    readonly TaskTurnFortune taskTurn;
+    bool IKiller.CanKill => false;
+    bool IKiller.IsKiller => false;
+    bool IKiller.CanUseKillButton() => taskTurn.CanUseKillButton();
+    float IKiller.CalculateKillCooldown() => taskTurn.Cooldown;
+    bool IKiller.CanUseSabotageButton() => false;
+    bool IKiller.CanUseImpostorVentButton() => false;
+    public override void Add() => taskTurn.Add();
+    public override void OnDestroy() => taskTurn.OnDestroy();
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target) => taskTurn.OnReportDeadBody();
+    public override void AfterMeetingTasks() => taskTurn.AfterMeetingTasks();
+    public override void OnFixedUpdate(PlayerControl player) => taskTurn.OnFixedUpdate();
+    public override string GetMark(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false) => taskTurn.GetMark(seer, seen ?? seer, isForMeeting);
+    // タスクターンで占う時は、シェリフと同じくクルーの視界にする
+    public override void ApplyGameOptions(IGameOptions opt) { if (taskTurn.On) opt.SetVision(false); }
 }

@@ -68,7 +68,7 @@ namespace TownOfHost
 
             var roleInfo = role.GetRoleInfo();
 
-            if (role < CustomRoles.NotAssigned)
+            if (role.IsMainRole())
 
             {
 
@@ -124,7 +124,7 @@ namespace TownOfHost
 
             }
 
-            else if (role >= CustomRoles.NotAssigned)   //500:NoSubRole 501~:SubRole
+            else if (!role.IsMainRole())   //500:NoSubRole 501~:SubRole
 
             {
 
@@ -138,7 +138,7 @@ namespace TownOfHost
 
             {
 
-                if (role < CustomRoles.NotAssigned)
+                if (role.IsMainRole())
 
                 {
 
@@ -190,7 +190,7 @@ namespace TownOfHost
 
 
 
-                if (role.IsGhostRole() || role < CustomRoles.NotAssigned)
+                if (role.IsGhostRole() || role.IsMainRole())
 
                 {
 
@@ -232,7 +232,7 @@ namespace TownOfHost
 
             }
 
-            if (player.PlayerId == PlayerControl.LocalPlayer.PlayerId && GameStates.AfterIntro && role < CustomRoles.NotAssigned)
+            if (player.PlayerId == PlayerControl.LocalPlayer.PlayerId && GameStates.AfterIntro && role.IsMainRole())
 
             {
 
@@ -434,7 +434,7 @@ namespace TownOfHost
 
         {
 
-            if (!AmongUsClient.Instance.AmHost || role < CustomRoles.NotAssigned) return;
+            if (!AmongUsClient.Instance.AmHost || role.IsMainRole()) return;
 
             if (player is null) return;
 
@@ -526,15 +526,8 @@ namespace TownOfHost
 
             if (clientId == -1) return;
 
-            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SetName, Hazel.SendOption.None, clientId);
-
-            writer.Write(player.Data.NetId);
-
-            writer.Write(name);
-
-            writer.Write(DontShowOnModdedClient);
-
-            AmongUsClient.Instance.FinishRpcImmediately(writer);
+            if (player.Data == null) return;
+            TownOfHost.Modules.NameRpcBatch.Add(clientId, player.NetId, player.Data.NetId, name, DontShowOnModdedClient);
 
         }
 

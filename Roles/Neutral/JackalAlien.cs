@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using System.Linq;
 
@@ -1391,11 +1391,11 @@ public sealed class JackalAlien : RoleBase, IMeetingTimeAlterable, ILNKiller, IS
                 {
 
                     _ = new LateTask(() =>
-
                     {
-
+                        // 演出待ちの間に相手・自分が死んだ時や会議が始まった時はキルしない(死んでいる人の二重キル防止)
+                        if (target == null || !target.IsAlive() || target.Data == null || target.Data.IsDead) return;
+                        if (!user.IsAlive() || !GameStates.IsInTask || GameStates.CalledMeeting) return;
                         target.SetRealKiller(user);
-
                         user.RpcMurderPlayer(target, true);
 
                     }, 1.2f);
@@ -1698,7 +1698,7 @@ public sealed class JackalAlien : RoleBase, IMeetingTimeAlterable, ILNKiller, IS
 
         var targetrole = target.GetCustomRole();
 
-        if (target == null || (targetrole is CustomRoles.King or CustomRoles.Jackal or CustomRoles.JackalAlien or CustomRoles.Jackaldoll or CustomRoles.JackalMafia or CustomRoles.Merlin or CustomRoles.JackalWolf or CustomRoles.AlienHijack or CustomRoles.JackalHadouHo or CustomRoles.Tama or CustomRoles.Autocrat) || ((targetrole.IsImpostor() || targetrole is CustomRoles.Egoist) && !OptionImpostorCanSidekick.GetBool()))
+        if (target == null || (targetrole is CustomRoles.King or CustomRoles.Jackal or CustomRoles.JackalAlien or CustomRoles.Jackaldoll or CustomRoles.JackalMafia or CustomRoles.Merlin or CustomRoles.Romeo or CustomRoles.Juliet or CustomRoles.JackalWolf or CustomRoles.AlienHijack or CustomRoles.JackalHadouHo or CustomRoles.Tama or CustomRoles.Autocrat) || ((targetrole.IsImpostor() || targetrole is CustomRoles.Egoist) && !OptionImpostorCanSidekick.GetBool()))
 
         {
 

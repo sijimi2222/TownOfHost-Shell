@@ -121,15 +121,7 @@ public sealed class PhantomThief : RoleBase, IKiller, IKillFlashSeeable, IRoomTa
 
         if (OptionCantSetCount.GetFloat() > PlayerCatch.AllAlivePlayersCount) return;
         if (targetId != byte.MaxValue) return;
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            if (Madpsycho.CanPsycho)
-            {
-                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                target.RpcMurderPlayer(Player);
-                return;
-            }
-        }
+        if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1)) { return; }
         killer.ResetKillCooldown();
         targetId = target.PlayerId;
         this.target = target;

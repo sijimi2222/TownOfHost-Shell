@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using AmongUs.GameOptions;
 using Hazel;
 using UnityEngine;
@@ -7,11 +7,6 @@ using TownOfHost.Roles.Core.Interfaces;
 
 namespace TownOfHost.Roles.Impostor;
 
-/// <summary>
-/// アブダクター(インポスター): ペンギンのように相手を掴んで引きずれる。
-/// 掴むと部屋が指定され、その部屋に設定秒数いると、死体を残さずにキルできる(会議時の死亡表記はある)。
-/// もう一度キルを押すと通常キルもできる(引きずり始めてから設定秒数が経つまではキル不可)。
-/// </summary>
 public sealed class Abductor : RoleBase, IImpostor
 {
     public static readonly SimpleRoleInfo RoleInfo =
@@ -80,6 +75,7 @@ public sealed class Abductor : RoleBase, IImpostor
     {
         victim = target;
         dragTime = 0f;
+        BootFromVent(target);
         stayTime = 0f;
         var rooms = ShipStatus.Instance.AllRooms.Where(r => r?.RoomId is not null and not SystemTypes.Hallway).Select(r => r.RoomId).Distinct().ToList();
         targetRoom = rooms.Count > 0 ? rooms[IRandom.Instance.Next(rooms.Count)] : SystemTypes.Hallway;
@@ -91,6 +87,15 @@ public sealed class Abductor : RoleBase, IImpostor
         UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
     }
 
+    // ベントの中(ベントの上)にいる相手は瞬間移動で動かせず、引きずれないまま時間が過ぎていた。一番近いベントから出す
+    static void BootFromVent(PlayerControl target)
+    {
+        if (target == null || !target.inVent || ShipStatus.Instance == null) return;
+        var pos = target.transform.position;
+        var vent = ShipStatus.Instance.AllVents.OrderBy(v => (v.transform.position - pos).sqrMagnitude).FirstOrDefault();
+        if (vent == null) return;
+        target.MyPhysics.RpcBootFromVent(vent.Id);
+    }
     void Release()
     {
         if (victim != null)
@@ -115,7 +120,8 @@ public sealed class Abductor : RoleBase, IImpostor
             if (stayTime >= OptionStayTime.GetFloat()) { VanishKill(); return; }
         }
         else stayTime = 0f;
-        // 相手を引きずる
+        // 相手を引きずる(ベントの中にいると動かせないので、先にベントから出す)
+        if (victim.inVent && snapCounter % 15 == 0) BootFromVent(victim);
         if (++snapCounter % 3 == 0 && !victim.MyPhysics.Animations.IsPlayingAnyLadderAnimation())
             victim.RpcSnapToForced(Player.transform.position, SendOption.None);
     }

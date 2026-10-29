@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -29,6 +29,7 @@ namespace TownOfHost.Roles.AddOns.Common
             CustomRoles.Phantom,
             CustomRoles.Emptiness,
             CustomRoles.GuardianAngel,
+            CustomRoles.Influencer,
             CustomRoles.SKMadmate,
             CustomRoles.HASFox,
             CustomRoles.Jackaldoll,
@@ -37,6 +38,8 @@ namespace TownOfHost.Roles.AddOns.Common
             CustomRoles.TaskPlayerB,
             CustomRoles.Trauma,
             CustomRoles.Surmount,
+            CustomRoles.Romeo,
+            CustomRoles.Juliet,
             CustomRoles.MadInvisible,
         };
         static readonly IEnumerable<CustomRoles> ValidRoles = CustomRolesHelper.AllRoles.Where(role => !InvalidRoles.Contains(role));

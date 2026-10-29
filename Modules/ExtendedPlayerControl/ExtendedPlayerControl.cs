@@ -312,13 +312,11 @@ namespace TownOfHost
         }
 
         public static string GetSubRoleName(this PlayerControl player)
-
         {
-
-            var SubRoles = PlayerState.GetByPlayerId(player.PlayerId).SubRoles;
-
+            // ダミー(血痕など)はPlayerStateを持たないので、属性なしとして扱う(ここで落ちると変身そのものが止まっていた)
+            var SubRoles = PlayerState.GetByPlayerId(player.PlayerId)?.SubRoles;
+            if (SubRoles == null) return "";
             if (SubRoles.Count == 0) return "";
-
             var sb = new StringBuilder();
 
             foreach (var role in SubRoles)
@@ -918,7 +916,9 @@ namespace TownOfHost
                 CustomRoles.Hunter or
                 CustomRoles.Mermaid or
                 CustomRoles.Obolus or
-                CustomRoles.DarkHide;
+                CustomRoles.DarkHide or
+                CustomRoles.LessThan or
+                CustomRoles.Eliminator;
 
         }
 
@@ -1434,7 +1434,7 @@ namespace TownOfHost
 
         public static bool Is(this PlayerControl target, CustomRoles role) =>
 
-            role > CustomRoles.NotAssigned ? (role.IsGhostRole() ? PlayerState.GetByPlayerId(target.PlayerId).GhostRole == role : target.GetCustomSubRoles().Contains(role)) : target.GetCustomRole() == role;
+            role > CustomRoles.NotAssigned && !role.IsMainRole() ? (role.IsGhostRole() ? PlayerState.GetByPlayerId(target.PlayerId).GhostRole == role : target.GetCustomSubRoles().Contains(role)) : target.GetCustomRole() == role;
 
         public static bool Is(this PlayerControl target, CustomRoleTypes type) { return target.GetCustomRole().GetCustomRoleTypes() == type; }
 

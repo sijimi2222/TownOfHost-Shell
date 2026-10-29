@@ -1,4 +1,4 @@
-using AmongUs.GameOptions;
+﻿using AmongUs.GameOptions;
 using Hazel;
 using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
@@ -102,8 +102,8 @@ public sealed class MemoryRestorer : RoleBase, ISelfVoter
         if (target.Is(CustomRoles.Amnesia)) target.RpcReplaceSubRole(CustomRoles.Amnesia, true); // 能力が使えるようになる
         switch (target.GetRoleClass())
         {
-            case SchrodingerCat cat: cat.RpcSetTeam(ISchrodingerCatOwner.TeamType.Crew); break; // クルーとして陣営変化
-            case BakeCat bake: bake.RpcSetTeam(ISchrodingerCatOwner.TeamType.Crew); break;     // 自覚&クルーとして陣営変化
+            case SchrodingerCat cat when cat.Team == ISchrodingerCatOwner.TeamType.None: cat.RpcSetTeam(ISchrodingerCatOwner.TeamType.Crew); break; // クルーとして陣営変化
+            case BakeCat bake when bake.Team == ISchrodingerCatOwner.TeamType.None: bake.RpcSetTeam(ISchrodingerCatOwner.TeamType.Crew); break;     // 自覚&クルーとして陣営変化
         }
         Utils.SendMessage(GetString("MemoryRestorerAwakened") + "\n" + string.Format(GetString("MemoryRestorerYourRole"), UtilsRoleText.GetTrueRoleName(target.PlayerId, false)), target.PlayerId);
         UtilsNotifyRoles.NotifyRoles();

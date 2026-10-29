@@ -34,6 +34,7 @@ public class MeetingVoteManager
     public static void Start()
     {
         _instance = new();
+        TownOfHost.Roles.Crewmate.Marshall.OpenMeeting();
     }
 
     /// <summary>
@@ -106,6 +107,7 @@ public class MeetingVoteManager
             logger.Info($"ID: {voter}の投票を上書きします");
         }
 
+        byte originalVoteFor = voteFor;
         bool doVote = true;
         //定義
         var player = PlayerCatch.GetPlayerById(voter);
@@ -170,7 +172,8 @@ public class MeetingVoteManager
 
         if (doVote)
         {
-            vote.DoVote(voteFor, numVotes);
+            vote.DoVote(voteFor, numVotes, intentional: isIntentional);
+            LessThan.OnAcceptedVote(voter, originalVoteFor, voteFor, isIntentional);
         }
     }
     /// <summary>
@@ -201,6 +204,8 @@ public class MeetingVoteManager
         {
             Main.LastMeetingVotedFor[vote.Voter] = vote.VotedFor;
         }
+        // MVP(便利機能): 正しい投票を数える
+        Modules.MvpAnnouncer.OnMeetingEnd(AllVotes.Values.Select(v => (v.Voter, v.VotedFor)));
         var logName = result.Exiled == null ? (result.IsTie ? "同数" : "スキップ") : result.Exiled.Object.GetNameWithRole().RemoveHtmlTags();
         logger.Info($"追放者: {logName} で会議を終了します");
         AntiBlackout.voteresult = result;
@@ -221,7 +226,7 @@ public class MeetingVoteManager
                 logger.Warn($"{PlayerCatch.GetPlayerById(voteArea.PlayerId).GetNameWithRole().RemoveHtmlTags()} の投票データがありません");
                 continue;
             }
-            for (var i = 0; i < voteData.NumVotes; i++)
+            for (var i = 0; i < (ClearAndExile ? voteData.NumVotes : EffectiveVotes(voteData)); i++)
             {
                 states.Add(new()
                 {
@@ -307,6 +312,8 @@ public class MeetingVoteManager
     /// <returns>([Key: 投票先,Value: 票数]の辞書, 追放される人, 同数投票かどうか)</returns>
     public VoteResult CountVotes(bool applyVoteMode, bool ClearAndExile = false)
     {
+        // Re-counting a result must not accumulate per-owner exclusions twice.
+        foreach (var hate in CustomRoleManager.AllActiveRoles.Values.OfType<HateKiller>()) hate.ResetVoteCounts();
         // 投票モードに従って投票を変更
         if (applyVoteMode && Options.VoteMode.GetBool())
         {
@@ -340,26 +347,26 @@ public class MeetingVoteManager
 
             if (votes.ContainsKey(vote.VotedFor))
             {
-                votes[vote.VotedFor] += vote.NumVotes;
+                votes[vote.VotedFor] += ClearAndExile ? vote.NumVotes : EffectiveVotes(vote);
             }
             else
             {
-                votes.TryAdd(vote.VotedFor, vote.NumVotes);
+                votes.TryAdd(vote.VotedFor, ClearAndExile ? vote.NumVotes : EffectiveVotes(vote));
             }
 
             if (voter.Is(CustomRoleTypes.Impostor) && !voter.Is(CustomRoles.HateKiller))
             {
                 var VotedFor = PlayerCatch.GetPlayerById(vote.VotedFor);
-                if (VotedFor.Is(CustomRoles.HateKiller))
+                if (VotedFor?.GetRoleClass() is HateKiller hateTarget)
                 {
-                    HateKiller.AddImpVote();
+                    hateTarget.AddImpVote(ClearAndExile ? vote.NumVotes : EffectiveVotes(vote));
                 }
             }
-            if (vote.VotedFor == voter.PlayerId && voter.Is(CustomRoles.HateKiller))
+            if (vote.VotedFor == voter.PlayerId && voter.GetRoleClass() is HateKiller hateVoter)
             {
-                HateKiller.AddSelfVote();
+                hateVoter.AddSelfVote(ClearAndExile ? vote.NumVotes : EffectiveVotes(vote));
             }
-            if (vote.NumVotes is not 0)
+            if ((ClearAndExile ? vote.NumVotes : EffectiveVotes(vote)) is not 0)
             {
                 if (voter.Is(CustomRoles.Tiebreaker)
                 || (voter.Is(CustomRoles.LastImpostor) && LastImpostor.GiveTiebreaker.GetBool())
@@ -440,8 +447,12 @@ public class MeetingVoteManager
             }
         }
     }
+    internal static int EffectiveVotes(VoteData vote) => vote.IsOverride ? vote.NumVotes
+        : TownOfHost.Roles.Crewmate.Marshall.AdjustPower(vote.Voter, vote.NumVotes);
+
     public void Destroy()
     {
+        TownOfHost.Roles.Crewmate.Marshall.CloseMeeting();
         _instance = null;
     }
 
@@ -469,6 +480,7 @@ public class MeetingVoteManager
         public byte Voter { get; private set; } = byte.MaxValue;
         public byte VotedFor { get; private set; } = NoVote;
         public int NumVotes { get; private set; } = 1;
+        public bool Intentional { get; private set; }
         public bool IsSkip => IsSkipCh();
         public bool IsOverride { get; private set; } = false;
         public byte OverrideExileId { get; private set; } = byte.MaxValue;
@@ -491,12 +503,13 @@ public class MeetingVoteManager
 
         public VoteData(byte voter) => Voter = voter;
 
-        public void DoVote(byte voteTo, int numVotes, bool isOverride = false, byte overrideExileId = byte.MaxValue)
+        public void DoVote(byte voteTo, int numVotes, bool isOverride = false, byte overrideExileId = byte.MaxValue, bool intentional = true)
         {
             var pc = PlayerCatch.GetPlayerById(Voter);
             logger.Info($"投票: {pc.GetNameWithRole().RemoveHtmlTags()} => {GetVoteName(voteTo)} x {numVotes} {(isOverride ? "(Override)" : "")}");
             VotedFor = voteTo;
             NumVotes = numVotes;
+            Intentional = intentional;
             IsOverride = isOverride;
             OverrideExileId = overrideExileId;
             ChatManager.ChatManager.SendMessage(pc, "<size=0>.</size>");
@@ -558,8 +571,15 @@ public class MeetingVoteManager
             // 最多票数のプレイヤー全員
             var TMost = this.Tievotecount.Where(vote => vote.Value == TCo).Select(vote => vote.Key).ToArray();
 
-            // 最多票数のプレイヤーが複数人いる場合
-            if (mostVotedPlayers.Length > 1)
+            // Judge/forced exile is authoritative. A unanimous living Marshall preference
+            // resolves a genuine tie before ordinary Tiebreaker; conflicts keep the old path.
+            byte marshalPreferred = ClearAndExile ? NoVote : TownOfHost.Roles.Crewmate.Marshall.Preferred(votedCounts);
+            if (mostVotedPlayers.Length > 1 && maxVoteNum > 0 && marshalPreferred != NoVote)
+            {
+                IsTie = false;
+                Exiled = marshalPreferred == Skip ? null : PlayerCatch.GetPlayerInfoById(marshalPreferred);
+            }
+            else if (mostVotedPlayers.Length > 1)
             {
                 if (TMost.Length == 1)//タイブレ投票
                 {

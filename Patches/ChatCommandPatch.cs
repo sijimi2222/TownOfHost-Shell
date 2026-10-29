@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -835,6 +835,14 @@ namespace TownOfHost
                 return false;
             }
 
+
+            if (RomeoJuliet.TryParseChatCommand(text, out var pairArgs))
+            {
+                if (AmongUsClient.Instance.AmHost) RomeoJuliet.TrySendChat(PlayerControl.LocalPlayer, pairArgs);
+                else RequestCommandProcessingFromHost("/cmd rj " + string.Join(" ", pairArgs.Skip(1)));
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
 
             // Candy replies use the existing host-only command RPC for modded clients.
             if (Prankster.TryParseCandyCommand(text, out _))
@@ -4641,6 +4649,13 @@ namespace TownOfHost
                 return;
             }
 
+            if (RomeoJuliet.TryParseChatCommand(text, out var pairArgs))
+            {
+                RomeoJuliet.TrySendChat(player, pairArgs);
+                canceled = true;
+                return;
+            }
+
             // Handle both Vanilla chat and the existing mod-client command RPC before route filters.
             if (Prankster.TryHandleCandyCommand(player, text))
             {
@@ -4806,6 +4821,8 @@ namespace TownOfHost
             }
 
 
+
+            if (TownOfHost.Modules.RoleWinStats.TryHandle(text, player.PlayerId)) { canceled = true; return; }
 
             if (text.StartsWith("/") && !text.Contains("cmd"))
 
@@ -6819,6 +6836,7 @@ namespace TownOfHost
         public static bool DoBlockChat = false;
 
         public static bool BlockSendName = false;
+        private static float systemTimer = 99f;
 
         public static void Postfix(ChatController __instance)
 
@@ -6834,19 +6852,26 @@ namespace TownOfHost
 
             // 短時間に大きなパケットが多数飛んでサーバーの「Hacking」切断を誘発していた。
 
-            if (!AmongUsClient.Instance.AmHost || Main.MessagesToSend.Count < 1 || (timer > __instance.timeSinceLastMessage)) return;
-
+            // システムメッセージの間隔は、ホストのチャットの待ち時間(timeSinceLastMessage)とは別に数える。
+            // 以前はシステムメッセージを送るたびにホストのチャットの待ち時間をリセットしていたため、
+            // ようこそメッセージなどを送っている間、ホストがチャットできなかった。
+            systemTimer += Time.deltaTime;
+            if (!AmongUsClient.Instance.AmHost || Main.MessagesToSend.Count < 1 || (timer > systemTimer)) return;
             if (DoBlockChat) return;
-
-
-
             if (50 <= Main.MegCount) return;
-
-
-
-            if (GameStates.IsLobby) ChatManager.SendmessageInLobby(__instance);
-
-            else ChatManager.SendMessageInGame(__instance);
+            var hostChatTimer = __instance.timeSinceLastMessage;
+            __instance.timeSinceLastMessage = systemTimer;
+            try
+            {
+                if (GameStates.IsLobby) ChatManager.SendmessageInLobby(__instance);
+                else ChatManager.SendMessageInGame(__instance);
+            }
+            finally
+            {
+                // 送る処理が決めた「次に送れるまでの時間」はシステムメッセージ用に覚えて、ホストのチャットの待ち時間は元に戻す
+                systemTimer = __instance.timeSinceLastMessage;
+                __instance.timeSinceLastMessage = hostChatTimer;
+            }
 
         }
 

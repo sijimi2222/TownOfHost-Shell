@@ -10,8 +10,12 @@ namespace TownOfHost;
 internal static class ShellRoleOrigins
 {
     internal const string HamoDisplayName = "TownOfHost-hamo";
+    internal const string TempDisplayName = "TownOfHost_Temp";
+    // Attribution colors only; never change a role's own color.
+    internal const string HamoTextColor = "#fb85ff";
+    internal const string TempTextColor = "#ffeb99";
 
-    // Only the explicitly requested 26 roles/addons belong here.
+    // Only the explicitly requested roles/addons and newly imported hamo roles belong here.
     private static readonly HashSet<CustomRoles> HamoRoles = new()
     {
         CustomRoles.Catalyst,
@@ -42,8 +46,16 @@ internal static class ShellRoleOrigins
         CustomRoles.Experiencer,
     };
 
-    internal static bool HasOverride(CustomRoles role) => HamoRoles.Contains(role);
+    private static readonly HashSet<CustomRoles> TempRoles = new()
+    {
+        CustomRoles.StepBomber,
+        CustomRoles.Locksmith,
+        CustomRoles.Coroner,
+    };
+
+    internal static bool HasOverride(CustomRoles role) => HamoRoles.Contains(role) || TempRoles.Contains(role);
 
     internal static From Resolve(CustomRoles role, From original)
-        => HasOverride(role) ? From.TownOfHost_hamo : original;
+        => TempRoles.Contains(role) ? From.TownOfHost_Temp
+            : HamoRoles.Contains(role) ? From.TownOfHost_hamo : original;
 }

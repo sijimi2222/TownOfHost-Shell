@@ -150,10 +150,11 @@ internal static class RoleSettingsDisplay
     {
         "from:" + nameof(From.TownOfHost_Shell) => 0,
         "from:" + nameof(From.TownOfHost_hamo) => 1,
-        "from:" + nameof(From.TownOfHost_Pko) => 2,
-        "from:" + nameof(From.TownOfHost_K) => 3,
-        "from:" + nameof(From.TownOfHost_Y) => 4,
-        _ => 5
+        "from:" + nameof(From.TownOfHost_Temp) => 2,
+        "from:" + nameof(From.TownOfHost_Pko) => 3,
+        "from:" + nameof(From.TownOfHost_K) => 4,
+        "from:" + nameof(From.TownOfHost_Y) => 5,
+        _ => 6
     };
 
     private static Plan GetPlan(TabGroup tab)
