@@ -8,10 +8,11 @@
 この Mod は非公式のものであり、この Mod の開発に関して Among Us の開発元である"Innersloth"は一切関与していません。<br>
 この Mod の問題などに関して公式に問い合わせないでください。<br>
 
-この Mod はTownOfHost-hamoをベースに、役職や機能などを追加・変更したModです。<br>
+この Mod は旧TOH-hamo（旧hamo）をベースに、役職や機能などを追加・変更したModです。<br>
 
-**今後の更新追従先：TOH-K（TownOfHost-K）**<br>
-今後の更新ではTOH-Kへの追従を予定しています。現在の実装ベースや、TOH-K最新版の直接統合が完了したことを示す表記ではありません。<br>
+**現在のフォーク元：旧TOH-hamo（旧hamo）**<br>
+系統：TOH-K → TOH-Pko → 旧TOH-hamo → TOH-Shell。<br>
+TOH-ShellはLを基盤とするMODではありません。<br>
 hamo・Pkoなどから継承した既存の役職・機能と、各提供元のクレジット・著作権・ライセンス表記は維持します。<br>
 
 TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTOH-Shellに報告してください。<br>
@@ -19,7 +20,7 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 また、TOH-Shellに関する質問、バグ報告は基本、[DiscordServer](https://discord.gg/kYk5QDJyrq)でのみ受け付けております。 <br>
 
 [本家TOHはこちら](https://github.com/tukasa0001/TownOfHost)<br>
-[TOHhamoはこちら](https://github.com/rar006/TownOfHost-hamo)<br>
+[旧TOH-hamo（旧hamo）はこちら](https://github.com/rar006/TownOfHost-hamo)<br>
 
 
 
@@ -108,13 +109,12 @@ Modが使えなくなるよ!<br>
 
 [Town Of Host_K](https://github.com/KYMario/TownOfHost-K)<br>
 　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
-今後の更新追従先：TOH-K。TOH-Shellの直接のフォーク元を変更したことや、TOH-K最新版の統合完了を意味するものではありません。<br>
 
 [Town Of Host_PKO](https://github.com/satokazoku/TownOfHost-Pko)<br>
-TownOfHost-hamoのフォーク元の一つです。TownOfHost_PKO様にある機能もTOH-Shellに多数引き継がれています。<br>
+旧TOH-hamoのフォーク元の一つです。TownOfHost_PKO様にある機能もTOH-Shellに多数引き継がれています。<br>
 
-[Town Of Host-hamo](https://github.com/rar006/TownOfHost-hamo)<br>
-TOH-Shellの直接のフォーク元・ベースとなったModです。<br>
+[旧TOH-hamo（旧hamo）](https://github.com/rar006/TownOfHost-hamo)<br>
+TOH-Shellの直接のフォーク元・ベースとなった旧TOH-hamoです。<br>
 開発者: haru<br>
 
 [Town Of Host_Y](https://github.com/Yumenopai/TownOfHost_Y)<br>

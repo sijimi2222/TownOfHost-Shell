@@ -2,11 +2,12 @@
 他のModから参考にした物や移植した役職など
 全てここに記載する予定です。
 
-## 更新追従先と既存コードの出典
+## フォーク元と既存コードの出典
 
-今後の更新追従先：[TOH-K（TownOfHost-K）](https://github.com/KYMario/TownOfHost-K)。
-現在の実装ベースはTownOfHost-hamoです。TOH-Kへの追従方針は、最新版の直接統合済み・直接フォークへの切り替え済みを意味しません。
-hamo・Pko・TOH-Kなど、既存コード提供元の個別クレジット・著作権・ライセンス表記を引き続き保持します。
+現在のフォーク元：旧TOH-hamo（旧hamo）。
+系統：TOH-K → TOH-Pko → 旧TOH-hamo → TOH-Shell。
+TOH-ShellはLを基盤とするMODではありません。
+旧TOH-hamo・Pko・Kなど、既存コード提供元の歴史的なクレジット・著作権・ライセンス表記を引き続き保持します。
 
 ## [SuperNewRoles](https://github.com/SuperNewRoles/SuperNewRoles)
 ### 2024/3/10以降に移植した役職は[役職移植ガイドライン](https://github.com/SuperNewRoles/SuperNewRoles/wiki/【他Mod開発者様向け】役職移植ガイドライン)に基づいて開発を行っています
