@@ -9,6 +9,11 @@
 この Mod の問題などに関して公式に問い合わせないでください。<br>
 
 この Mod はTownOfHost-hamoをベースに、役職や機能などを追加・変更したModです。<br>
+
+**今後の更新追従先：TOH-K（TownOfHost-K）**<br>
+今後の更新ではTOH-Kへの追従を予定しています。現在の実装ベースや、TOH-K最新版の直接統合が完了したことを示す表記ではありません。<br>
+hamo・Pkoなどから継承した既存の役職・機能と、各提供元のクレジット・著作権・ライセンス表記は維持します。<br>
+
 TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTOH-Shellに報告してください。<br>
 
 また、TOH-Shellに関する質問、バグ報告は基本、[DiscordServer](https://discord.gg/kYk5QDJyrq)でのみ受け付けております。 <br>
@@ -103,6 +108,7 @@ Modが使えなくなるよ!<br>
 
 [Town Of Host_K](https://github.com/KYMario/TownOfHost-K)<br>
 　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
+今後の更新追従先：TOH-K。TOH-Shellの直接のフォーク元を変更したことや、TOH-K最新版の統合完了を意味するものではありません。<br>
 
 [Town Of Host_PKO](https://github.com/satokazoku/TownOfHost-Pko)<br>
 TownOfHost-hamoのフォーク元の一つです。TownOfHost_PKO様にある機能もTOH-Shellに多数引き継がれています。<br>
