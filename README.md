@@ -113,7 +113,6 @@ Modが使えなくなるよ!<br>
 
 [旧TOH-hamo（旧hamo）](https://github.com/rar006/TownOfHost-hamo)<br>
 TOH-Shellの直接のフォーク元・ベースとなった旧TOH-hamoです。<br>
-開発者: haru<br>
 
 [Town Of Host_Y](https://github.com/Yumenopai/TownOfHost_Y)<br>
 　会議時の役職表示、会議拡張、ワーカホリック,ラビット,チェイサー,ニムロッド,鬼,決闘者,海賊,属性名、一部役職を参考/移植させて頂きました！<br>
@@ -143,11 +142,11 @@ TOH-Shellの直接のフォーク元・ベースとなった旧TOH-hamoです。
 [TheOtherRole GM](https://github.com/yukinogatari/TheOtherRoles-GM)<br>
 　一部役職を参考/移植させていただきました<br>
 
-TOR_GM_Haoming_Edition<br>
+TheOtherRole GM Haoming Edition<br>
 　イビルトラッカー、シュレディンガーの猫等を参考/移植させていただきました<br>
 
 [Nebula On The Ship](https://github.com/Dolly1016/Nebula/)<br>
-ナイストラッパー、イビルトラッパー、ドクター、スナイパーを参考/移植、デストロイヤーを参考にさせて頂きました！<br>
+　ナイストラッパー、イビルトラッパー、ドクター、スナイパー、デストロイヤーを参考/移植させて頂きました！<br>
 
 [au.libhalt.net](https://au.libhalt.net/)<br>
 　マッドジェスターの参考/移植させていただきました<br>
