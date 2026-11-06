@@ -30,7 +30,7 @@ class AddondataInfo
 
                 CustomRoles.Serial => "∂",
 
-                CustomRoles.BountyGuesser => "؟",
+                CustomRoles.BountyGuesser => "¿",
 
                 CustomRoles.MagicHand => "ж",
 
@@ -86,6 +86,8 @@ class AddondataInfo
 
                 CustomRoles.Slacker => "ＳＬ",
 
+                CustomRoles.Notice => "No",
+
                 CustomRoles.News => "Ｎ",
 
                 CustomRoles.Sunglasses => "Ｓ",
@@ -100,12 +102,16 @@ class AddondataInfo
 
                 CustomRoles.Surrender => "s",
 
-                CustomRoles.Reporting => "Ⓡ",
+                CustomRoles.Reporting => "®",
 
                 CustomRoles.SilverBuzzer => "Sb",
-
+                CustomRoles.Surviving => "Sv",
+                CustomRoles.Berserker => "Bk",
+                CustomRoles.ToughGuy => "Tg",
+                CustomRoles.Comorbidity => "Cm",
+                CustomRoles.Murder => "Md",
+                CustomRoles.BetrayGuesser => "Btg",
                 CustomRoles.Triplets => "三",
-
                 _ => ""
 
             };
@@ -175,6 +181,12 @@ class AddondataInfo
                     {CustomRoles.Reporting, "#3366ff" },
 
                     {CustomRoles.SilverBuzzer, "#C0C0C0" },
+                    {CustomRoles.Surviving, "#10FF00" },
+                    {CustomRoles.Berserker, "#FF1919" },
+                    {CustomRoles.ToughGuy, "#c08a4a" },
+                    {CustomRoles.Comorbidity, "#54c7bd" },
+                    {CustomRoles.Murder, "#FF1919" },
+                    {CustomRoles.BetrayGuesser, "#99CC66" },
 
 
 
@@ -245,6 +257,8 @@ class AddondataInfo
 
                     {CustomRoles.InfoPoor ,"#555647"},
 
+                    {CustomRoles.Notice, "#33455e"},
+
                     {CustomRoles.News, "#828282"},
 
                     {CustomRoles.Sunglasses , "#2e103d"},
@@ -298,6 +312,7 @@ class AddondataInfo
                     {CustomRoles.GhostRumour , "#707cab"},
 
                     {CustomRoles.GuardianAngel,"#7cc0fc"},
+                    {CustomRoles.Influencer,"#8cffff"},
 
                     {CustomRoles.DemonicTracker,"#824880"},
 

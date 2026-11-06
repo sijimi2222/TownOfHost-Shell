@@ -116,14 +116,7 @@ public sealed class Fortuner : RoleBase, IKiller
             return;
         }
         var (killer, target) = info.AttemptTuple;
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            info.DoKill = false;
-
-            PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-            target.RpcMurderPlayer(Player);
-            return;
-        }
+        if (target?.GetRoleClass() is Madpsycho psycho && psycho.TryPsycho(Player, 1)) { info.DoKill = false; return; }
         giveplayerid.Add(info.AppearanceTarget.PlayerId);
         Logger.Info($"{info.AppearanceTarget.PlayerId}-{UseCount}", "F<EGTfaAr>or<canoacw>tu<na!>n<ruanor1>er".RemoveHtmlTags());
         info.DoKill = false;

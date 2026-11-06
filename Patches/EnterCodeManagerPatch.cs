@@ -15,12 +15,14 @@ namespace TownOfHost
     class EnterCodeManagerPatch
     {
         private static GameObject ModScreen;
-        private static PassiveButton RestoreButton;
-        private static PassiveButton DownloadButton;
-        private static PassiveButton UnloadAndJoinButton;
-        private static TextMeshPro VersionText;
-        private static PassiveButton ServerList;
-        private static ServerDropdown ServerListDrop;
+        // Presentation adapters only: the Shell skin repositions the existing controls
+        // without copying their events, lookup results or connection state.
+        internal static PassiveButton RestoreButton;
+        internal static PassiveButton DownloadButton;
+        internal static PassiveButton UnloadAndJoinButton;
+        internal static TextMeshPro VersionText;
+        internal static PassiveButton ServerList;
+        internal static ServerDropdown ServerListDrop;
         public static Checkbox vServerOnlyCheckBox;
         public static (IRegionInfo region, string code)? lastGameInfo = null;
 

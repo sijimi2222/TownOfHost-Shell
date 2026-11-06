@@ -185,7 +185,7 @@ namespace TownOfHost.Modules
                     ? CustomRolesHelper.AllHASRoles.AsEnumerable()
                     : Enumerable.Empty<CustomRoles>();
             var groups = candidates.Distinct().Where(role => role.IsEnable() && Event.CheckRole(role))
-                .GroupBy(role => role > CustomRoles.NotAssigned ? "属性 / AddOn" : role.GetCustomRoleTypes() switch
+                .GroupBy(role => role > CustomRoles.NotAssigned && !role.IsMainRole() ? "属性 / AddOn" : role.GetCustomRoleTypes() switch
                 {
                     CustomRoleTypes.Crewmate => "クルーメイト",
                     CustomRoleTypes.Impostor => "インポスター",

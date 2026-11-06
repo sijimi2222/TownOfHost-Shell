@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -41,7 +41,12 @@ namespace TownOfHost
 
         public TaskState taskState;
 
-        public bool IsBlackOut { get; set; }
+        private bool baseBlackOut;
+        public bool IsBlackOut
+        {
+            get => baseBlackOut || TownOfHost.Roles.Neutral.Hunter.IsDarkened(PlayerId);
+            set => baseBlackOut = value;
+        }
 
         private bool _canUseMovingPlatform = true;
 
@@ -297,17 +302,22 @@ namespace TownOfHost
 
         }
 
+        /// <summary>Death day for Surviving; -1 while alive.</summary>
+        public int DeadDay = -1;
         public void SetDead()
 
         {
 
+            bool firstDeath = !IsDead;
             IsDead = true;
+            if (DeadDay < 0) DeadDay = UtilsGameLog.day;
 
             if (AmongUsClient.Instance.AmHost)
 
             {
 
                 RPC.SendDeathReason(PlayerId, DeathReason);
+                if (firstDeath) TownOfHost.Roles.Crewmate.Marshall.ReportMeetingDeath(PlayerId);
 
             }
 

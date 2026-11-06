@@ -1,4 +1,4 @@
-using AmongUs.GameOptions;
+﻿using AmongUs.GameOptions;
 
 using TownOfHost.Roles.Core;
 
@@ -39,7 +39,7 @@ public static class SatsumatoImo
     public static bool CanSeeImpostorNameColor(CustomRoles role)
     {
         // Mad Cleaner uses its own dynamic ally visibility, not the common permanent colors.
-        if (role is CustomRoles.MadCleaner) return false;
+        if (role is CustomRoles.MadCleaner or CustomRoles.MadKind) return false;
         if (role is CustomRoles.SatsumatoImoM)
         {
             return OptionCanSeeImpostor?.GetBool() ?? false;

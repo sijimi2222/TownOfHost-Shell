@@ -22,11 +22,7 @@ public sealed class HateKiller : RoleBase, IImpostor
             "htk",
             "#ff1919",
             (3, 7),
-            assignInfo: new RoleAssignInfo(CustomRoles.HateKiller, CustomRoleTypes.Impostor)
-            {
-                AssignCountRule = new(1, 1, 1)
-            },
-            from: From.TownOfHost_Pko
+from: From.TownOfHost_Pko
         );
     public HateKiller(PlayerControl player) : base(RoleInfo, player)
     {
@@ -42,8 +38,8 @@ public sealed class HateKiller : RoleBase, IImpostor
     private static OptionItem OptionCountSelfVotes;
     float currentKillCooldown;
     float MinimumKillCooldown;
-    static int ImpostorVotes;
-    static int selfvote;
+    int ImpostorVotes;
+    int selfvote;
 
     private enum OptionName
     {
@@ -72,7 +68,7 @@ public sealed class HateKiller : RoleBase, IImpostor
     public override void Add()
     {
         currentKillCooldown = OptionKillCooldown.GetFloat();
-        ImpostorVotes = 0;
+        ResetVoteCounts();
     }
 
     public override bool VotingResults(ref NetworkedPlayerInfo Exiled, ref bool IsTie, Dictionary<byte, int> vote, byte[] mostVotedPlayers, bool ClearAndExile)
@@ -90,6 +86,7 @@ public sealed class HateKiller : RoleBase, IImpostor
         {
             count = count - selfvote;
         }
+        if (count <= 0) return true;
         float Decrease = count * OptionDecreaseKillCool.GetFloat();
         currentKillCooldown = OptionKillCooldown.GetFloat() - Decrease;
         if (currentKillCooldown < MinimumKillCooldown)
@@ -104,22 +101,23 @@ public sealed class HateKiller : RoleBase, IImpostor
     }
     public override void AfterMeetingTasks()
     {
-        ImpostorVotes = 0;
-        selfvote = 0;
+        ResetVoteCounts();
     }
+
+    internal void ResetVoteCounts() { ImpostorVotes = 0; selfvote = 0; }
 
     /// <summary>
     /// インポスターがヘイトキラーに投票した数を増やす(自投票除く)
     /// </summary>
-    public static void AddImpVote()
+    public void AddImpVote(int votes = 1)
     {
-        ++ImpostorVotes;
+        ImpostorVotes += System.Math.Max(0, votes);
     }
     /// <summary>
     /// ヘイトキラーが自投票した数を増やす
     /// </summary>
-    public static void AddSelfVote()
+    public void AddSelfVote(int votes = 1)
     {
-        ++selfvote;
+        selfvote += System.Math.Max(0, votes);
     }
 }

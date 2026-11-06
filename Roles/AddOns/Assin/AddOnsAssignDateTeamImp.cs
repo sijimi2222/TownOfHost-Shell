@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -29,6 +29,7 @@ namespace TownOfHost.Roles.AddOns.Common
             CustomRoles.Phantom,
             CustomRoles.Emptiness,
             CustomRoles.GuardianAngel,
+            CustomRoles.Influencer,
             CustomRoles.SKMadmate,
             CustomRoles.Jackaldoll,
             CustomRoles.HASFox,

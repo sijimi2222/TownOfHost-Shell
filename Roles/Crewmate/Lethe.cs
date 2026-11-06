@@ -53,44 +53,47 @@ public sealed class Lethe : RoleBase
             false
         ).SetOptionName(() => "タスクを完了させるまで能力が発動できない");
 
+        // Only previously unregistered options use recovery IDs; defaults and parents are unchanged.
         // 必要タスク数 1～10
         OptRequiredTaskCount = IntegerOptionItem.Create(
-            RoleInfo,
-            11,
+            ShellOptionIds.LetheRequiredTaskCount,
             GeneralOption.AwakeningTaskcount,
             new(1, 10, 1),
             1,
-            false,
-            OptNeedTasks
-        ).SetOptionName(() => "発動までのタスク数");
+            RoleInfo.Tab,
+            false
+        ).SetParent(OptNeedTasks).SetParentRole(RoleInfo.RoleName)
+         .SetOptionName(() => "発動までのタスク数");
 
         // タスク完了まで自覚できない
         OptHideUntilTasks = BooleanOptionItem.Create(
-            RoleInfo,
-            12,
+            ShellOptionIds.LetheHideUntilTasks,
             GeneralOption.TaskAwakening,
             true,
-            false,
-            OptNeedTasks
-        ).SetOptionName(() => "タスクを完了させるまで自覚できない");
+            RoleInfo.Tab,
+            false
+        ).SetParent(OptNeedTasks).SetParentRole(RoleInfo.RoleName)
+         .SetOptionName(() => "タスクを完了させるまで自覚できない");
 
         // シーラー
         OptGiveSealer = BooleanOptionItem.Create(
-            RoleInfo,
-            13,
+            ShellOptionIds.LetheGiveSealer,
             GeneralOption.TaskAwakening,
             true,
+            RoleInfo.Tab,
             false
-        ).SetOptionName(() => "対象にシーラーを付与する");
+        ).SetParent(RoleInfo.RoleOption).SetParentRole(RoleInfo.RoleName)
+         .SetOptionName(() => "対象にシーラーを付与する");
 
         // セキュアラー
         OptGiveSecurer = BooleanOptionItem.Create(
-            RoleInfo,
-            14,
+            ShellOptionIds.LetheGiveSecurer,
             GeneralOption.TaskAwakening,
             true,
+            RoleInfo.Tab,
             false
-        ).SetOptionName(() => "対象にセキュアラーを付与する");
+        ).SetParent(RoleInfo.RoleOption).SetParentRole(RoleInfo.RoleName)
+         .SetOptionName(() => "対象にセキュアラーを付与する");
 
         // インフォプアー
         OptGiveInfoPoor = BooleanOptionItem.Create(

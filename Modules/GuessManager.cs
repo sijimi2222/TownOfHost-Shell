@@ -145,11 +145,9 @@ public static class GuessManager
             }
 
             //Notゲッサーはここで処理を止める。
-
-            if (!pc.Is(CustomRoles.Guesser)
-
+            if (Guesser.IsBlockedTeller(pc.GetCustomRole()) || !pc.Is(CustomRoles.Guesser)
+                && !pc.Is(CustomRoles.BetrayGuesser)
                 && !(pc.Is(CustomRoles.LastImpostor) && LastImpostor.giveguesser)
-
                 && !(pc.Is(CustomRoles.LastNeutral) && LastNeutral.GiveGuesser.GetBool())
 
                 && !(RoleAddAddons.GetRoleAddon(pc.GetCustomRole(), out var op, pc, subrole: CustomRoles.Guesser) && op.GiveGuesser.GetBool())
@@ -390,6 +388,16 @@ public static class GuessManager
 
                 }
 
+                if (!guesserSuicide && pc.PlayerId != target.PlayerId)
+                {
+                    var shield = Roles.Crewmate.GuessShield.Of(target);
+                    if (shield == Roles.Crewmate.GuessShield.Mode.Block)
+                    {
+                        Utils.SendMessage(GetString("GuessShieldBlocked"), pc.PlayerId);
+                        return true;
+                    }
+                    if (shield == Roles.Crewmate.GuessShield.Mode.Reflect) guesserSuicide = true;
+                }
                 Logger.Info($"{pc.GetNameWithRole().RemoveHtmlTags()} が {target.GetNameWithRole().RemoveHtmlTags()} をゲス", "Guesser");
 
 
@@ -411,15 +419,9 @@ public static class GuessManager
 
 
                 string Name = dp.GetRealName();
-
-
-
                 GuesserGuessed[pc.PlayerId]++;
-
+                if (!guesserSuicide) TownOfHost.Roles.AddOns.Common.BetrayGuesser.OnGuessSuccess(pc.PlayerId);
                 OneMeetingGuessed[pc.PlayerId]++;
-
-
-
                 _ = new LateTask(() =>
 
                 {
@@ -1235,23 +1237,15 @@ public static class GuessManager
             if (data.AddShotLimit.GetBool()) ShotLimit += data.CanGuessTime.GetInt();
 
             else ShotLimit = data.CanGuessTime.GetInt();
-
-
-
         }
-
+        if (pc.Is(CustomRoles.BetrayGuesser)) ShotLimit = Math.Max(ShotLimit, TownOfHost.Roles.AddOns.Common.BetrayGuesser.GuessLimit); // ベトレイゲッサーは自分の回数
         //1会議
-
         var OneMeetingShotLimit = 0;
 
         if (pc.Is(CustomRoles.Guesser)) OneMeetingShotLimit = Guesser.CanGuessTime.GetInt();
-
         if (roleaddon && data.GiveGuesser.GetBool()) OneMeetingShotLimit = data.OwnCanGuessTime.GetInt();
-
-
-
+        if (pc.Is(CustomRoles.BetrayGuesser)) OneMeetingShotLimit = Math.Max(OneMeetingShotLimit, TownOfHost.Roles.AddOns.Common.BetrayGuesser.GuessLimit);
         if (GuesserGuessed[pc.PlayerId] >= ShotLimit)
-
         {
 
             Utils.SendMessage(GetString("GuessercountError"), pc.PlayerId, Utils.ColorString(Palette.AcceptedGreen, GetString("GuessercountErrorT")));

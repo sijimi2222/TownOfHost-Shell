@@ -32,7 +32,9 @@ public enum From
     RevolutionaryHostRoles,
     Love_Couple_Mod,
     TownOfHost_hamo,
-    TownOfHost_Shell
+    TownOfHost_Shell,
+    TownOfHost_Temp,
+    UchuAddon = 25
 }
 public class SimpleRoleInfo
 {
@@ -109,7 +111,7 @@ public class SimpleRoleInfo
         this.canMakeMadmate = canMakeMadmate;
         ChatCommand = chatCommand;
         AssignInfo = assignInfo;
-        From = from;
+        From = ShellRoleOrigins.Resolve(roleName, from);
         Combination = combination;
         IsCantSeeTeammates = isCantSeeTeammates;
         AddHaveRole = addhaverole;
@@ -143,11 +145,11 @@ public class SimpleRoleInfo
         // 復活させる場合はこの条件を削除する。
         if (roleName is not CustomRoles.Snowman
             and not CustomRoles.Android
-            and not CustomRoles.Slugger
             and not CustomRoles.DummySpawner
             and not CustomRoles.JackalSeer
             and not CustomRoles.Oblivion
-            and not CustomRoles.Moira)
+            and not CustomRoles.Moira
+            and not CustomRoles.Eater)
         {
             CustomRoleManager.AllRolesInfo.Add(roleName, this);
             CustomRoleManager.CustomRoleIds.Add(configId, roleName);

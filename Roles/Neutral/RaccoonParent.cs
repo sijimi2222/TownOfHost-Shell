@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using AmongUs.GameOptions;
 using Hazel;
 using TownOfHost.Modules;
@@ -215,16 +215,20 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
         ReleaseGrab(keepInvestigation: true);
     }
 
+    bool reportKillAttempted;
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target)
+    {
+        if (AmongUsClient.Instance?.AmHost != true || reportKillAttempted || !Player.IsAlive()
+            || GameStates.IsMeeting || MeetingHud.Instance != null || GrabbedTargetId == byte.MaxValue || !OptionKillOnMeetingIfGrabbing.GetBool()) return;
+        var grabbed = GrabbedTargetId.GetPlayerControl();
+        if (grabbed == null || !grabbed.IsAlive() || grabbed.Data.Disconnected) return;
+        reportKillAttempted = true;
+        CustomRoleManager.OnCheckMurder(Player, grabbed, grabbed, grabbed, true, false, 1, CustomDeathReason.Kill);
+    }
+
     public override void OnStartMeeting()
     {
-        if (GrabbedTargetId != byte.MaxValue && OptionKillOnMeetingIfGrabbing.GetBool())
-        {
-            var target = GrabbedTargetId.GetPlayerControl();
-            if (target != null && target.IsAlive() && AmongUsClient.Instance.AmHost)
-            {
-                CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 1, CustomDeathReason.Kill);
-            }
-        }
+
         // ===== 修正 =====
         // 会議に入っても、既に役職を調べ終えている(investigateReady=true)場合は
         // GrabbedTargetIdをリセットせず、会議中も相手の役職を確認できるようにする。
@@ -316,6 +320,7 @@ public sealed class RaccoonParent : RoleBase, IKiller, IRoomTasker, IUsePhantomB
 
     public override void AfterMeetingTasks()
     {
+        reportKillAttempted = false;
         if (!AmongUsClient.Instance.AmHost || PendingChildTargetId == byte.MaxValue) return;
 
         var target = PendingChildTargetId.GetPlayerControl();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AmongUs.GameOptions;
 using HarmonyLib;
@@ -162,7 +162,9 @@ public sealed class Assassin : RoleBase, IImpostor, IUsePhantomButton, IDoubleTr
     }
     public override void OnFixedUpdate(PlayerControl player)
     {
-        if (NowState is not AssassinMeeting.WaitMeeting || player.IsAlive() || player == null || GameStates.IsMeeting || CustomWinnerHolder.WinnerTeam is not CustomWinner.Default)
+        if (player == null || NowState is not AssassinMeeting.WaitMeeting || player.IsAlive() || GameStates.IsMeeting
+            || GameStates.CalledMeeting || GameStates.ExiledAnimate || !GameStates.IsInTask
+            || CustomWinnerHolder.WinnerTeam is not CustomWinner.Default)
         {
             AddRole?.OnFixedUpdate(player);
             return;

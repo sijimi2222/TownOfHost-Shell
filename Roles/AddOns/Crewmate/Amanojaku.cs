@@ -27,7 +27,7 @@ namespace TownOfHost.Roles.AddOns.Common
             OptCanFixComms = BooleanOptionItem.Create(Id + 24, "MadmateCanFixComms", true, TabGroup.Addons, false).SetSubRoleOptionItem(CustomRoles.Amanojaku);
 
             var id = 52 + Id;
-            foreach (var _customwinner in EnumHelper.GetAllValues<CustomWinner>().Where(x => x < CustomWinner.TaskPlayerB && x is not CustomWinner.Crewmate && x > CustomWinner.Draw))
+            foreach (var _customwinner in EnumHelper.GetAllValues<CustomWinner>().Where(x => x < CustomWinner.TaskPlayerB && x is not CustomWinner.Crewmate and not CustomWinner.LessThan and not CustomWinner.Romeo && x > CustomWinner.Draw))
             {
                 var customwinner = _customwinner;
                 if (SoloWinOption.AllData.ContainsKey((CustomRoles)customwinner) && !OptionRole.ContainsKey(customwinner))
@@ -40,6 +40,11 @@ namespace TownOfHost.Roles.AddOns.Common
                     }
                 }
             }
+            var informantOption = BooleanOptionItem.Create(994393, "AmanojakuCanwin", true, TabGroup.Addons, false)
+                .SetSubRoleOptionItem(CustomRoles.Amanojaku).SetEnabled(() => CustomRoles.Informant.IsEnable());
+            informantOption.ReplacementDictionary = new Dictionary<string, string>
+                { { "%winner%", UtilsRoleText.GetRoleColorAndtext(CustomRoles.Informant) } };
+            OptionRole.TryAdd(CustomWinner.Informant, informantOption);
         }
 
         public static void Init()

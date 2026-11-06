@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections;
 
@@ -16,7 +16,7 @@ using HarmonyLib;
 
 using InnerNet;
 
-using Newtonsoft.Json.Linq;
+
 
 using UnityEngine;
 
@@ -188,40 +188,24 @@ public static class Blacklist
 
         }
 
-        var json = JObject.Parse(request.downloadHandler.text);
-
-        // 取得に成功したら、次回失敗時は1回だけ警告を出せるように戻す。
-
-        fetchFailureLogged = false;
-
-        checkSkippedLogged = false;
-
-        for (var user = json["blockedPlayers"].First; user != null; user = user.Next)
-
+        if (!ShellJsonData.TryReadBlacklist(request.downloadHandler.text, out var records))
         {
-
-            string endbantime = user["EndBanTime"]?.ToString();
-
-            BlackPlayer player = new(
-
-                user["FriendCode"]?.ToString(), user["AddedMod"]?.ToString(), user["Reason"]?["Code"]?.ToString(),
-
-                user["Reason"]?["Title"]?.ToString(), user["Reason"]?["Description"]?.ToString(), false, endbantime == "never" ? null : (DateTime.TryParse(endbantime, out DateTime resulttime) ? (resulttime - new TimeSpan(9, 0, 0)) : null));
-
+            downloaded = false;
+            if (!fetchFailureLogged)
+            {
+                fetchFailureLogged = true;
+                Logger.Warn("Blacklist JSON format rejected; existing fail-open policy retained", "BlackList");
+            }
+            yield break;
         }
-
-        for (var user = json["blockedPlayersPUID"].First; user != null; user = user.Next)
-
+        fetchFailureLogged = false;
+        checkSkippedLogged = false;
+        foreach (var user in records)
         {
-
-            string endbantime = user["EndBanTime"]?.ToString();
-
-            BlackPlayer player = new(
-
-                user["PUID"]?.ToString(), user["AddedMod"]?.ToString(), user["Reason"]?["Code"]?.ToString(),
-
-                user["Reason"]?["Title"]?.ToString(), user["Reason"]?["Description"]?.ToString(), true, endbantime == "never" ? null : (DateTime.TryParse(endbantime, out DateTime resulttime) ? (resulttime - new TimeSpan(9, 0, 0)) : null));
-
+            string endbantime = user.EndBanTime;
+            _ = new BlackPlayer(user.Code, user.AddedMod, user.ReasonCode, user.ReasonTitle,
+                user.ReasonDescription, user.IsPUID, endbantime == "never" ? null
+                    : (DateTime.TryParse(endbantime, out DateTime resulttime) ? resulttime - new TimeSpan(9,0,0) : null));
         }
 
         var now = DateTime.Now;

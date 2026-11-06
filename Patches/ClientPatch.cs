@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -204,8 +204,9 @@ namespace TownOfHost
         }
 
         [HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.SendOrDisconnect)), HarmonyPrefix]
-        public static bool SendOrDisconnectPatch(InnerNetClient __instance, MessageWriter msg)
+        public static bool SendOrDisconnectPatch(InnerNetClient __instance, MessageWriter msg, bool __runOriginal)
         {
+            if (!__runOriginal) return false;
             //分割するサイズ。大きすぎるとリトライ時不利、小さすぎると受信パケット取りこぼしが発生しうる。
             var limitSize = 1000;
 
@@ -382,9 +383,12 @@ namespace TownOfHost
             {
                 foreach (var handle in handles)
                 {
-                    Logger.Warn($"Start Unload {(handle.Result.TryCast<GameObject>(out var obj) ? obj.name : "???")}", nameof(PreloadMapPatch));
                     if (handle.IsValid())
+                    {
+                        // Unloading must not dereference a released or still-pending result.
+                        Logger.Warn("Start Unload cached map", nameof(PreloadMapPatch));
                         handle.Release();
+                    }
                 }
                 ships.Clear();
                 handles.Clear();

@@ -140,6 +140,7 @@ namespace TownOfHost
         public class GameStartManagerUpdatePatch
         {
             private static float exitTimer = 0f;
+            private static float nextVersionRequestAt = 2f;
             //private static float ext = 0f;
             public static void Prefix(GameStartManager __instance)
             {
@@ -197,18 +198,34 @@ namespace TownOfHost
                 else
                 {
                     if (MatchVersions(0))
+                    {
                         exitTimer = 0;
+                        nextVersionRequestAt = 2f;
+                    }
                     else
                     {
                         exitTimer += Time.deltaTime;
-                        if (exitTimer > 10)
+                        bool known = Main.playerVersion.ContainsKey(0);
+                        if (!known && exitTimer >= nextVersionRequestAt)
+                        {
+                            nextVersionRequestAt = exitTimer + 3f;
+                            var client = AmongUsClient.Instance;
+                            if (PlayerControl.LocalPlayer != null)
+                            {
+                                var writer = client.StartRpcImmediately(PlayerControl.LocalPlayer.NetId,
+                                    (byte)CustomRPC.RequestRetryVersionCheck, Hazel.SendOption.Reliable, client.HostId);
+                                client.FinishRpcImmediately(writer);
+                            }
+                        }
+                        float limit = known ? 10f : 20f;
+                        if (exitTimer > limit)
                         {
                             exitTimer = 0;
                             AmongUsClient.Instance.ExitGame(DisconnectReasons.ExitGame);
                             SceneChanger.ChangeScene("MainMenu");
                         }
 
-                        warningMessage = Utils.ColorString(Color.red, string.Format(GetString("Warning.AutoExitAtMismatchedVersion"), $"<{Main.ModColor}>{Main.ModName}</color>", Math.Round(10 - exitTimer).ToString()));
+                        warningMessage = Utils.ColorString(Color.red, string.Format(GetString("Warning.AutoExitAtMismatchedVersion"), $"<{Main.ModColor}>{Main.ModName}</color>", Math.Round(limit - exitTimer).ToString()));
                     }
                 }
                 if (warningMessage == "")
@@ -245,7 +262,7 @@ namespace TownOfHost
                 if (!Main.playerVersion.TryGetValue(playerId, out var version)) return acceptVanilla;
                 return Main.ForkId == version.forkId
                     && Main.version.CompareTo(version.version) == 0
-                    && version.tag == $"{ThisAssembly.Git.Commit}({ThisAssembly.Git.Branch})";
+                    && version.tag == Main.VersionCheckTag;
             }
             private static bool Client(byte playerId)
                 => Main.playerVersion.TryGetValue(playerId, out var version);
@@ -279,8 +296,8 @@ namespace TownOfHost
                     else
                     {
                         SelectRandomPreset();
-
                         SelectRandomMap();
+                        Modules.YouTubeMapVote.ApplyAtGameStart(); // YouTubeのマップ投票(便利機能)
                     }
                 }
                 else

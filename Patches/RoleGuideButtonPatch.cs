@@ -11,6 +11,7 @@ using HarmonyLib;
 using TMPro;
 
 using TownOfHost.Roles.Core;
+using TownOfHost.Modules;
 
 using TownOfHost.Roles.Impostor;
 
@@ -97,6 +98,7 @@ public static class RoleGuideButtonPatch
     // ボタンアニメ
 
     private static SpriteRenderer _btnRenderer;
+    private static SpriteRenderer guideFrameRenderer;
 
     private static TextMeshPro _btnText;
 
@@ -224,7 +226,7 @@ public static class RoleGuideButtonPatch
 
         if (role.IsGhostRole()) return GuideRoleCategory.GhostRole;
 
-        if (role > CustomRoles.NotAssigned) return GuideRoleCategory.Addon;
+        if (role > CustomRoles.NotAssigned && !role.IsMainRole()) return GuideRoleCategory.Addon;
 
 
 
@@ -448,6 +450,29 @@ public static class RoleGuideButtonPatch
 
 
 
+    internal static bool TryGetHeaderLeftEdge(out float left)
+    {
+        left = 0;
+        if (!HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
+            || !guideFrameRenderer.gameObject.activeInHierarchy) return false;
+        left = guideFrameRenderer.bounds.min.x;
+        return !float.IsNaN(left) && !float.IsInfinity(left);
+    }
+
+    internal static bool TryGetHeaderRightOffset(out float offset)
+    {
+        offset = 0;
+        if (!HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
+            || !HudManager.InstanceExists) return false;
+        var camera = HudManager.Instance.UICamera;
+        if (camera == null || !camera.orthographic) return false;
+        // The guide's root SpriteRenderer has no sprite. Measure its visible native-style frame instead.
+        var bounds = guideFrameRenderer.bounds;
+        var left = camera.WorldToViewportPoint(new Vector3(bounds.min.x, bounds.center.y, bounds.center.z));
+        if (left.z <= 0) return false;
+        return HudHeaderLayout.TryRightOffset(camera.orthographicSize * 2 * camera.aspect, left.x, out offset);
+    }
+
     private static bool ShouldShowTopRightChatButton()
 
         => GameStates.IsLobby || GameStates.IsMeeting;
@@ -458,7 +483,10 @@ public static class RoleGuideButtonPatch
 
     {
 
-        if (_btnRenderer == null || !DestroyableSingleton<HudManager>.InstanceExists) return;
+        if (!DestroyableSingleton<HudManager>.InstanceExists) return;
+        // Correct visibility before measuring chat's position; native options-close can reactivate it.
+        GameplayHudVisibilityPatch.Apply(DestroyableSingleton<HudManager>.Instance);
+        if (_btnRenderer == null) return;
 
 
 
@@ -589,6 +617,7 @@ public static class RoleGuideButtonPatch
         frameRenderer.sortingOrder = 9;
 
         frameRenderer.enabled = true;
+        guideFrameRenderer = frameRenderer;
 
     }
 
@@ -698,7 +727,8 @@ public static class RoleGuideButtonPatch
 
 
 
-        bool shouldShow = !GameSettingMenu.Instance;
+        bool shouldShow = !GameSettingMenu.Instance
+            && (!HudManager.InstanceExists || !GameplayHudVisibilityPatch.OptionsOpen(HudManager.Instance));
 
         var buttonObject = _btnRenderer.gameObject;
 
@@ -3437,6 +3467,9 @@ public static class RoleGuideButtonPatch
             UtilsShowOption.ShowChildrenSettings(option, ref builder);
 
         else if (role is CustomRoles.Altair && Options.CustomRoleSpawnChances.TryGetValue(CustomRoles.Vega, out option))
+
+            UtilsShowOption.ShowChildrenSettings(option, ref builder);
+            else if (role is CustomRoles.Juliet && Options.CustomRoleSpawnChances.TryGetValue(CustomRoles.Romeo, out option))
 
             UtilsShowOption.ShowChildrenSettings(option, ref builder);
 

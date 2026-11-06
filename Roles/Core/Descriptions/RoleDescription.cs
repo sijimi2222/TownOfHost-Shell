@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -67,6 +67,9 @@ public abstract class RoleDescription
             if (Options.CustomRoleSpawnChances.TryGetValue(RoleInfo.RoleName, out var op)) UtilsShowOption.ShowChildrenSettings(op, ref sb);
             else if (RoleInfo.RoleName is CustomRoles.Braid) UtilsShowOption.ShowChildrenSettings(Options.CustomRoleSpawnChances[CustomRoles.Driver], ref sb);
             else if (RoleInfo.RoleName is CustomRoles.Altair) UtilsShowOption.ShowChildrenSettings(Options.CustomRoleSpawnChances[CustomRoles.Vega], ref sb);
+            // キョンシーの設定は道士の中にあるため、道士の設定を出す
+            else if (RoleInfo.RoleName is CustomRoles.Kyonshi) UtilsShowOption.ShowChildrenSettings(Options.CustomRoleSpawnChances[CustomRoles.Daoshi], ref sb);
+            else if (RoleInfo.RoleName is CustomRoles.Juliet) UtilsShowOption.ShowChildrenSettings(Options.CustomRoleSpawnChances[CustomRoles.Romeo], ref sb);
             else if (RoleInfo.RoleName is CustomRoles.Nue) UtilsShowOption.ShowChildrenSettings(Options.CustomRoleSpawnChances[CustomRoles.Nue], ref sb);
             var showsMadmateCommonSettings = RoleInfo.RoleName is not CustomRoles.SatsumatoImoM;
             if (RoleInfo.CustomRoleType == CustomRoleTypes.Madmate && showsMadmateCommonSettings)
@@ -94,7 +97,7 @@ public abstract class RoleDescription
                         sb.Append($"┃ {rule}{Options.MadmateRevengeCrewmate.GetName()}: {Options.MadmateRevengeCrewmate.GetTextString()}\n");
                         sb.Append($"┃ {ruleFooter}{Options.MadmateRevengeNeutral.GetName()}: {Options.MadmateRevengeNeutral.GetTextString()}\n");
                     }
-                    if (Options.MadCanSeeImpostor.GetBool())
+                    if (Options.MadCanSeeImpostor.GetBool() && RoleInfo.RoleName is not CustomRoles.MadKind)
                         sb.Append($"{rule}{Options.MadCanSeeImpostor.GetName()}: {Options.MadCanSeeImpostor.GetTextString()}\n");
                     sb.Append($"{rule}{Options.MadmateVentCooldown.GetName()}: {Options.MadmateVentCooldown.GetTextString()}\n");
                     sb.Append($"{rule}{Options.MadmateVentMaxTime.GetName()}: {Options.MadmateVentMaxTime.GetTextString()}\n");

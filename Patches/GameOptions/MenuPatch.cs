@@ -150,6 +150,7 @@ namespace TownOfHost
 
             // になっていたため、ここで確実にDestroyしてから参照をクリアする。
 
+            RoleSettingsDisplayUi.Reset();
             DestroyGeneratedMenus();
 
 
@@ -2166,6 +2167,7 @@ namespace TownOfHost
 
 
 
+                RoleSettingsDisplayUi.Create(__instance, tabButtons[(int)TabGroup.Other2]);
                 CreateLobbyInfo();
 
 
@@ -3138,39 +3140,7 @@ namespace TownOfHost
 
 
 
-                                        // roleCommands辞書はGetRolesInfoの初回呼び出し時に遅延初期化されるため、
-
-                                        // まだ未初期化(null)の場合に備え、空引数で一度呼んで初期化だけ済ませておく。
-
-                                        if (ChatCommands.roleCommands == null)
-
-                                        {
-
-                                            UtilsRoleInfo.GetRolesInfo("", byte.MaxValue);
-
-                                        }
-
-
-
-                                        var chatCommand = ChatCommands.roleCommands != null && ChatCommands.roleCommands.TryGetValue(option.CustomRole, out var cmd)
-
-                                            ? cmd
-
-                                            : option.CustomRole.GetRoleInfo()?.ChatCommand;
-
-                                        if (string.IsNullOrEmpty(chatCommand)) return;
-
-
-
-                                        // "/cmd h r <役職コマンド名>" と同じ処理だが、
-
-                                        // 送信先をホスト自身だけでなく全員(byte.MaxValue)にする。
-
-                                        // SendMessage内部で「ホストでなければ何もしない」処理が
-
-                                        // 既にあるため、実質的に「ホストが押した時だけ全員に送られる」形になる。
-
-                                        UtilsRoleInfo.GetRolesInfo(chatCommand, byte.MaxValue);
+                                        UtilsRoleInfo.GetRolesInfo(option.CustomRole.ToString(), byte.MaxValue);
 
                                     }));
 
@@ -3388,6 +3358,16 @@ namespace TownOfHost
 
             {
 
+                case "StreamCommentToggle":
+                    Main.ShowStreamComments.Value = !Main.ShowStreamComments.Value;
+                    break;
+                case "StreamCommentPasteURL":
+                    if (!StreamerInfo.TrySetStreamURL(GUIUtility.systemCopyBuffer))
+                        Logger.seeingame("YouTubeの配信URLを確認してください。");
+                    break;
+                case "StreamCommentResetPos":
+                    StreamCommentFrame.ResetPosition();
+                    break;
                 case "ShowSleld": ShowRandomSpawnOption.CreateSpawanOptionMenu(parent, MapNames.Skeld); break;
 
                 case "ShowMira": ShowRandomSpawnOption.CreateSpawanOptionMenu(parent, MapNames.MiraHQ); break;

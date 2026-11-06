@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace TownOfHost
 {
-    public class CustomRpcSender
+    public class CustomRpcSender : IDisposable
     {
         public MessageWriter stream;
         public readonly string name;
@@ -221,11 +221,33 @@ namespace TownOfHost
                 }
             }
 
-            AmongUsClient.Instance.SendOrDisconnect(stream);
-            onSendDelegate();
-            currentState = State.Finished;
-            Logger.Info($"\"{name}\" is finished", "CustomRpcSender");
+            try
+            {
+                AmongUsClient.Instance.SendOrDisconnect(stream);
+                // The packet can already be delivered even if the callback throws.
+                currentState = State.Finished;
+                onSendDelegate();
+                Logger.Info($"\"{name}\" is finished", "CustomRpcSender");
+            }
+            finally
+            {
+                currentState = State.Finished;
+                RecycleStream();
+            }
+        }
+
+        private bool recycled;
+        private void RecycleStream()
+        {
+            if (recycled) return;
+            recycled = true;
             stream.Recycle();
+        }
+        // Callers building compound packets may fail before SendMessage is reached.
+        public void Dispose()
+        {
+            currentState = State.Finished;
+            RecycleStream();
         }
 
         // Write

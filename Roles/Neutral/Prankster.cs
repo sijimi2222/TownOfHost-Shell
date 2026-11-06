@@ -168,17 +168,17 @@ public sealed class Prankster : RoleBase, ISelfVoter, IAdditionalWinner, ISystem
         }
     }
 
-    // Reuse ChatManager's standard SetName -> SendChat -> SetName pattern, addressed to the recipient.
-    // Speaking as the recipient also avoids the meeting's per-client alive/dead chat masking.
+    // Use the standard private-message queue for remote clients. It handles official-server
+    // chat restrictions (host-owned speaker and notice text in SetName for Vanilla).
     static void SendNotice(PlayerControl recipient, string message)
     {
         if (!AmongUsClient.Instance.AmHost || !IsParticipant(recipient)) return;
         string title = $"<{Main.ModColor}>{GetString("DefaultSystemMessageTitle")}</color>";
-        string body = "<align=\"left\"><size=70%>" + message + "</size>";
         if (recipient == PlayerControl.LocalPlayer)
         {
             var chat = HudManager.Instance?.Chat;
             if (chat == null) return;
+            string body = "<align=\"left\"><size=70%>" + message + "</size>";
             string originalName = recipient.Data.PlayerName;
             recipient.SetName(title);
             try { chat.AddChat(recipient, body); }
@@ -186,22 +186,16 @@ public sealed class Prankster : RoleBase, ISelfVoter, IAdditionalWinner, ISystem
             return;
         }
         int clientId = recipient.GetClientId();
-        if (clientId < 0) return; // Never let an unavailable private recipient become a broadcast.
-        string restoredName = recipient.GetRealName(isMeeting: true).ApplyNameColorData(recipient, recipient, true);
-        if (GameStates.IsMeeting)
-            restoredName += TownOfHost.Roles.Crewmate.Chief.MeetingMark(recipient, recipient)
-                + GetCurseMark(recipient, recipient, true);
-        else if (Main.LastNotifyNames.TryGetValue((recipient.PlayerId, recipient.PlayerId), out var lastName))
-            restoredName = lastName;
-        var sender = CustomRpcSender.Create("PranksterNotice", SendOption.Reliable);
-        sender.StartMessage(clientId);
-        sender.StartRpc(recipient.NetId, RpcCalls.SetName).Write(recipient.Data.NetId).Write(title).EndRpc();
-        sender.StartRpc(recipient.NetId, RpcCalls.SendChat).Write(body).EndRpc();
-        sender.StartRpc(recipient.NetId, RpcCalls.SetName).Write(recipient.Data.NetId).Write(restoredName).EndRpc();
-        sender.EndMessage();
-        sender.SendMessage();
+        if (clientId < 0)
+        {
+            Logger.Warn($"Private notice skipped: recipient={recipient.PlayerId}, unavailable client", "Prankster");
+            return; // Never let an unavailable private recipient become a broadcast.
+        }
+        // ChatManager revalidates the recipient immediately before dispatch; do not send
+        // SendChat directly from the recipient's (non-host-owned) PlayerControl.
+        Utils.SendMessage(message, recipient.PlayerId, title);
+        Logger.Info($"Private notice queued: recipient={recipient.PlayerId}", "Prankster");
     }
-
     static bool HasPendingRequest(byte target)
     {
         foreach (var role in CustomRoleManager.AllActiveRoles.Values)

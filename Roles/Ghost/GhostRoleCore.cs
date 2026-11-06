@@ -132,6 +132,8 @@ class GhostRoleCore
         Sealer.Init();
 
         SilverBuzzer.Init();
+        UserAddons2026.Init();
+        UserRoles2026.Reset();
 
         Twins.Init();
 
@@ -271,6 +273,8 @@ class GhostRoleCore
         Surrender.SetupCustomOption();
 
         Reporting.SetupCustomOption();
+        Notice.SetupCustomOption();
+        UserAddons2026.SetupCustomOption();
 
         //ゆーれーやくしょく
 

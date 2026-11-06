@@ -24,6 +24,12 @@ namespace TownOfHost
 
         private static float _timer = 1f;
 
+        internal static void RefreshLayout(GameOptionsMenu menu)
+        {
+            _timer = 1f;
+            Postfix(menu);
+        }
+
         public static void Postfix(GameOptionsMenu __instance)
 
         {
@@ -624,9 +630,9 @@ namespace TownOfHost
 
 
 
-                bool shellHeaderPlaced = false;
-                bool otherHeaderPlaced = false;
+                var placedOrigins = new System.Collections.Generic.HashSet<string>();
                 ShellRoleSettingsGroup.HideHeader(__instance);
+                RoleSettingsDisplayUi.HideHeaders(__instance);
                 PortSourceSettingsRow.Hide(__instance);
 
                 foreach (var option in ShellRoleSettingsGroup.DisplayOptions(tab))
@@ -657,7 +663,8 @@ namespace TownOfHost
 
                             var hi = 0;
 
-                            var henabled = AmongUsClient.Instance.AmHost && !option.IsHiddenOn(Options.CurrentGameMode);
+                            var henabled = AmongUsClient.Instance.AmHost && !option.IsHiddenOn(Options.CurrentGameMode)
+                                && !RoleSettingsDisplay.IsLegacyGroupHeader(option);
 
                             var heparent = option.Parent;
 
@@ -987,14 +994,16 @@ namespace TownOfHost
 
                     {
 
-                        if (isroleoption && ShellRoleSettingsGroup.IsRoleTab(tab))
+                        if (RoleSettingsDisplay.IsRoleList(tab))
                         {
-                            int group = ShellRoleSettingsGroup.Group(option);
-                            if ((group == 1 && !shellHeaderPlaced) || (group == 2 && !otherHeaderPlaced))
+                            var section = RoleSettingsDisplay.HeaderFor(tab, option);
+                            if (section != null && placedOrigins.Add(section.Key))
+                                RoleSettingsDisplayUi.PlaceHeader(__instance, tab, section, ref offset);
+                            if (RoleSettingsDisplay.IsCollapsed(tab, section))
                             {
-                                ShellRoleSettingsGroup.PlaceHeader(__instance, ref offset, group);
-                                if (group == 1) shellHeaderPlaced = true;
-                                else otherHeaderPlaced = true;
+                                option.OptionBehaviour.gameObject.SetActive(false);
+                                numItems--;
+                                continue;
                             }
                         }
 
@@ -1106,6 +1115,7 @@ namespace TownOfHost
 
             }
 
+            RoleSettingsDisplayUi.Refresh();
             var settingsButton = __instance.GameSettingsTab?.gameObject;
 
             var allButton = ModSettingsTab?.AllButton?.gameObject;

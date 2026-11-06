@@ -1,5 +1,6 @@
-// Integrated from hamo beta 4.00.32.00; Shell IDs and shared paths are audited separately.
+﻿// Integrated from hamo beta 4.00.32.00; Shell IDs and shared paths are audited separately.
 using AmongUs.GameOptions;
+using System.Linq;
 
 using TownOfHost.Roles.Core;
 
@@ -144,6 +145,10 @@ public sealed class MadParasite : RoleBase
         TryTransform(killer);
     }
 
+    internal static bool IsLastLivingImpostor(PlayerControl killer)
+        => killer != null && killer.GetCustomRole().IsImpostor()
+            && !PlayerCatch.AllAlivePlayerControls.Any(p => p.PlayerId != killer.PlayerId && p.GetCustomRole().IsImpostor());
+
     private void TryTransform(PlayerControl killer)
     {
         if (transformProcessed || !canInfect) return;
@@ -156,6 +161,9 @@ public sealed class MadParasite : RoleBase
             transformProcessed = true;
             return;
         }
+
+        // Never remove the final living impostor from its faction.
+        if (IsLastLivingImpostor(killer)) { transformProcessed = true; return; }
 
         transformProcessed = true;
         alreadyTransformed.Add(killer.PlayerId);

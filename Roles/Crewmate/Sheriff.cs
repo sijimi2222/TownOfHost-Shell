@@ -233,7 +233,30 @@ public sealed class Sheriff : RoleBase, IKiller, ISchrodingerCatOwner
             if (Event.CheckRole(neutral) is false) continue;
 
             if (neutral is CustomRoles.SchrodingerCat) continue;
+            // New-only slots: do not advance any legacy neutral/cat option offset.
+            if (neutral is CustomRoles.Informant or CustomRoles.LifeSaver)
+            {
+                int optionId = neutral == CustomRoles.Informant ? 994391 : 994491;
+                SetUpKillTargetOption(neutral, optionId - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
 
+            // New roles must not shift existing sequential target-option IDs.
+            if (neutral is CustomRoles.Romeo or CustomRoles.Juliet)
+            {
+                SetUpKillTargetOption(neutral, (neutral == CustomRoles.Romeo ? 992716 : 992816) - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
+            if (neutral == CustomRoles.Eliminator)
+            {
+                SetUpKillTargetOption(neutral, 993013 - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
+            if (neutral == CustomRoles.LessThan)
+            {
+                SetUpKillTargetOption(neutral, 40317 - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
             SetUpKillTargetOption(neutral, idOffset, true, CanKillNeutrals);
 
             idOffset++;
@@ -962,6 +985,9 @@ public sealed class Sheriff : RoleBase, IKiller, ISchrodingerCatOwner
 
         if (cRole == CustomRoles.Jackaldoll) return CanKillNeutrals.GetValue() == 0 || (!KillTargetOptions.TryGetValue(CustomRoles.Jackal, out var option) && option.GetBool()) || (!KillTargetOptions.TryGetValue(CustomRoles.JackalMafia, out var op) && op.GetBool());
 
+        // The new target uses its reserved option; do not alter existing target-role behavior.
+        if (cRole == CustomRoles.Eliminator)
+            return CanKillNeutrals.GetValue() == 0 || (KillTargetOptions.TryGetValue(cRole, out var eliminatorTargetOption) && eliminatorTargetOption.GetBool());
         if (cRole == CustomRoles.SKMadmate) return KillTargetOptions.TryGetValue(CustomRoles.Madmate, out var option) && option.GetBool();
 
         if (player.Is(CustomRoles.Amanojaku)) return CanKillNeutrals.GetValue() == 0;
@@ -978,7 +1004,7 @@ public sealed class Sheriff : RoleBase, IKiller, ISchrodingerCatOwner
 
             CustomRoleTypes.Neutral => CanKillNeutrals.GetValue() == 0 || (!KillTargetOptions.TryGetValue(cRole, out var option) && option.GetBool()),
 
-            CustomRoleTypes.Crewmate => cRole is CustomRoles.WolfBoy,
+            CustomRoleTypes.Crewmate => cRole is CustomRoles.WolfBoy && WolfBoy.SeenAsImpostor,
 
             _ => false,
 

@@ -267,11 +267,9 @@ public sealed class Sleeper : RoleBase, IAdditionalWinner, IKiller
 
 
     private static void SetupOptionItem()
-
     {
-
+        SoloWinOption.Create(RoleInfo, 9, defo: 15); // 勝利優先度(これが無いと単独勝利が「データなし」で弾かれていた)
         OptionGaugeSpeed = IntegerOptionItem.Create(RoleInfo, 10, OptionName.SleeperGaugeSpeed, new(1, 100, 1), 5, false)
-
             .SetValueFormat(OptionFormat.Seconds);
 
         OptionCoolTime = IntegerOptionItem.Create(RoleInfo, 14, OptionName.SleeperCoolTime, new(1, 100, 1), 60, false)

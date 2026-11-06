@@ -15,6 +15,10 @@ public class CustomNetObject
 
     private static readonly Queue<Action> SpawnQueue = new();
     private static bool IsSpawning = false;
+    private static uint spawnGeneration;
+    private static bool CurrentSpawn(uint generation, AmongUsClient client, int game)
+        => generation == spawnGeneration && client != null && client == AmongUsClient.Instance
+            && client.AmHost && client.GameId == game && client.GameState == AmongUsClient.GameStates.Started;
 
     protected int Id;
     public PlayerControl PlayerControl;
@@ -22,16 +26,19 @@ public class CustomNetObject
 
     protected virtual bool IsDynamic => false;
     protected virtual bool CanCreate => true;
+    protected virtual bool DelayPlayerIdReset => false;
 
     public void Despawn()
     {
-        if (!AmongUsClient.Instance.AmHost) return;
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
 
         try
         {
             if (PlayerControl != null)
             {
                 MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
+                try
+                {
                 writer.StartMessage(5);
                 writer.Write(AmongUsClient.Instance.GameId);
                 writer.StartMessage(5);
@@ -39,7 +46,8 @@ public class CustomNetObject
                 writer.EndMessage();
                 writer.EndMessage();
                 AmongUsClient.Instance.SendOrDisconnect(writer);
-                writer.Recycle();
+                }
+                finally { writer.Recycle(); }
 
                 AmongUsClient.Instance.RemoveNetObject(PlayerControl);
                 UnityEngine.Object.Destroy(PlayerControl.gameObject);
@@ -51,20 +59,27 @@ public class CustomNetObject
 
     protected void Hide(PlayerControl player)
     {
-        if (!AmongUsClient.Instance.AmHost) return;
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
 
         if (player.AmOwner)
         {
+            var hiddenPlayer = PlayerControl;
+            var client = AmongUsClient.Instance;
+            int game = client.GameId;
+            uint generation = spawnGeneration;
             _ = new LateTask(() =>
             {
-                try { PlayerControl.transform.FindChild("Names").FindChild("NameText_TMP").gameObject.SetActive(false); }
+                if (!CurrentSpawn(generation, client, game) || !hiddenPlayer || PlayerControl != hiddenPlayer) return;
+                try { hiddenPlayer.transform.FindChild("Names").FindChild("NameText_TMP").gameObject.SetActive(false); }
                 catch { }
-                PlayerControl.Visible = false;
+                hiddenPlayer.Visible = false;
             }, 0.1f, "CNO.Hide.Local", true);
             return;
         }
 
         MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
+        try
+        {
         writer.StartMessage(6);
         writer.Write(AmongUsClient.Instance.GameId);
         writer.WritePacked(player.OwnerId);
@@ -73,7 +88,8 @@ public class CustomNetObject
         writer.EndMessage();
         writer.EndMessage();
         AmongUsClient.Instance.SendOrDisconnect(writer);
-        writer.Recycle();
+        }
+        finally { writer.Recycle(); }
     }
 
     protected virtual void OnFixedUpdate()
@@ -105,16 +121,18 @@ public class CustomNetObject
         string origPet = outfit.PetId;
         string origVisor = outfit.VisorId;
 
-        var sender = CustomRpcSender.Create("CNO.SetAppearance", SendOption.Reliable);
+        using var sender = CustomRpcSender.Create("CNO.SetAppearance", SendOption.Reliable);
         MessageWriter writer = sender.stream;
         sender.StartMessage();
 
-        outfit.PlayerName = displayName ?? origName;
-        outfit.ColorId = colorId;
-        outfit.HatId = hatId ?? "";
-        outfit.SkinId = skinId ?? "";
-        outfit.PetId = petId ?? "";
-        outfit.VisorId = visorId ?? "";
+        try
+        {
+            outfit.PlayerName = displayName ?? origName;
+            outfit.ColorId = colorId;
+            outfit.HatId = hatId ?? "";
+            outfit.SkinId = skinId ?? "";
+            outfit.PetId = petId ?? "";
+            outfit.VisorId = visorId ?? "";
 
         writer.StartMessage(1);
         writer.WritePacked(PlayerControl.LocalPlayer.Data.NetId);
@@ -128,13 +146,16 @@ public class CustomNetObject
             .WriteNetObject(PlayerControl.LocalPlayer)
             .Write(false)
             .EndRpc();
-
-        outfit.PlayerName = origName;
-        outfit.ColorId = origColor;
-        outfit.HatId = origHat;
-        outfit.SkinId = origSkin;
-        outfit.PetId = origPet;
-        outfit.VisorId = origVisor;
+        }
+        finally
+        {
+            outfit.PlayerName = origName;
+            outfit.ColorId = origColor;
+            outfit.HatId = origHat;
+            outfit.SkinId = origSkin;
+            outfit.PetId = origPet;
+            outfit.VisorId = origVisor;
+        }
 
         writer.StartMessage(1);
         writer.WritePacked(PlayerControl.LocalPlayer.Data.NetId);
@@ -178,10 +199,12 @@ public class CustomNetObject
 
     protected void CreateNetObject(Vector2 position)
     {
-        if (!AmongUsClient.Instance.AmHost) return;
-        if (GameStates.IsLobby || GameStates.IsEnded) return;
+        var client = AmongUsClient.Instance;
+        if (client == null || !client.AmHost || client.GameState != AmongUsClient.GameStates.Started) return;
 
-        SpawnQueue.Enqueue(() => { if (CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
+        uint generation = spawnGeneration;
+        int game = client.GameId;
+        SpawnQueue.Enqueue(() => { if (CurrentSpawn(generation, client, game) && CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
         ProcessQueue();
     }
 
@@ -204,12 +227,16 @@ public class CustomNetObject
 
     public static void ResetSpawnState()
     {
+        unchecked { spawnGeneration++; }
         SpawnQueue.Clear();
         IsSpawning = false;
     }
 
     private void DoCreate(Vector2 position)
     {
+        var spawnClient = AmongUsClient.Instance;
+        int spawnGame = spawnClient.GameId;
+        uint generation = spawnGeneration;
         PlayerControl = UnityEngine.Object.Instantiate(
             AmongUsClient.Instance.PlayerPrefab, Vector2.zero, Quaternion.identity);
         PlayerControl.PlayerId = 254;
@@ -222,6 +249,8 @@ public class CustomNetObject
         AmongUsClient.Instance.NetIdCnt += 1U;
 
         MessageWriter msg = MessageWriter.Get(SendOption.Reliable);
+        try
+        {
         msg.StartMessage(5);
         msg.Write(AmongUsClient.Instance.GameId);
         msg.StartMessage(4);
@@ -244,7 +273,8 @@ public class CustomNetObject
 
         msg.EndMessage();
         AmongUsClient.Instance.SendOrDisconnect(msg);
-        msg.Recycle();
+        }
+        finally { msg.Recycle(); }
 
         if (PlayerControl.AllPlayerControls.Contains(PlayerControl))
             PlayerControl.AllPlayerControls.Remove(PlayerControl);
@@ -263,10 +293,12 @@ public class CustomNetObject
 
         _ = new LateTask(() =>
         {
-            if (!capturedPC || !capturedSelf.CanCreate) return;
+            if (!CurrentSpawn(generation, spawnClient, spawnGame) || !capturedPC || !capturedSelf.CanCreate) return;
+            var localHost = PlayerControl.LocalPlayer;
+            if (localHost == null || localHost.Data == null) return;
             foreach (var pc in PlayerCatch.AllPlayerControls)
             {
-                if (pc.AmOwner) continue;
+                if (pc == null || pc.Data == null || pc.Data.Disconnected || pc.AmOwner) continue;
 
                 var sender = CustomRpcSender.Create("CNO.AssignId", SendOption.Reliable);
                 MessageWriter writer = sender.stream;
@@ -282,20 +314,44 @@ public class CustomNetObject
                     .Write((int)MurderResultFlags.FailedError)
                     .EndRpc();
 
-                writer.StartMessage(1);
-                writer.WritePacked(capturedPC.NetId);
-                writer.Write((byte)254);
-                writer.EndMessage();
+                if (!capturedSelf.DelayPlayerIdReset)
+                {
+                    writer.StartMessage(1);
+                    writer.WritePacked(capturedPC.NetId);
+                    writer.Write((byte)254);
+                    writer.EndMessage();
+                }
 
                 sender.EndMessage();
                 sender.SendMessage();
             }
 
-            capturedPC.CachedPlayerData = PlayerControl.LocalPlayer.Data;
+            capturedPC.CachedPlayerData = localHost.Data;
         }, 0.1f, "CNO.AssignId", true);
+
+        if (DelayPlayerIdReset)
+        {
+            _ = new LateTask(() =>
+            {
+                if (!CurrentSpawn(generation, spawnClient, spawnGame) || !capturedPC || !AllObjects.Contains(capturedSelf) || !capturedSelf.CanCreate) return;
+                foreach (var pc in PlayerCatch.AllPlayerControls)
+                {
+                    if (pc == null || pc.AmOwner || pc.Data == null || pc.Data.Disconnected) continue;
+                    var sender = CustomRpcSender.Create("CNO.Text.ResetId", SendOption.Reliable);
+                    sender.StartMessage(pc.OwnerId);
+                    sender.stream.StartMessage(1);
+                    sender.stream.WritePacked(capturedPC.NetId);
+                    sender.stream.Write((byte)254);
+                    sender.stream.EndMessage();
+                    sender.EndMessage(); sender.SendMessage();
+                }
+            }, 1.1f, "CNO.Text.ResetId", true);
+        }
 
         _ = new LateTask(() =>
         {
+            // A retired session must never release another session's in-flight spawn.
+            if (!CurrentSpawn(generation, spawnClient, spawnGame)) return;
             try
             {
                 if (!capturedPC || !capturedSelf.CanCreate) capturedSelf.Despawn();
@@ -330,8 +386,11 @@ public class CustomNetObject
                 Logger.Error($"CNO.RemoveFromGameData: {e}", "CustomNetObject");
             }
 
-            IsSpawning = false;
-            ProcessQueue();
+            if (CurrentSpawn(generation, spawnClient, spawnGame))
+            {
+                IsSpawning = false;
+                ProcessQueue();
+            }
         }, 0.4f, "CNO.OnCreated", true);
     }
 
@@ -366,8 +425,7 @@ public class CustomNetObject
     {
         try
         {
-            SpawnQueue.Clear();
-            IsSpawning = false;
+            ResetSpawnState();
             foreach (var obj in AllObjects.ToArray())
                 obj?.Despawn();
             AllObjects.Clear();
@@ -380,3 +438,4 @@ public interface IKillableDummy
 {
     void OnKilled(PlayerControl killer);
 }
+

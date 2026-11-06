@@ -11,6 +11,16 @@ namespace TownOfHost
     {
         public static SimpleButton OpenMenu;
         public static SimpleButton SetURL; public static TextMeshPro NowURLText; public static TextMeshPro NowURLTitle;
+        /// <summary>YouTubeのコメント枠の表示ON/OFF</summary>
+        public static SimpleButton CommentFrameToggle;
+        /// <summary>YouTubeのコメント枠の位置を最初の場所に戻す</summary>
+        public static SimpleButton CommentFrameReset;
+        /// <summary>OBS用の試合の状況ページ(ON/OFF)と、役職の出し方</summary>
+        public static SimpleButton ObsToggle;
+        public static SimpleButton ObsRoleMode;
+        static string ObsLabel() => Main.ObsOverlay.Value ? $"OBS表示: ON\n{ObsOverlay.Url}" : "OBS表示: OFF";
+        static string ObsRoleLabel() => $"OBSの役職: {ObsOverlay.RoleModeLabel(Main.ObsShowRoles.Value)}";
+        static string CommentFrameLabel() => Main.ShowStreamComments.Value ? "コメント枠: ON" : "コメント枠: OFF";
         public static TextBoxTMP JoinWord; public static TextMeshPro JoinWordTitle;
         public static TextBoxTMP RemoveWord; public static TextMeshPro RemoveWordTitle;
         public static void CreateMenu(MainMenuManager mainmenumanager)
@@ -63,9 +73,8 @@ namespace TownOfHost
                     () =>
                     {
                         var url = GUIUtility.systemCopyBuffer;
-                        if (url.StartsWith("https://youtube") || url.StartsWith("https://www.youtube.com/"))
+                        if (StreamerInfo.TrySetStreamURL(url))
                         {
-                            StreamerInfo.StreamURL = url;
                             NowURLText.text = StreamerInfo.StreamURL;
                         }
                         else
@@ -78,9 +87,81 @@ namespace TownOfHost
                     );
                 SetURL.Button.gameObject.SetActive(false);
             }
-
+            if (SimpleButton.IsNullOrDestroyed(CommentFrameToggle))
+            {
+                CommentFrameToggle = MainMenuManagerPatch.CreateButton(
+                    "CommentFrameToggle",
+                    new Vector3(-1.9f, -2.35f, -5),
+                    new(245, 46, 32, byte.MaxValue),
+                    new(212, 113, 106, byte.MaxValue),
+                    () =>
+                    {
+                        Main.ShowStreamComments.Value = !Main.ShowStreamComments.Value;
+                        if (CommentFrameToggle?.Label != null) CommentFrameToggle.Label.text = CommentFrameLabel();
+                    },
+                    CommentFrameLabel(),
+                    transform: mainmenumanager.screenTint.transform
+                    );
+                CommentFrameToggle.Button.gameObject.SetActive(false);
+            }
+            if (SimpleButton.IsNullOrDestroyed(ObsToggle))
+            {
+                ObsToggle = MainMenuManagerPatch.CreateButton(
+                    "ObsToggle",
+                    new Vector3(2.1f, -2.35f, -5),
+                    new(80, 80, 200, byte.MaxValue),
+                    new(110, 110, 230, byte.MaxValue),
+                    () =>
+                    {
+                        Main.ObsOverlay.Value = !Main.ObsOverlay.Value;
+                        ObsOverlay.ApplySetting();
+                        // ONにしたら、OBSに入れるURLをコピーしておく
+                        if (Main.ObsOverlay.Value) GUIUtility.systemCopyBuffer = ObsOverlay.Url;
+                        if (ObsToggle?.Label != null) ObsToggle.Label.text = ObsLabel();
+                    },
+                    ObsLabel(),
+                    transform: mainmenumanager.screenTint.transform
+                    );
+                ObsToggle.Button.gameObject.SetActive(false);
+                ObsRoleMode = MainMenuManagerPatch.CreateButton(
+                    "ObsRoleMode",
+                    new Vector3(2.1f, -1.8f, -5),
+                    new(80, 80, 200, byte.MaxValue),
+                    new(110, 110, 230, byte.MaxValue),
+                    () =>
+                    {
+                        Main.ObsShowRoles.Value = (Main.ObsShowRoles.Value + 1) % 3;
+                        ObsOverlay.ApplySetting();
+                        if (ObsRoleMode?.Label != null) ObsRoleMode.Label.text = ObsRoleLabel();
+                    },
+                    ObsRoleLabel(),
+                    transform: mainmenumanager.screenTint.transform
+                    );
+                ObsRoleMode.Button.gameObject.SetActive(false);
+            }
+            if (SimpleButton.IsNullOrDestroyed(CommentFrameReset))
+            {
+                CommentFrameReset = MainMenuManagerPatch.CreateButton(
+                    "CommentFrameReset",
+                    new Vector3(0.1f, -2.35f, -5),
+                    new(245, 46, 32, byte.MaxValue),
+                    new(212, 113, 106, byte.MaxValue),
+                    () => StreamCommentFrame.ResetPosition(),
+                    "枠の位置を戻す",
+                    transform: mainmenumanager.screenTint.transform
+                    );
+                CommentFrameReset.Button.gameObject.SetActive(false);
+            }
             void SetOpenMenu()
             {
+                if (!SimpleButton.IsNullOrDestroyed(CommentFrameToggle))
+                {
+                    CommentFrameToggle.Button.gameObject.SetActive(true);
+                    if (CommentFrameToggle.Label != null) CommentFrameToggle.Label.text = CommentFrameLabel();
+                }
+                if (!SimpleButton.IsNullOrDestroyed(CommentFrameReset)) CommentFrameReset.Button.gameObject.SetActive(true);
+                if (!SimpleButton.IsNullOrDestroyed(ObsToggle)) { ObsToggle.Button.gameObject.SetActive(true); ObsToggle.Label.text = ObsLabel(); }
+                if (!SimpleButton.IsNullOrDestroyed(ObsRoleMode)) { ObsRoleMode.Button.gameObject.SetActive(true); ObsRoleMode.Label.text = ObsRoleLabel(); }
                 mainmenumanager.screenTint.enabled = true;
                 if (JoinWord is not null)
                 {
@@ -150,6 +231,10 @@ namespace TownOfHost
                 RemoveWord?.gameObject?.SetActive(false);
                 NowURLText?.gameObject?.SetActive(false);
                 SetURL?.Button?.gameObject?.SetActive(false);
+                if (!SimpleButton.IsNullOrDestroyed(CommentFrameToggle)) CommentFrameToggle.Button.gameObject.SetActive(false);
+                if (!SimpleButton.IsNullOrDestroyed(CommentFrameReset)) CommentFrameReset.Button.gameObject.SetActive(false);
+                if (!SimpleButton.IsNullOrDestroyed(ObsToggle)) ObsToggle.Button.gameObject.SetActive(false);
+                if (!SimpleButton.IsNullOrDestroyed(ObsRoleMode)) ObsRoleMode.Button.gameObject.SetActive(false);
                 NowURLTitle?.gameObject?.SetActive(false);
                 JoinWordTitle?.gameObject?.SetActive(false);
                 RemoveWordTitle?.gameObject?.SetActive(false);
@@ -179,7 +264,7 @@ namespace TownOfHost
 
         public static HopeInfo TryCrateHopeInfo(string comment, string accountid, string accountname)
         {
-            if (comment.Contains(Main.JoinWord.Value))
+            if (!string.IsNullOrWhiteSpace(Main.JoinWord.Value) && !string.IsNullOrWhiteSpace(accountid) && comment.Contains(Main.JoinWord.Value))
             {
                 var playername = comment.RemoveDeltext(Main.JoinWord.Value);
                 return new HopeInfo(comment, accountid, accountname, playername);

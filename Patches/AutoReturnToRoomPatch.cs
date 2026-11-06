@@ -13,6 +13,8 @@ namespace TownOfHost.Patches
     {
 
         private static bool ReturnScheduled;
+        private static EndGameManager scheduledOwner;
+        private static uint scheduleSequence;
 
 
 
@@ -20,7 +22,9 @@ namespace TownOfHost.Patches
 
         {
 
-            if (!AmongUsClient.Instance.AmHost) return;
+            var scheduledClient = AmongUsClient.Instance;
+            if (scheduledClient == null || !scheduledClient.AmHost || !__instance) return;
+            int scheduledGame = scheduledClient.GameId;
 
 
 
@@ -44,9 +48,11 @@ namespace TownOfHost.Patches
 
 
 
-            if (ReturnScheduled) return;
+            if (ReturnScheduled && scheduledOwner == __instance) return;
 
             ReturnScheduled = true;
+            scheduledOwner = __instance;
+            uint sequence = unchecked(++scheduleSequence);
 
 
 
@@ -54,9 +60,14 @@ namespace TownOfHost.Patches
 
             {
 
+                if (sequence != scheduleSequence) return;
                 ReturnScheduled = false;
+                scheduledOwner = null;
 
-                if (!AmongUsClient.Instance.AmHost) return;
+                var client = AmongUsClient.Instance;
+                if (!__instance || !__instance.gameObject.activeInHierarchy || client == null || client != scheduledClient || !client.AmHost
+                    || client.GameId != scheduledGame || client.GameState != AmongUsClient.GameStates.Ended) return;
+                if (!DestroyableSingleton<EndGameNavigation>.InstanceExists) return;
 
 
 
@@ -111,4 +122,6 @@ namespace TownOfHost.Patches
     }
 
 }
+
+
 

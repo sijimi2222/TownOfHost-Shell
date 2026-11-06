@@ -13,7 +13,7 @@ internal static class ShellRoleSettingsGroup
     internal static bool IsRoleTab(TabGroup tab) => tab is TabGroup.CrewmateRoles
         or TabGroup.ImpostorRoles or TabGroup.MadmateRoles or TabGroup.NeutralRoles;
 
-    static CustomRoles RoleOf(OptionItem option)
+    internal static CustomRoles RoleOf(OptionItem option)
     {
         // Follow existing parents too: nested settings need not repeat ParentRole.
         for (var current = option; current != null; current = current.Parent)
@@ -26,7 +26,8 @@ internal static class ShellRoleSettingsGroup
 
     // Destroyer is an explicitly requested display-only exception; preserve its Nebula From.
     internal static bool IsShell(OptionItem option)
-        => RoleOf(option) is CustomRoles.Chief or CustomRoles.Tuner or CustomRoles.Lethe
+        => Hamo435RoleOrder.Contains(RoleOf(option))
+            || RoleOf(option) is CustomRoles.Chief or CustomRoles.Tuner or CustomRoles.Lethe
                 or CustomRoles.Destroyer or CustomRoles.MadCleaner
             || (CustomRoleManager.AllRolesInfo.TryGetValue(RoleOf(option), out var info)
                 && info.From == From.TownOfHost_Shell);
@@ -41,7 +42,7 @@ internal static class ShellRoleSettingsGroup
             && info.From == From.AmongUs ? 0 : 2;
     }
 
-    static int Priority(OptionItem option) => RoleOf(option) switch
+    static int Priority(OptionItem option) => Hamo435RoleOrder.Priority.TryGetValue(RoleOf(option), out var importedPriority) ? importedPriority : RoleOf(option) switch
     {
         CustomRoles.Chief => 0,
         CustomRoles.Tuner => 1,
@@ -54,14 +55,7 @@ internal static class ShellRoleSettingsGroup
     };
 
     internal static IEnumerable<OptionItem> DisplayOptions(TabGroup tab)
-    {
-        var options = OptionItem.AllOptions.Where(option => option.Tab == tab);
-        // Stable ordering preserves existing order inside Vanilla/Other and each role's child rows.
-        return IsRoleTab(tab)
-            ? options.OrderBy(Group)
-                .ThenBy(option => IsShell(option) ? Priority(option) : 0)
-            : options;
-    }
+        => RoleSettingsDisplay.DisplayOptions(tab);
 
     internal static void HideHeader(GameOptionsMenu menu)
     {

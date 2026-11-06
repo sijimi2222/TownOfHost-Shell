@@ -24,7 +24,12 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**最新版は[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.1.0)**<re><br>
+**現在のバージョン v2.2.3**<br>
+製品バージョン: `2.2.3`<br>
+[v2.2.3 リリースノート](docs/releases/v2.2.3.md) / [配布ページ](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.3)<br>
+オンラインメニュー・コード入力UIの更新と、安定性・処理負荷の改善を含みます。<br>
+過去の変更記録は既存のリリースノートを参照してください。<br>
+マッチメイキング機能は現在メンテナンス中です。<re><br>
 過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
 
 ## 公開ルームについて
@@ -97,18 +102,11 @@ Modが使えなくなるよ!<br>
 
 ※本家TownOfHost,TownOfHost_PKO,<br>TownOfHosthamo様の開発者はここでは省略させていただきます
 #### クレジット
-
-##### 役職制作協力
-
-**トラくんの家【泰然】**
-一部の役の制作
-
-#### MODクレジット
 [Town Of Host](https://github.com/tukasa0001/TownOfHost)<br>
 　Fork元の本家です。<br>TownOfHost様にある機能はTownOfHost-Shellでも大体実装されています<br>
 
 [Town Of Host_K](https://github.com/KYMario/TownOfHost-K)<br>
-　Town Of Host_PKO様のフォーク元です。TownOfHost_K様にある機能はTownOfHost-Shellでも大体実装されています<br>
+　Town Of Host_PKO様のフォーク元です。既存コードには、hamo・Pkoなどを通じて継承されたTOH-K由来の役職・機能が含まれます。<br>
 
 [Town Of Host_PKO](https://github.com/satokazoku/TownOfHost-Pko)<br>
 旧TOH-hamoのフォーク元の一つです。TownOfHost_PKO様にある機能もTOH-Shellに多数引き継がれています。<br>

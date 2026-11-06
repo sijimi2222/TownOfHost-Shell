@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Linq;
 
@@ -915,6 +915,7 @@ public abstract class RoleBase : IDisposable
             RoleTypes.GuardianAngel => StringNames.ProtectAbility,
 
             RoleTypes.Detective => StringNames.DetectiveAbilityNotes,
+            RoleTypes.SpiritGuide => StringNames.SpiritGuideAbility,
 
             RoleTypes.ImpostorGhost or RoleTypes.CrewmateGhost => StringNames.HauntAbilityName,
 
@@ -1189,6 +1190,8 @@ public abstract class RoleBase : IDisposable
         Other,
 
         Impostor,
+
+        Kyonshi,
 
     }
 

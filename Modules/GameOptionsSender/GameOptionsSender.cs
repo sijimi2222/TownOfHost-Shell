@@ -18,7 +18,14 @@ namespace TownOfHost.Modules
             AllSenders.RemoveAll(s => !s.AmValid());
             foreach (var sender in AllSenders)
             {
-                if (sender.IsDirty) sender.SendGameOptions();
+                try
+                {
+                    if (sender.IsDirty) sender.SendGameOptions();
+                }
+                catch (System.Exception e)
+                {
+                    Logger.Exception(e, "SendAllGameOptions");
+                }
                 sender.IsDirty = false;
             }
         }
@@ -56,6 +63,7 @@ namespace TownOfHost.Modules
             {
                 writer.Recycle();
                 Logger.Error("オプションのキャストに失敗しました", this.ToString());
+                return;
             }
             writer.EndMessage();
 

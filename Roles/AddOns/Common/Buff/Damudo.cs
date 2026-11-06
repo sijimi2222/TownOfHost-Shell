@@ -218,7 +218,7 @@ namespace TownOfHost.Roles.AddOns.Common
             if (killer == null) return CustomRoles.Impostor;
 
             var role = killer.GetCustomRole();
-            return role < CustomRoles.NotAssigned && role is not CustomRoles.GM
+            return role.IsMainRole() && role is not CustomRoles.GM
                 ? role
                 : CustomRoles.Impostor;
         }

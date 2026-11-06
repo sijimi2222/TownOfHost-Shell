@@ -728,11 +728,10 @@ namespace TownOfHost
         public virtual void SetValue(int afterValue, bool doSave, bool doSync = true)
 
         {
-
             int beforeValue = CurrentValue;
-
+            // 設定を変えたらロビーで知らせる(便利機能)。画面から変えた時(同期する時)だけ
+            var beforeText = doSync && beforeValue != afterValue ? SafeGetString() : null;
             if (IsSingleValue)
-
             {
 
                 SingleValue = afterValue;
@@ -750,11 +749,9 @@ namespace TownOfHost
 
 
             CallUpdateValueEvent(beforeValue, afterValue);
-
             Refresh();
-
+            if (beforeText != null) TownOfHost.Modules.SettingChangeNotice.OnChanged(this, beforeText, SafeGetString());
             if (doSync)
-
             {
 
                 SyncOptions();
@@ -766,11 +763,12 @@ namespace TownOfHost
             {
 
                 OptionSaver.Save();
-
             }
-
         }
-
+        private string SafeGetString()
+        {
+            try { return GetString(); } catch { return ""; }
+        }
         public virtual void SetValue(int afterValue, bool doSync = true)
 
         {

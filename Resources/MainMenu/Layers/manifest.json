@@ -1,0 +1,770 @@
+{
+  "schema_version": 1,
+  "canvas": {
+    "width": 1672,
+    "height": 941,
+    "origin": "top-left",
+    "pixels_per_unit": 100
+  },
+  "original": {
+    "file": "source/final-original.png",
+    "sha256": "9e9370e69e4379ae19f1b5f1bc62dc7e56aa3e0e00949414f671be1b3d800b64",
+    "visible_rect": [
+      0,
+      0,
+      1672,
+      941
+    ]
+  },
+  "background": "background.png",
+  "buttons": [
+    {
+      "id": "Play",
+      "label": "プレイ",
+      "file": "buttons/01_play.png",
+      "image_rect": {
+        "x": 17,
+        "y": 30,
+        "width": 571,
+        "height": 92
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 32,
+        "width": 570,
+        "height": 86
+      },
+      "hit_polygon": [
+        [
+          18,
+          75.0
+        ],
+        [
+          54,
+          32
+        ],
+        [
+          552,
+          32
+        ],
+        [
+          588,
+          75.0
+        ],
+        [
+          552,
+          118
+        ],
+        [
+          54,
+          118
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        75.0
+      ],
+      "unity_local_position": [
+        -5.33,
+        3.955,
+        0
+      ],
+      "sha256": "6b26882b9a207f252c09288edbe55409f06934ac1128ef6d31fd0edec1d9c840"
+    },
+    {
+      "id": "Inventory",
+      "label": "持ち物",
+      "file": "buttons/02_inventory.png",
+      "image_rect": {
+        "x": 17,
+        "y": 130,
+        "width": 571,
+        "height": 90
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 132,
+        "width": 570,
+        "height": 85
+      },
+      "hit_polygon": [
+        [
+          18,
+          174.5
+        ],
+        [
+          54,
+          132
+        ],
+        [
+          552,
+          132
+        ],
+        [
+          588,
+          174.5
+        ],
+        [
+          552,
+          217
+        ],
+        [
+          54,
+          217
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        174.5
+      ],
+      "unity_local_position": [
+        -5.33,
+        2.96,
+        0
+      ],
+      "sha256": "6fd5d2b6d691cbed5a42015c9a245b6dd30457d31c3d5446999731335a2c98b0"
+    },
+    {
+      "id": "Shop",
+      "label": "ショップ",
+      "file": "buttons/03_shop.png",
+      "image_rect": {
+        "x": 17,
+        "y": 229,
+        "width": 570,
+        "height": 92
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 232,
+        "width": 570,
+        "height": 84
+      },
+      "hit_polygon": [
+        [
+          18,
+          274.0
+        ],
+        [
+          54,
+          232
+        ],
+        [
+          552,
+          232
+        ],
+        [
+          588,
+          274.0
+        ],
+        [
+          552,
+          316
+        ],
+        [
+          54,
+          316
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        274.0
+      ],
+      "unity_local_position": [
+        -5.33,
+        1.965,
+        0
+      ],
+      "sha256": "3c969ca59e82b9b05ce92ea89e5495baa99092356aa92f58dbfae0c881b9898e"
+    },
+    {
+      "id": "News",
+      "label": "ニュース",
+      "file": "buttons/04_news.png",
+      "image_rect": {
+        "x": 17,
+        "y": 330,
+        "width": 571,
+        "height": 91
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 333,
+        "width": 570,
+        "height": 85
+      },
+      "hit_polygon": [
+        [
+          18,
+          375.5
+        ],
+        [
+          54,
+          333
+        ],
+        [
+          552,
+          333
+        ],
+        [
+          588,
+          375.5
+        ],
+        [
+          552,
+          418
+        ],
+        [
+          54,
+          418
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        375.5
+      ],
+      "unity_local_position": [
+        -5.33,
+        0.95,
+        0
+      ],
+      "sha256": "9e3142cf1839ad1ef19a76e4af58cdc1a47469e1030103b83f3639dbd3c811f2"
+    },
+    {
+      "id": "Account",
+      "label": "マイアカウント",
+      "file": "buttons/05_account.png",
+      "image_rect": {
+        "x": 17,
+        "y": 431,
+        "width": 570,
+        "height": 92
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 435,
+        "width": 570,
+        "height": 85
+      },
+      "hit_polygon": [
+        [
+          18,
+          477.5
+        ],
+        [
+          54,
+          435
+        ],
+        [
+          552,
+          435
+        ],
+        [
+          588,
+          477.5
+        ],
+        [
+          552,
+          520
+        ],
+        [
+          54,
+          520
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        477.5
+      ],
+      "unity_local_position": [
+        -5.33,
+        -0.07,
+        0
+      ],
+      "sha256": "71f4bd50cc5fdde1c4cc3987e3452a6c676d5aa760b16ee7fd1d2cc5911df358"
+    },
+    {
+      "id": "Settings",
+      "label": "設定",
+      "file": "buttons/06_settings.png",
+      "image_rect": {
+        "x": 17,
+        "y": 533,
+        "width": 571,
+        "height": 93
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 536,
+        "width": 570,
+        "height": 86
+      },
+      "hit_polygon": [
+        [
+          18,
+          579.0
+        ],
+        [
+          54,
+          536
+        ],
+        [
+          552,
+          536
+        ],
+        [
+          588,
+          579.0
+        ],
+        [
+          552,
+          622
+        ],
+        [
+          54,
+          622
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        579.0
+      ],
+      "unity_local_position": [
+        -5.33,
+        -1.085,
+        0
+      ],
+      "sha256": "92d1e54d1fc0bba0947c85e1ec0fe53b05dc81e1f91d5d0599045d3e3521bac2"
+    },
+    {
+      "id": "Credits",
+      "label": "クレジット",
+      "file": "buttons/07_credits.png",
+      "image_rect": {
+        "x": 17,
+        "y": 635,
+        "width": 571,
+        "height": 93
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 640,
+        "width": 570,
+        "height": 85
+      },
+      "hit_polygon": [
+        [
+          18,
+          682.5
+        ],
+        [
+          54,
+          640
+        ],
+        [
+          552,
+          640
+        ],
+        [
+          588,
+          682.5
+        ],
+        [
+          552,
+          725
+        ],
+        [
+          54,
+          725
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        682.5
+      ],
+      "unity_local_position": [
+        -5.33,
+        -2.12,
+        0
+      ],
+      "sha256": "cc4c19521f6db7ba9356c4663990320cd6e00ce21910fc2a907b2ca0c66b8d0f"
+    },
+    {
+      "id": "Quit",
+      "label": "終了",
+      "file": "buttons/08_quit.png",
+      "image_rect": {
+        "x": 17,
+        "y": 737,
+        "width": 571,
+        "height": 93
+      },
+      "hit_rect": {
+        "x": 18,
+        "y": 742,
+        "width": 570,
+        "height": 85
+      },
+      "hit_polygon": [
+        [
+          18,
+          784.5
+        ],
+        [
+          54,
+          742
+        ],
+        [
+          552,
+          742
+        ],
+        [
+          588,
+          784.5
+        ],
+        [
+          552,
+          827
+        ],
+        [
+          54,
+          827
+        ]
+      ],
+      "pivot_canvas": [
+        303.0,
+        784.5
+      ],
+      "unity_local_position": [
+        -5.33,
+        -3.14,
+        0
+      ],
+      "sha256": "650775e6b1e06c0702a1ac9e2dd90691dacc92457bb03a2185995aa0f977eeb9"
+    },
+    {
+      "id": "Discord",
+      "label": "Discord",
+      "file": "buttons/09_discord.png",
+      "image_rect": {
+        "x": 629,
+        "y": 822,
+        "width": 169,
+        "height": 91
+      },
+      "hit_rect": {
+        "x": 630,
+        "y": 825,
+        "width": 167,
+        "height": 87
+      },
+      "hit_polygon": [
+        [
+          630,
+          868.5
+        ],
+        [
+          641.69,
+          825
+        ],
+        [
+          785.31,
+          825
+        ],
+        [
+          797,
+          868.5
+        ],
+        [
+          785.31,
+          912
+        ],
+        [
+          641.69,
+          912
+        ]
+      ],
+      "pivot_canvas": [
+        713.5,
+        868.5
+      ],
+      "unity_local_position": [
+        -1.225,
+        -3.98,
+        0
+      ],
+      "sha256": "9725e5ef5632aafbf733770263bf898018ffe3d950483f3126bf874b2ce4c05f"
+    },
+    {
+      "id": "YouTube",
+      "label": "YouTube",
+      "file": "buttons/10_youtube.png",
+      "image_rect": {
+        "x": 811,
+        "y": 823,
+        "width": 167,
+        "height": 90
+      },
+      "hit_rect": {
+        "x": 812,
+        "y": 825,
+        "width": 166,
+        "height": 87
+      },
+      "hit_polygon": [
+        [
+          812,
+          868.5
+        ],
+        [
+          823.62,
+          825
+        ],
+        [
+          966.38,
+          825
+        ],
+        [
+          978,
+          868.5
+        ],
+        [
+          966.38,
+          912
+        ],
+        [
+          823.62,
+          912
+        ]
+      ],
+      "pivot_canvas": [
+        895.0,
+        868.5
+      ],
+      "unity_local_position": [
+        0.59,
+        -3.98,
+        0
+      ],
+      "sha256": "788bebd7720094f8984b723063f31ce0d4c7970d63066a1f6794c8ad4820edba"
+    },
+    {
+      "id": "GitHub",
+      "label": "GitHub",
+      "file": "buttons/11_github.png",
+      "image_rect": {
+        "x": 992,
+        "y": 823,
+        "width": 165,
+        "height": 90
+      },
+      "hit_rect": {
+        "x": 993,
+        "y": 825,
+        "width": 165,
+        "height": 87
+      },
+      "hit_polygon": [
+        [
+          993,
+          868.5
+        ],
+        [
+          1004.55,
+          825
+        ],
+        [
+          1146.45,
+          825
+        ],
+        [
+          1158,
+          868.5
+        ],
+        [
+          1146.45,
+          912
+        ],
+        [
+          1004.55,
+          912
+        ]
+      ],
+      "pivot_canvas": [
+        1075.5,
+        868.5
+      ],
+      "unity_local_position": [
+        2.395,
+        -3.98,
+        0
+      ],
+      "sha256": "19cedca17a75ab1c19ddb6d927f1e670bcb6b6f5f463625e576e71734d876be8"
+    },
+    {
+      "id": "Version",
+      "label": "バージョン切り替え",
+      "file": "buttons/12_version.png",
+      "image_rect": {
+        "x": 1180,
+        "y": 650,
+        "width": 472,
+        "height": 68
+      },
+      "hit_rect": {
+        "x": 1181,
+        "y": 653,
+        "width": 471,
+        "height": 63
+      },
+      "hit_polygon": [
+        [
+          1181,
+          684.5
+        ],
+        [
+          1213.97,
+          653
+        ],
+        [
+          1619.03,
+          653
+        ],
+        [
+          1652,
+          684.5
+        ],
+        [
+          1619.03,
+          716
+        ],
+        [
+          1213.97,
+          716
+        ]
+      ],
+      "pivot_canvas": [
+        1416.5,
+        684.5
+      ],
+      "unity_local_position": [
+        5.805,
+        -2.14,
+        0
+      ],
+      "sha256": "00909095dc03873be455ea195f6c132d37d470ed9085d7f8beb64eb5c9ee4116"
+    },
+    {
+      "id": "Statistics",
+      "label": "統計",
+      "file": "buttons/13_statistics.png",
+      "image_rect": {
+        "x": 1180,
+        "y": 725,
+        "width": 473,
+        "height": 70
+      },
+      "hit_rect": {
+        "x": 1181,
+        "y": 727,
+        "width": 471,
+        "height": 65
+      },
+      "hit_polygon": [
+        [
+          1181,
+          759.5
+        ],
+        [
+          1213.97,
+          727
+        ],
+        [
+          1619.03,
+          727
+        ],
+        [
+          1652,
+          759.5
+        ],
+        [
+          1619.03,
+          792
+        ],
+        [
+          1213.97,
+          792
+        ]
+      ],
+      "pivot_canvas": [
+        1416.5,
+        759.5
+      ],
+      "unity_local_position": [
+        5.805,
+        -2.89,
+        0
+      ],
+      "sha256": "2dbf7de8da678e8bd525a1ed79d2f772ceb095f71b3ca6c77688ba3b333f0ca7"
+    },
+    {
+      "id": "Stream",
+      "label": "STREAM",
+      "file": "buttons/14_stream.png",
+      "image_rect": {
+        "x": 1180,
+        "y": 801,
+        "width": 473,
+        "height": 74
+      },
+      "hit_rect": {
+        "x": 1181,
+        "y": 803,
+        "width": 471,
+        "height": 70
+      },
+      "hit_polygon": [
+        [
+          1181,
+          838.0
+        ],
+        [
+          1213.97,
+          803
+        ],
+        [
+          1619.03,
+          803
+        ],
+        [
+          1652,
+          838.0
+        ],
+        [
+          1619.03,
+          873
+        ],
+        [
+          1213.97,
+          873
+        ]
+      ],
+      "pivot_canvas": [
+        1416.5,
+        838.0
+      ],
+      "unity_local_position": [
+        5.805,
+        -3.675,
+        0
+      ],
+      "sha256": "86852793afa34409d9cb327b697849fcf4fbc717e8693aa53ff94aeaf37aef14"
+    }
+  ],
+  "notes": [
+    "Image rectangles are sprite bounds; hit_rect/hit_polygon are unchanged game click areas.",
+    "Version-display frame and final logo remain part of the background.",
+    "Hidden scenery is a generated reconstruction, not the artist original.",
+    "No motion or transition behaviour is included."
+  ]
+}

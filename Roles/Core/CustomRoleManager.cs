@@ -161,6 +161,7 @@ public static class CustomRoleManager
 
 
 
+        if (force != true && TaskTurnFortune.TryHandleKill(attemptKiller, attemptTarget)) return false;
         var killerRole = attemptKiller.GetRoleClass();
 
         var targetRole = attemptTarget.GetRoleClass();
@@ -309,6 +310,18 @@ public static class CustomRoleManager
 
                 }
 
+                //タフガイ(他のガードを使い切った後で1回だけ耐える)
+                if (info.KillPower > info.GuardPower && deathReason is CustomDeathReason.Kill && ToughGuy.TryGuard(attemptTarget))
+                {
+                    info.GuardPower = info.KillPower;
+                    GuardreasonNumber = 6;
+                }
+                //マーダー(シェリフ系のキルを反射)
+                if (deathReason is CustomDeathReason.Kill && Murder.TryReflect(attemptKiller, attemptTarget))
+                {
+                    info.CanKill = false;
+                    info.DoKill = false;
+                }
                 if (info.AttemptKiller.Is(CustomRoles.Faction) && info.AttemptTarget.Is(CustomRoles.Faction) && deathReason is CustomDeathReason.Kill && Faction.CantKillFaction.GetBool())
 
                 {
@@ -447,6 +460,9 @@ public static class CustomRoleManager
 
                         break;
 
+                    case 6://タフガイ
+                        UtilsGameLog.AddGameLog($"Guard", UtilsName.GetPlayerColor(attemptTarget) + ":  " + string.Format(Translator.GetString("GuardMaster.Guard"), UtilsName.GetPlayerColor(attemptKiller, true)));
+                        break;
                     case 5://Guardian(守護者)
 
                         var guardian = Crewmate.Guardian.FindGuardianFor(attemptTarget.PlayerId);
@@ -592,10 +608,14 @@ public static class CustomRoleManager
                 appearanceTarget = info.AppearanceTarget;
             }
 
+            TownOfHost.Roles.Crewmate.Marshall.RecordConfirmedKill(attemptTarget.PlayerId);
+
             //MurderPlayer用にinfoを保存
 
             CheckMurderInfos[appearanceKiller.PlayerId] = info;
 
+            if (killerRole is Experiencer experiencer && experiencer.TryNoBodyKill(info)) return true;
+            if (DeadBodyEraser.TryCompleteNoBodyKill(info)) return true;
             if (info.TigerPredation) Tiger.SendPredationKill(info);
             else appearanceKiller.RpcMurderPlayer(appearanceTarget);
 
@@ -1197,6 +1217,12 @@ public static class CustomRoleManager
                 case CustomRoles.Sealer: Sealer.Add(pc.PlayerId); break;
 
                 case CustomRoles.SilverBuzzer: SilverBuzzer.Add(pc.PlayerId); break;
+                case CustomRoles.Surviving: Surviving.Add(pc.PlayerId); break;
+                case CustomRoles.Berserker: Berserker.Add(pc.PlayerId); break;
+                case CustomRoles.ToughGuy: ToughGuy.Add(pc.PlayerId); break;
+                case CustomRoles.Comorbidity: Comorbidity.Add(pc.PlayerId); break;
+                case CustomRoles.Murder: Murder.Add(pc.PlayerId); break;
+                case CustomRoles.BetrayGuesser: BetrayGuesser.Add(pc.PlayerId); break;
 
 
 
@@ -1248,13 +1274,15 @@ public static class CustomRoleManager
 
     /// <param name="rpcType"></param>
 
-    public static void DispatchRpc(MessageReader reader)
+    public static void DispatchRpc(MessageReader reader, bool trustedHost = false)
 
     {
 
         var playerId = reader.ReadByte();
 
-        GetByPlayerId(playerId)?.ReceiveRPC(reader);
+        var role = GetByPlayerId(playerId);
+        if (PrivateRoleStateSync.TryRead(role, reader, trustedHost)) return;
+        role?.ReceiveRPC(reader);
 
     }
 
@@ -2385,6 +2413,59 @@ public enum CustomRoles
     Chief = 347,
     Streamer = 348,
     Prankster = 349,
+    // hamo v4.35 additions: preserve all previously published Shell IDs.
+    Trauma = 350,
+    Surmount = 351,
+    Messenger = 352,
+    Fugitive = 353,
+    MemoryRestorer = 354,
+    ArchVillain = 355,
+    LonelyWolf = 356,
+    Clockworker = 357,
+    Abductor = 358,
+    MadInvisible = 359,
+    MadMagic = 360,
+    Flatfish = 361,
+    Lupin = 362,
+    Daoshi = 363,
+    Catalyst = 364,
+    Conductor = 365,
+    Sender = 366,
+    MadSender = 367,
+    Parity = 368,
+    Experiencer = 369,
+        StepBomber = 370,
+        Locksmith = 371,
+        Coroner = 372,
+    Damocles = 373,
+    Idol = 374,
+    Marshall = 375,
+    LessThan = 376,
+    Eliminator = 382,
+    // hamo 4.40.04 additions: Shell's existing numeric IDs are immutable.
+    Pusher = 383,
+    Cleaner = 384,
+    Gimlet = 385,
+    Informant = 386,
+    LifeSaver = 387,
+    Bloodlust = 388,
+    EvilButtoner = 389,
+    Notice = 1073,
+    // Added without changing any existing Shell role/add-on IDs.
+    MadKind = 377,
+    Framer = 378,
+    NiceHacker = 379,
+    Romeo = 380,
+    Juliet = 381,
+    Nova = 588,
+    Arsene = 578,
+    Kyonshi = 579,
+    Surviving = 7010,
+    Berserker = 7011,
+    ToughGuy = 7012,
+    Comorbidity = 7013,
+    Murder = 7014,
+    BetrayGuesser = 7015,
 
     NDPlayer = 497,
 

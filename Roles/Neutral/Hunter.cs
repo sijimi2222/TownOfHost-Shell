@@ -1,23 +1,24 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using AmongUs.GameOptions;
 using Hazel;
-using MS.Internal.Xml.XPath;
 using TownOfHost.Modules;
 using TownOfHost.Roles.Core;
 using TownOfHost.Roles.Core.Interfaces;
 using TownOfHost.Roles.Crewmate;
 using TownOfHost.Roles.Impostor;
 using UnityEngine;
-using static Il2CppSystem.Xml.Schema.FacetsChecker.FacetsCompiler;
-using static UnityEngine.GraphicsBuffer;
 
 namespace TownOfHost.Roles.Neutral
     {
         public sealed class Hunter : RoleBase, ILNKiller
         {
         bool IKiller.CanKill => false;
+        // The chase is an attack, but does not grant the ordinary kill button.
+        bool IKiller.IsKiller => true;
+        int generation;
+        bool disposed;
+        bool Current => !disposed && Player != null && ReferenceEquals(Player.GetRoleClass(), this);
         public static readonly SimpleRoleInfo RoleInfo =
                 SimpleRoleInfo.Create(
                     typeof(Hunter),
@@ -32,9 +33,9 @@ namespace TownOfHost.Roles.Neutral
                     (1, 5),
                     true,
                     countType: CountTypes.Hunter,
-                     assignInfo: new RoleAssignInfo(CustomRoles.Hunter, CustomRoleTypes.Neutral)
+                    assignInfo: new RoleAssignInfo(CustomRoles.Hunter, CustomRoleTypes.Neutral)
                     {
-                        AssignCountRule = new(1, 1, 1)
+                        AssignCountRule = new(1, 15, 1)
                     }
                 );
         public Hunter(PlayerControl player)
@@ -59,20 +60,19 @@ namespace TownOfHost.Roles.Neutral
 
         private float darkenTimer;
 
-        static float DarkenTime;
-        static float BoostTime;
-        static float SpeedBoost;
+        readonly float DarkenTime;
+        readonly float BoostTime;
+        readonly float SpeedBoost;
         public static OptionItem OptionSpeedBoost;
         public static OptionItem OptionKillCooldown;
         private static OptionItem OptionCooldown;
         public static OptionItem OptionCanVent;
         static OptionItem OptionHasImpostorVision;
-        private static float Cooldown;
-        public static bool CanVent;
-        public static bool CanUseSabotage;
+        readonly float Cooldown;
+        readonly bool CanVent;
 
         bool targeted;
-        public static bool PublicRoleColor;
+        public bool PublicRoleColor;
 
         PlayerControl KillWaitPlayer;
         public static OptionItem OptionchangeColorTime;
@@ -82,6 +82,11 @@ namespace TownOfHost.Roles.Neutral
         public static OptionItem OptionDarkenRange;
 
         private PlayerControl[] darkenedPlayers;
+        readonly object blackoutOwner = new();
+        static readonly HunterVisionLeases blackouts = new();
+        internal static bool IsDarkened(byte playerId) => blackouts.Contains(playerId);
+        [Attributes.GameModuleInitializer]
+        public static void ResetForGame() => blackouts.Clear();
 
         enum OptionName
         {
@@ -122,7 +127,6 @@ namespace TownOfHost.Roles.Neutral
 
         byte targetId;
 
-        bool targetCankill;
 
         bool targetDied;
         public override void ApplyGameOptions(IGameOptions opt)
@@ -139,6 +143,12 @@ namespace TownOfHost.Roles.Neutral
 
         public override void OnFixedUpdate(PlayerControl player)
         {
+            if (AmongUsClient.Instance?.AmHost != true) return;
+            if (!Current || !Player.IsAlive() || !GameStates.IsInTask || GameStates.IsMeeting || GameStates.CalledMeeting)
+            {
+                if (targeted || PublicRoleColor || savedSpeeds.Count > 0 || darkenedPlayers != null) ClearEffects();
+                return;
+            }
             if (AmongUsClient.Instance.AmHost)
             {
                 if (darkenedPlayers != null)
@@ -152,7 +162,7 @@ namespace TownOfHost.Roles.Neutral
                     }
                 }
             }
-            if (!targeted || KillWaitPlayer == null)
+            if (!targeted || KillWaitPlayer == null || !KillWaitPlayer.IsAlive() || KillWaitPlayer.Data.Disconnected)
             {
                 targeted = false;
                 return;
@@ -161,38 +171,33 @@ namespace TownOfHost.Roles.Neutral
             if (targeted && KillWaitPlayer)
             {
                 HunterPos = Player.transform.position;
-                targetPos = PlayerCatch.GetPlayerControl(targetId).GetTruePosition();
+                targetPos = KillWaitPlayer.GetTruePosition();
             }
             Vector2 difference = targetPos - HunterPos;
             // 距離の2乗を取得
             float sqrDistance = difference.sqrMagnitude;
             float checkRadius = 5f;
             var target = KillWaitPlayer;
-            if (target.PlayerId == Player.PlayerId)
+            if (target.PlayerId == Player.PlayerId || !Player.IsAlive())
             {
                 targeted = false;
                 KillWaitPlayer = null;
                 return;
             }
             if (sqrDistance <= checkRadius * checkRadius)
-            {
-                if (!AmongUsClient.Instance.AmHost) return; 
-                Player.RpcSnapToForced(target.transform.position);
-                if (!targetCankill)
+            {   
+                if (!AmongUsClient.Instance.AmHost) return;             
+                if (!CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 2, CustomDeathReason.Kill))
                 {
-                    if (CustomRoleManager.OnCheckMurder(Player, Player, Player, Player, true, false, 2, CustomDeathReason.Suicide))
-                    {
-                        Player.SetRealKiller(Player);
-                        UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
-                    }
+                    targeted = false;
+                    KillWaitPlayer = null;
+                    if (Player.IsAlive()) Player.RpcResetAbilityCooldown();
+                    return;
                 }
-                else
                 {
-                    if (CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 2, CustomDeathReason.Kill))
-                    {
-                        target.SetRealKiller(Player);
-                        UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
-                    }
+                    Player.RpcSnapToForced(target.transform.position);
+                    RPC.PlaySoundRPC(Player.PlayerId, Sounds.KillSound);
+                    UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
                 }
                 KillWaitPlayer = null;
                 target = null;
@@ -211,8 +216,10 @@ namespace TownOfHost.Roles.Neutral
                 {
                     DarkenPlayers(playersToDarken);
                 }
+                int captured = generation;
                 _ = new LateTask(() =>
                 {
+                    if (!Current || captured != generation || !Player.IsAlive() || !GameStates.IsInTask || GameStates.IsMeeting || GameStates.CalledMeeting) return;
                     targeted = false;
                     PublicRoleColor = false;
                     Player.RpcResetAbilityCooldown();
@@ -224,11 +231,8 @@ namespace TownOfHost.Roles.Neutral
         {
             if (darkenedPlayers != null)
             {
-                foreach (var player in darkenedPlayers)
-                {
-                    PlayerState.GetByPlayerId(player.PlayerId).IsBlackOut = false;
-                    player.MarkDirtySettings();
-                }
+                foreach (byte id in blackouts.Release(blackoutOwner))
+                    PlayerCatch.GetPlayerById(id)?.MarkDirtySettings();
                 darkenedPlayers = null;
             }
             darkenTimer = DarkenTime;
@@ -238,11 +242,8 @@ namespace TownOfHost.Roles.Neutral
         private void DarkenPlayers(IEnumerable<PlayerControl> playersToDarken)
         {
             darkenedPlayers = playersToDarken.ToArray();
-            foreach (var player in playersToDarken)
-            {
-                PlayerState.GetByPlayerId(player.PlayerId).IsBlackOut = true;
-                player.MarkDirtySettings();
-            }
+            foreach (byte id in blackouts.Replace(blackoutOwner, darkenedPlayers.Select(p => p.PlayerId)))
+                PlayerCatch.GetPlayerById(id)?.MarkDirtySettings();
             if (0 < playersToDarken.Count()) Achievements.RpcCompleteAchievement(Player.PlayerId, 0, achievements[0]);
         }
 
@@ -253,8 +254,10 @@ namespace TownOfHost.Roles.Neutral
                 savedSpeeds[id] = Main.AllPlayerSpeed.TryGetValue(id, out float s) ? s : 1f;
             Main.AllPlayerSpeed[id] = savedSpeeds[id] * multiplier;
             Player.MarkDirtySettings();
+            int captured = generation;
             _ = new LateTask(() =>
             {
+                if (!Current || captured != generation) return;
                 RemoveEffect(Player.PlayerId);
             }, BoostTime, "", true);
         }
@@ -267,27 +270,13 @@ namespace TownOfHost.Roles.Neutral
             savedSpeeds.Remove(playerId);
         }
         public static bool KnowTargetRoleColor(PlayerControl target, bool isMeeting)
-        {
-            if (!isMeeting && target.Is(CustomRoles.Hunter))
-            {
-                if (PublicRoleColor)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
+            => !isMeeting && target?.GetRoleClass() is Hunter hunter && hunter.PublicRoleColor;
 
         public override bool CheckShapeshift(PlayerControl target, ref bool animate)
         {
             animate = false;
+            if (AmongUsClient.Instance?.AmHost != true || !Current || !Player.IsAlive() || target == null || target.PlayerId == Player.PlayerId
+                || !GameStates.IsInTask || GameStates.IsMeeting || GameStates.CalledMeeting) return false;
             if (!targeted)
             {
                 if (target.IsAlive())
@@ -295,22 +284,16 @@ namespace TownOfHost.Roles.Neutral
                     KillWaitPlayer = target;
                     targeted = true;
                     targetId = target.PlayerId;
-                    if (target.Is(CustomRoles.King) || target.Is(CustomRoles.Autocrat))
-                    {
-                        targetCankill = false;
-                    }
-                    else
-                    {
-                        targetCankill = true;
-                    }
                     targetDied = false;
 
                 }
                 else
                 {
                     targetDied = true;
+                    int captured = generation;
                     _ = new LateTask(() =>
                     {
+                        if (!Current || captured != generation) return;
                         targetDied = false;
                     }, 5f, "", true);
                 }
@@ -339,14 +322,23 @@ namespace TownOfHost.Roles.Neutral
                 return isForHud ? mes : $"<size=40%>{mes}</size>";
             }
         }
-        public override void AfterMeetingTasks()
+        void ClearEffects()
         {
+            generation++;
             RemoveEffect(Player.PlayerId);
+            ResetDarkenState();
+            PublicRoleColor = false;
+            targetDied = false;
             targetId = 255;
-            targetCankill = true;
             targeted = false;
             KillWaitPlayer = null;
         }
+
+        public override void OnDead(PlayerControl player) { if (player?.PlayerId == Player.PlayerId) ClearEffects(); }
+        public override void OnStartMeeting() => ClearEffects();
+        public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo body) => ClearEffects();
+        public override void AfterMeetingTasks() => ClearEffects();
+        public override void OnDestroy() { ClearEffects(); disposed = true; }
 
         public static System.Collections.Generic.Dictionary<int, Achievement> achievements = new();
         [Attributes.PluginModuleInitializer]

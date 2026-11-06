@@ -62,6 +62,18 @@ namespace TownOfHost
 
         private static SimpleButton betaversionchange;
 
+        // UI adapters reuse the original click events; no duplicate links or feature implementations.
+        internal static PassiveButton SeasideAction(string id) => id switch
+        {
+            "Discord" => discordButton?.Button,
+            "YouTube" => TwitterXButton?.Button,
+            "GitHub" => gitHubButton?.Button,
+            "Version" => betaversionchange?.Button,
+            "Statistics" => StatisticsButton?.Button,
+            "Stream" => CreateStreameMenu.OpenMenu?.Button,
+            _ => null,
+        };
+
         private const float MainButtonFontSize = 2.1f; // 従来のデフォルトより拡大
 
         public static TextMeshPro Statistics_TMP;

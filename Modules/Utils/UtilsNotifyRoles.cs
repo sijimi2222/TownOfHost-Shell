@@ -107,7 +107,7 @@ namespace TownOfHost
 
                     var str = GetProgressText(pp.PlayerId, ShowManegementText: false, gamelog: true);
 
-                    str = Regex.Replace(str, "ffffff", "000000");
+                    str = str.Replace("ffffff", "000000", System.StringComparison.Ordinal);
 
                     if (!UtilsGameLog.LastLogPro.TryAdd(pp.PlayerId, str))
 
@@ -754,15 +754,12 @@ namespace TownOfHost
                             if (seer.KnowDeathReason(target))
 
                                 TargetDeathReason = $"<size=75%>({GetVitalText(target.PlayerId, seer.PlayerId.CanDeathReasonKillerColor() == true ? true : null)})</size>";
-
-
-
                             if (((IsActive(SystemTypes.Comms) && Options.CommsCamouflage.GetBool())
-
-                            || (role is CustomRoles.Monochromer && seerisAlive)
-
+                            || (role is CustomRoles.Monochromer && seerisAlive && target != seer)
+                            || (role is CustomRoles.Daoshi && seerisAlive && target != seer)
+                            || (role is CustomRoles.BlackVisioner && seerisAlive && target != seer)
+                            || (role is CustomRoles.BlackMadMate && seerisAlive && target != seer)
                             //|| Camouflager.NowUse
-
                             || (SuddenDeathMode.SuddenCannotSeeName && !TemporaryName))
 
                             && (!((targetrole as Jumper)?.Jumping == true)))
@@ -883,7 +880,7 @@ namespace TownOfHost
 
                     var str = GetProgressText(pp.PlayerId, ShowManegementText: false, gamelog: true);
 
-                    str = Regex.Replace(str, "ffffff", "000000");
+                    str = str.Replace("ffffff", "000000", System.StringComparison.Ordinal);
 
                     if (!UtilsGameLog.LastLogPro.TryAdd(pp.PlayerId, str))
 

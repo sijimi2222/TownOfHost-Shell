@@ -32,9 +32,9 @@ using static Unity.Services.LevelPlay.LevelPlayBannerPosition;
 
 
 
-[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.PluginShowVersion)]
+[assembly: AssemblyFileVersionAttribute(TownOfHost.Main.BepInExPluginVersion)]
 
-[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginShowVersion)]
+[assembly: AssemblyInformationalVersionAttribute(TownOfHost.Main.PluginReleaseVersion)]
 
 namespace TownOfHost
 
@@ -124,11 +124,13 @@ namespace TownOfHost
 
         public const string PluginGuid = "com.rar006.TownOfHost-Shell";
 
-        public const string BepInExPluginVersion = PluginShowVersion;
+        public const string BepInExPluginVersion = "2.2.3";
 
-        public const string PluginVersion = "4.00.32.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
+        public const string PluginVersion = "4.00.40.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "2.1.0";
+        public const string PluginShowVersion = "2.2.3";
+
+        public const string PluginReleaseVersion = "2.2.3";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 
@@ -154,13 +156,21 @@ namespace TownOfHost
         public static readonly string MatchmakingRelayUrl =
     "https://toh-shell-relay.toh-shell.workers.dev";
 
-        public static readonly string MatchmakingRelaySecret =
-            "08f54dba28b6ea925d8a0d2f8c48a4927645b3b524f64d9705ec2602042ed054";
+        // Recruitment authentication uses short-lived Relay session capabilities.
+#if SHELL_MATCHMAKING_DEVELOPMENT
+        private static ConfigEntry<string> DevelopmentMatchmakingRelayEndpoint;
+        public static string MatchmakingDevelopmentRelayUrl => DevelopmentMatchmakingRelayEndpoint?.Value ?? "none";
+#else
+        public static string MatchmakingDevelopmentRelayUrl => "";
+#endif
 
         public Harmony Harmony { get; } = new Harmony(PluginGuid);
 
         // Public releases are compared separately from the internal compatibility version.
-        public static readonly Version ShellVersion = Version.Parse(PluginShowVersion);
+        public static readonly Version ShellVersion = Version.Parse(BepInExPluginVersion);
+
+        // Keep the existing three-field handshake and hamo wire version; distinguish Shell releases in its build tag.
+        public static string VersionCheckTag => $"{ThisAssembly.Git.Commit}({ThisAssembly.Git.Branch})/Shell-{BepInExPluginVersion}";
 
         public static Version version = Version.Parse(PluginVersion);
 
@@ -228,6 +238,8 @@ namespace TownOfHost
 
         public static ConfigEntry<bool> ShowRoomCode { get; private set; }
 
+        public static ConfigEntry<bool> DisableWaveAnimation { get; private set; }
+
         public static ConfigEntry<float> MapTheme { get; private set; }
 
         public static ConfigEntry<bool> ViewPingDetails { get; private set; }
@@ -285,6 +297,12 @@ namespace TownOfHost
         public static ConfigEntry<string> JoinWord { get; private set; }
 
         public static ConfigEntry<string> RemoveWord { get; private set; }
+        public static ConfigEntry<bool> ShowStreamComments { get; private set; }
+        public static ConfigEntry<float> StreamCommentPosX { get; private set; }
+        public static ConfigEntry<float> StreamCommentPosY { get; private set; }
+        public static ConfigEntry<string> StreamURLConfig { get; private set; }
+        public static ConfigEntry<bool> ObsOverlay { get; private set; }
+        public static ConfigEntry<int> ObsShowRoles { get; private set; }
 
         //Other Configs
 
@@ -441,6 +459,10 @@ namespace TownOfHost
             UseYomiage = Config.Bind("Client Options", "UseYomiage", false);
 
             CustomName = Config.Bind("Client Options", "CustomName", true);
+#if SHELL_MATCHMAKING_DEVELOPMENT
+            DevelopmentMatchmakingRelayEndpoint = Config.Bind("Matchmaking Development", "Loopback Relay URL", "none",
+                "Development builds only: literal loopback URL of an offline mock Relay. Production endpoints are rejected here.");
+#endif
 
             ShowGameSettingsTMP = Config.Bind("Client Options", "Show GameSettings", true);
 
@@ -467,6 +489,7 @@ namespace TownOfHost
             ShowPlayerCount = Config.Bind("Client Options", "Show Player Count", false);
 
             ShowRoomCode = Config.Bind("Client Options", "Show Room Code", false);
+            DisableWaveAnimation = Modules.ClientOptions.WaveAnimationPreferences.Bind(Config);
 
             MapTheme = Config.Bind("Client Options", "MapTheme", AmongUs.Data.Settings.AudioSettingsData.DEFAULT_MUSIC_VOLUME);
 
@@ -485,6 +508,12 @@ namespace TownOfHost
             JoinWord = Config.Bind("StreamMenu", "JoinWord", "");
 
             RemoveWord = Config.Bind("StreamMenu", "RemoveWord", "");
+            ShowStreamComments = Config.Bind("StreamMenu", "ShowComments", false);
+            StreamCommentPosX = Config.Bind("StreamMenu", "CommentPosX", 0.35f);
+            StreamCommentPosY = Config.Bind("StreamMenu", "CommentPosY", 1.25f);
+            StreamURLConfig = Config.Bind("StreamMenu", "StreamURL", "");
+            ObsOverlay = Config.Bind("StreamMenu", "ObsOverlay", false);
+            ObsShowRoles = Config.Bind("StreamMenu", "ObsShowRoles", 0);
 
             DebugKeyInput = Config.Bind("Authentication", "Debug Key", "");
 
@@ -524,7 +553,7 @@ namespace TownOfHost
 
             {
 
-                TownOfHost.Logger.Error("System.Console.OutputEncodingの変更に失敗", "Main");
+                TownOfHost.Logger.Warn("Console output encoding could not be changed; file logging remains available.", "Main");
 
             }
 
@@ -699,6 +728,7 @@ namespace TownOfHost
             Application.quitting += new Action(SaveStatistics.Save);
 
             Application.quitting += new Action(AchievementSaver.Save);
+            Application.quitting += new Action(() => DiscordMatchmakingRelayService.TryDelete("ApplicationQuit"));
 
             Application.quitting += new Action(TownOfHost.Modules.WatchdogLauncher.OnGameQuit);
 
@@ -875,7 +905,9 @@ namespace TownOfHost
         Lightning,
         Collapsed,
 
-        etc = -1
+        etc = -1,
+        MagicC = 38,
+
 
     }
 
@@ -884,6 +916,8 @@ namespace TownOfHost
     public enum CustomWinner
 
     {
+        Informant = CustomRoles.Informant,
+
 
         Draw = -1,
 
@@ -898,6 +932,13 @@ namespace TownOfHost
         Tiger = CustomRoles.Tiger,
         Streamer = CustomRoles.Streamer,
         Prankster = CustomRoles.Prankster,
+        LessThan = CustomRoles.LessThan,
+        Romeo = CustomRoles.Romeo,
+        Flatfish = CustomRoles.Flatfish,
+        Lupin = CustomRoles.Lupin,
+        Daoshi = CustomRoles.Daoshi,
+        Catalyst = CustomRoles.Catalyst,
+        Parity = CustomRoles.Parity,
         NDPlayer = CustomRoles.NDPlayer,
 
         Jester = CustomRoles.Jester,
@@ -1133,8 +1174,10 @@ namespace TownOfHost
 
         PokerFace,
 
-        TheThreeLittlePigs
-
+        TheThreeLittlePigs,
+        CatalystandConductor,
+        TraumaandSurmount,
+        RomeoandJuliet
     }
 
 }

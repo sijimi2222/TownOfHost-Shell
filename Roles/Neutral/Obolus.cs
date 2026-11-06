@@ -96,7 +96,7 @@ public sealed class Obolus : RoleBase, ILNKiller, IAdditionalWinner
         {
             if (Event.CheckRole(role) is false) continue;
 
-            var id = RoleInfo.ConfigId + idOffset;
+            var id = role == CustomRoles.LessThan ? 40318 : role == CustomRoles.Eliminator ? 993015 : RoleInfo.ConfigId + idOffset;
             var roleName = UtilsRoleText.GetRoleName(role);
             var replacementDic = new Dictionary<string, string>
         {
@@ -110,7 +110,7 @@ public sealed class Obolus : RoleBase, ILNKiller, IAdditionalWinner
             item.ReplacementDictionary = replacementDic;
 
             ExtraWinKillTargetOptions[role] = item;
-            idOffset++;
+            if (role is not CustomRoles.LessThan and not CustomRoles.Eliminator) idOffset++;
         }
     }
     public override void ApplyGameOptions(IGameOptions opt)

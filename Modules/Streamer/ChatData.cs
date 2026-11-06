@@ -1,34 +1,18 @@
-
-using System.Text.Json.Nodes;
-
+using System.Text.Json;
 namespace TownOfHost;
-
-/// Youtubeコメント連携関係はTownOfHost For Eさんを参考に実装しました。
+/// YouTube comment integration originally adapted from TownOfHost For E.
 internal class ChatData
 {
-    public readonly string key;
+    public readonly string key, visitorData, clientVersion;
     public string continuation { get; private set; }
-    public readonly string visitorData;
-    public readonly string clientVersion;
-
+    internal int PollDelayMilliseconds { get; set; } = 3000;
     public ChatData(string key, string content, string visitorData, string clientVersion)
+    { this.key = key; continuation = content; this.visitorData = visitorData; this.clientVersion = clientVersion; }
+    public bool TryUpdateContinuation(string json)
     {
-        this.key = key;
-        continuation = content;
-        this.visitorData = visitorData;
-        this.clientVersion = clientVersion;
+        if (!StreamCommentParser.TryLiveChat(json, out var chat) || !StreamCommentParser.TryContinuation(chat, out var token, out var delay)) return false;
+        continuation = token; PollDelayMilliseconds = delay; return true;
     }
-
-    public void UpdateContinuation(string postResult)
-    {
-        var node = JsonNode.Parse(postResult);
-        var node2 = node["continuationContents"]["liveChatContinuation"]["continuations"][0];
-        var node3 = node2["invalidationContinuationData"] ?? node2["timedContinuationData"];
-        continuation = node3["continuation"].ToString();
-    }
-
-    public string Build()
-    {
-        return $"{{\"context\": {{\"client\": {{\"visitorData\": \"{visitorData}\",\"User-Agent\": \"Mozilla / 5.0(Windows NT 6.3; Win64; x64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 86.0.4240.111 Safari / 537.36\",\"clientName\": \"WEB\",\"clientVersion\": \"{clientVersion}\"}}}},\"continuation\": \"{continuation}\"}}";
-    }
+    public void UpdateContinuation(string json) => TryUpdateContinuation(json);
+    public string Build() => JsonSerializer.Serialize(new { context = new { client = new { visitorData, clientName = "WEB", clientVersion, hl = "ja", gl = "JP" } }, continuation });
 }

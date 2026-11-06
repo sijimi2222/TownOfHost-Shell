@@ -234,7 +234,8 @@ static class Event
 
         {CustomRoles.Fortuner , () => 4 <= DateTime.Now.Month},
 
-        {CustomRoles.Cakeshop , () => NowRoleEvent}
+        {CustomRoles.Cakeshop , () => NowRoleEvent},
+        {CustomRoles.Daoshi , () => DateTime.Now.Month == 10}
 
     };
 

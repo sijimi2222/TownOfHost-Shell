@@ -3,6 +3,11 @@
 	<PropertyGroup>
 
 		<TargetFramework>net6.0</TargetFramework>
+        <DefineConstants Condition="'$(MatchmakingDevelopment)' == 'true'">$(DefineConstants);SHELL_MATCHMAKING_DEVELOPMENT</DefineConstants>
+
+        <!-- Do not embed the build user's profile path in public DLL/PDB metadata. -->
+        <PathMap Condition="'$(USERPROFILE)' != ''">$(USERPROFILE)=/_/user</PathMap>
+        <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
 
 		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
 
@@ -12,13 +17,13 @@
 
 		     生成し NETSDK1018 でビルドが失敗するため、明示的に固定バージョンを指定して上書きする -->
 
-		<Version>2.1.0</Version>
+		<Version>2.2.3</Version>
 
-		<AssemblyVersion>2.1.0.0</AssemblyVersion>
+		<AssemblyVersion>2.2.3.0</AssemblyVersion>
 
-		<FileVersion>2.1.0.0</FileVersion>
+		<FileVersion>2.2.3.0</FileVersion>
 
-		<InformationalVersion>2.1.0</InformationalVersion>
+		<InformationalVersion>2.2.3</InformationalVersion>
 
 		<Description>TOH-Shell based on legacy TOH-hamo（旧TOH-hamo）</Description>
 

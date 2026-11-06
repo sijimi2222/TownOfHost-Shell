@@ -31,12 +31,18 @@ namespace TownOfHost.Roles.AddOns.Common
             CustomRoles.Emptiness,
             CustomRoles.Phantom,
             CustomRoles.GuardianAngel,
+            CustomRoles.Influencer,
             CustomRoles.SKMadmate,
             CustomRoles.Jackaldoll,
             CustomRoles.HASFox,
             CustomRoles.HASTroll,
             CustomRoles.GM,
             CustomRoles.TaskPlayerB,
+            CustomRoles.Trauma,   // トラウマ・サーマウントには属性を付けない
+            CustomRoles.Surmount,
+            CustomRoles.Romeo,
+            CustomRoles.Juliet,
+            CustomRoles.MadInvisible,
         };
         static readonly IEnumerable<CustomRoles> ValidRoles = CustomRolesHelper.AllRoles.Where(role => !InvalidRoles.Contains(role));
 
@@ -93,6 +99,16 @@ namespace TownOfHost.Roles.AddOns.Common
             if (!AllData.ContainsKey(role)) AllData.Add(role, this);
             else Logger.Warn("重複したCustomRolesを対象とするAddOnsAssignDataが作成されました", "AddOnsAssignData");
         }
+        // その属性が、この陣営の役職に付けられる設定か(スタックなど、抽選以外で属性を付ける時に使う)
+        public static bool CanAssignToTeam(CustomRoles addon, CustomRoles mainRole)
+        {
+            if (!AllData.TryGetValue(addon, out var data)) return true;
+            if (mainRole.IsImpostor()) return data.ImpostorMaximum != null;
+            if (mainRole.IsMadmate()) return data.MadmateMaximum != null;
+            if (mainRole.IsNeutral()) return data.NeutralMaximum != null;
+            return data.CrewmateMaximum != null;
+        }
+
         public static AddOnsAssignData Create(int idStart, CustomRoles role, bool assignCrewmate, bool assignMadmate, bool assignImpostor, bool assignNeutral)
             => new(idStart, role, assignCrewmate, assignMadmate, assignImpostor, assignNeutral);
         ///<summary>
@@ -134,7 +150,9 @@ namespace TownOfHost.Roles.AddOns.Common
 
                 // Guesser付与時のみ、指定役職を候補から除外
                 if (data.Role == CustomRoles.Guesser && GuesserDenyRoles.Contains(role)) return false;
+                if (data.Role == CustomRoles.Guesser && TownOfHost.Roles.AddOns.Common.Guesser.IsBlockedTeller(role)) return false;
                 if (!CustomRolesHelper.CanHaveSubRole(role, data.Role)) return false;
+                if (data.Role == CustomRoles.Murder && !TownOfHost.Roles.AddOns.Common.Murder.CanBeGiven(role)) return false;
                 if (data.Role == CustomRoles.Securer && !Securer.CanBeAssigned(pc)) return false;
 
                 return true;

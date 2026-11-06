@@ -691,11 +691,19 @@ namespace TownOfHost
             if (GameModeManager.IsStandardClass()) roles = CustomRolesHelper.AllStandardRoles;
 
             if (GameModeManager.IsStandardClass()) addons = CustomRolesHelper.AllAddOns;
-
             if (Options.CurrentGameMode == CustomGameMode.HideAndSeek) roles = CustomRolesHelper.AllHASRoles;
-
+            // 陣営ごとにまとめてから並べる(インポスター→マッド→クルー→ニュートラル。陣営の中は今まで通りの順)。
+            // 役職の番号順のままだと、後から追加した役職が別の陣営の間に入り、「☆CrewMates」などの見出しが2回出ていた。
+            if (roles != null)
+                roles = roles.OrderBy(r => r.GetCustomRoleTypes() switch
+                {
+                    CustomRoleTypes.Impostor => 0,
+                    CustomRoleTypes.Madmate => 1,
+                    CustomRoleTypes.Crewmate => 2,
+                    CustomRoleTypes.Neutral => 3,
+                    _ => 4,
+                }).ToArray();
             var nowcount = 3;
-
             if (roles != null)
 
             {
@@ -1753,10 +1761,12 @@ namespace TownOfHost
                 CustomRoles.DemonicVenter => AddonInfo(role),
 
                 CustomRoles.AsistingAngel => AddonInfo(role),
+                CustomRoles.Inheritance => AddonInfo(role),
 
 
 
                 _ => $"{role}-{role.GetRoleInfo()?.ConfigId ?? -100}...?(´・ω・｀)"
+                    + (ShellRoleOrigins.HasOverride(role) ? $"\n{UtilsOption.GetFrom(From.None, role)}" : "")
 
             });
 
@@ -1768,7 +1778,8 @@ namespace TownOfHost
 
             var html = "\n<size=90%><line-height=1.8pic>";
 
-            var Fromtext = $"\n{UtilsOption.GetFrom(from)}\n";
+            var fromRole = ShellRoleOrigins.HasOverride(role) ? role : CustomRoles.NotAssigned;
+            var Fromtext = $"\n{UtilsOption.GetFrom(from, fromRole)}\n";
 
             var builder = new StringBuilder();
 
@@ -1780,7 +1791,7 @@ namespace TownOfHost
 
             if (builder.ToString().RemoveHtmlTags() != "") text = $"\n\n<size=45%>{builder}";
 
-            if (UtilsOption.GetFrom(from).RemoveHtmlTags() == "") Fromtext = "";
+            if (UtilsOption.GetFrom(from, fromRole).RemoveHtmlTags() == "") Fromtext = "";
 
 
 
@@ -1966,6 +1977,8 @@ namespace TownOfHost
 
             string Fromtext = $"<#{(isblock ? "000000" : "ffffff")}>From:</color>";
 
+            from = ShellRoleOrigins.Resolve(role, from);
+
             switch (from)
 
             {
@@ -2014,7 +2027,11 @@ namespace TownOfHost
 
                 case From.Love_Couple_Mod: Fromtext += "<#ff6be4>Love Couple Mod</color>"; break;
 
-                case From.TownOfHost_hamo: Fromtext += $"<#fb85ff>TownOfHost_hamo</color>"; break;
+                case From.TownOfHost_hamo: Fromtext += $"<{ShellRoleOrigins.HamoTextColor}>{(ShellRoleOrigins.HasOverride(role) ? ShellRoleOrigins.HamoDisplayName : "TownOfHost_hamo")}</color>"; break;
+
+                case From.TownOfHost_Temp: Fromtext += $"<{ShellRoleOrigins.TempTextColor}>{ShellRoleOrigins.TempDisplayName}</color>"; break;
+
+                case From.UchuAddon: Fromtext += "<#7b68ee>UchuAddon</color>"; break;
 
                 case From.TownOfHost_Shell: Fromtext += $"<#aa00ff>{(role == CustomRoles.Tiger ? "Town Of Host Shell" : "TownOfHost_Shell")}</color>"; break;
 

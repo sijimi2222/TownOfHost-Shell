@@ -1,4 +1,4 @@
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +36,9 @@ class ColorLovers
         CustomRoles.Autocrat,
         CustomRoles.GM,
         CustomRoles.Vega,
-        CustomRoles.Altair
+        CustomRoles.Altair,
+        CustomRoles.Romeo,
+        CustomRoles.Juliet
     };
     public ColorLovers(CustomRoles role, int id)
     {

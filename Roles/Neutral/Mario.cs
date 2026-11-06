@@ -1,4 +1,4 @@
-// Integrated from hamo beta 4.00.32.00; Shell IDs and shared paths are audited separately.
+﻿// Integrated from hamo beta 4.00.32.00; Shell IDs and shared paths are audited separately.
 using AmongUs.GameOptions;
 using Hazel;
 using TownOfHost.Roles.Core;
@@ -62,8 +62,9 @@ public sealed class Mario : RoleBase, IKiller, IUsePhantomButton
         opt.SetVision(false);
         AURoleOptions.EngineerCooldown = OptionVentCooldown.GetFloat();
         AURoleOptions.EngineerInVentMaxTime = 0.1f;
-        AURoleOptions.PhantomCooldown = (float)VentCooldownTimer;
+        AURoleOptions.PhantomCooldown = VentCooldownTimer ?? 0f;
     }
+    float IKiller.CalculateKillCooldown() => 999f;
     bool IKiller.CanUseSabotageButton() => false;
     bool IKiller.CanUseImpostorVentButton() => true;
     bool IKiller.CanUseKillButton() => false;
@@ -77,7 +78,7 @@ public sealed class Mario : RoleBase, IKiller, IUsePhantomButton
         {
             VentCooldownTimer -= Time.fixedDeltaTime;
             if (OptionVentCooldown.GetFloat() >= 2f) return;
-            AURoleOptions.PhantomCooldown = (float)VentCooldownTimer;
+            AURoleOptions.PhantomCooldown = VentCooldownTimer ?? 0f;
             Player.RpcResetAbilityCooldown();
         }
     }

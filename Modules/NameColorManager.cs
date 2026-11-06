@@ -49,6 +49,9 @@ namespace TownOfHost
             if (Roles.Madmate.MadCleaner.KnowsAlly(seer, target))
                 colorCode = "FF0000";
 
+            if (!isMeeting && target.GetRoleClass() is Bloodlust blood && blood.IsNameExposed)
+                colorCode = "ff1919";
+
             // Destroyer owns only this temporary overlay, not TargetColorData.
             if (Destroyer.HasCrushNameColor(target, isMeeting))
                 colorCode = "ff1919";
@@ -285,7 +288,7 @@ namespace TownOfHost
 
         }
 
-        public static void RpcMeetingColorName(PlayerControl pc = null)
+        public static void RpcMeetingColorName(PlayerControl pc = null, PlayerControl onlySeer = null)
 
         {
 
@@ -299,6 +302,7 @@ namespace TownOfHost
 
                 {
 
+                    if (onlySeer != null && seer != onlySeer) continue;
                     if (seer.IsModClient()) continue;
 
                     var clientid = seer.GetClientId();
@@ -320,6 +324,7 @@ namespace TownOfHost
                         playername = playername.ApplyNameColorData(seer, seen, true);
                         playername += TownOfHost.Roles.Crewmate.Chief.MeetingMark(seer, seen);
                         playername += TownOfHost.Roles.Neutral.Prankster.GetCurseMark(seer, seen, true);
+                        playername += TownOfHost.Roles.Neutral.LessThan.PrivateMeetingMark(seer, seen);
 
 
 
@@ -349,6 +354,7 @@ namespace TownOfHost
 
                 {
 
+                    if (onlySeer != null && seer != onlySeer) continue;
                     if (seer.IsModClient()) continue;
 
                     var clientId = seer.GetClientId();
@@ -358,6 +364,7 @@ namespace TownOfHost
                     playername = playername.ApplyNameColorData(seer, pc, true);
                         playername += TownOfHost.Roles.Crewmate.Chief.MeetingMark(seer, pc);
                         playername += TownOfHost.Roles.Neutral.Prankster.GetCurseMark(seer, pc, true);
+                        playername += TownOfHost.Roles.Neutral.LessThan.PrivateMeetingMark(seer, pc);
 
                     if (clientId == -1) continue;
 

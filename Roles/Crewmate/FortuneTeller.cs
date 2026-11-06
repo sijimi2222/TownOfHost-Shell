@@ -12,7 +12,7 @@ using TownOfHost.Roles.Madmate;
 
 namespace TownOfHost.Roles.Crewmate;
 
-public sealed class FortuneTeller : RoleBase, ISelfVoter
+public sealed class FortuneTeller : RoleBase, IKiller, ISelfVoter
 {
     public static readonly SimpleRoleInfo RoleInfo =
         SimpleRoleInfo.Create(
@@ -35,6 +35,7 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
         player
     )
     {
+        taskTurn = new(this, TaskTurnSettings, () => Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount), id => UseTellAbility(id));
         Max = OptionMaximum.GetFloat();
         Divination.Clear();
         count = 0;
@@ -46,10 +47,12 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
         cantaskcount = OptionCanTaskcount.GetFloat();
         onemeetingmaximum = Option1MeetingMaximum.GetFloat();
         impostorteams = new();
+        IsAbilityUseVote = OptionAbilityUseVote.GetBool();
     }
 
     public static OptionItem OptionMaximum;
     public static OptionItem OptionVoteMode;
+    public static OptionItem OptionAbilityUseVote; static bool IsAbilityUseVote;
     public static OptionItem Optionrolename;
     public static OptionItem OptionRole;
     public static OptionItem OptionCanTaskcount;
@@ -69,7 +72,7 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
     enum Option
     {
         TellMaximum,
-        AbilityVotemode,
+        AbilityVotemode, AbilityUseVote,
         TellerCanSeeRolename, //占った相手の名前の上に占い結果を表示するかの設定
         TellRole, //占い時役職を表示するか、陣営を表示するかの設定
     }
@@ -79,12 +82,14 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
         OptionMaximum = IntegerOptionItem.Create(RoleInfo, 10, Option.TellMaximum, new(1, 99, 1), 1, false)
             .SetValueFormat(OptionFormat.Times);
         OptionVoteMode = StringOptionItem.Create(RoleInfo, 11, Option.AbilityVotemode, EnumHelper.GetAllNames<AbilityVoteMode>(), 1, false);
+        OptionAbilityUseVote = BooleanOptionItem.Create(RoleInfo, 17, Option.AbilityUseVote, false, false);
         Optionrolename = BooleanOptionItem.Create(RoleInfo, 12, Option.TellerCanSeeRolename, true, false);
         OptionRole = BooleanOptionItem.Create(RoleInfo, 13, Option.TellRole, true, false);
         OptionCanTaskcount = IntegerOptionItem.Create(RoleInfo, 14, GeneralOption.cantaskcount, new(0, 99, 1), 5, false);
         Option1MeetingMaximum = IntegerOptionItem.Create(RoleInfo, 15, GeneralOption.MeetingMaxTime, new(0, 99, 1), 0, false)
             .SetValueFormat(OptionFormat.Times).SetZeroNotation(OptionZeroNotation.Infinity);
         OptAwakening = BooleanOptionItem.Create(RoleInfo, 16, GeneralOption.AbilityAwakening, false, false);
+            TaskTurnSettings = TaskTurnFortune.CreateOptions(RoleInfo, 90);
     }
 
     private void SendRPC(byte targetid, CustomRoles role)
@@ -111,9 +116,10 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
     }
     public override string GetProgressText(bool comms = false, bool gamelog = false) => Utils.ColorString(!MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount) ? Color.gray : Max <= count ? Color.gray : Color.cyan, $"({Max - count})");
     public override void OnStartMeeting() => MeetingUsedcount = 0;
-    bool ISelfVoter.CanUseVoted() => Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0);
+    bool ISelfVoter.CanUseVoted() => (Canuseability() && Max > count && MyTaskState.HasCompletedEnoughCountOfTasks(cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0)) && !taskTurn.BlocksMeeting && !IsAbilityUseVote;
     public override bool CheckVoteAsVoter(byte votedForId, PlayerControl voter)
     {
+        if (taskTurn.BlocksMeeting) return true;
         if (!Canuseability()) return true;
         if (Max > count && Is(voter) && MyTaskState.HasCompletedEnoughCountOfTasks((int)cantaskcount) && (MeetingUsedcount < onemeetingmaximum || onemeetingmaximum == 0))
         {
@@ -122,7 +128,7 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
             {
                 if (Player.PlayerId == votedForId || votedForId == SkipId) return true;
                 UseTellAbility(votedForId);
-                return false;
+                return IsAbilityUseVote;
             }
             else
             {
@@ -135,7 +141,7 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
                     if (status is VoteStatus.Vote)
                         UseTellAbility(votedForId);
                     SetMode(Player, status is VoteStatus.Self);
-                    return false;
+                    return IsAbilityUseVote && status is VoteStatus.Vote;
                 }
             }
         }
@@ -145,26 +151,7 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
     {
         var target = PlayerCatch.GetPlayerById(votedForId);
         if (!target.IsAlive()) return;//死んでるならここで処理を止める。
-        if (target.Is(CustomRoles.Madpsycho))
-        {
-            if (Madpsycho.CanPsycho)
-            {
-                PlayerState.GetByPlayerId(Player.PlayerId).DeathReason = Madpsycho.deathReasons[Madpsycho.OptionDeathReason.GetValue()];
-                target.RpcMurderPlayer(Player);
-                string send = "";
-                if (!Player.IsAlive())
-                {
-                    send = string.Format(GetString("Rpsych"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(target, true));
-                }
-                else
-                {
-                    send = string.Format(GetString("RMeetingKill"), UtilsName.GetPlayerColor(Player, true), UtilsName.GetPlayerColor(Player, true));
-                }
-                foreach (var spl in PlayerCatch.AllPlayerControls.Where(pc => !pc.IsAlive())) Utils.SendMessage(send, spl.PlayerId, GetString("RMSKillTitle"));
-
-                return;
-            }
-        }
+        if (target?.GetRoleClass() is Madpsycho ms && ms.TryPsycho(Player, 1, true)) { return; }
         count++;//全体のカウント
         MeetingUsedcount++;//1会議のカウント
         var role = target.GetTellResults(Player); //結果を変更するかチェック
@@ -212,4 +199,22 @@ public sealed class FortuneTeller : RoleBase, ISelfVoter
         achievements.Add(0, n1);
         achievements.Add(1, sp1);
     }
+
+    // ===== タスクターンで占う(ペットでタスク/占いモード切替・キルボタンで相手を選んで近くにいる) =====
+    static TaskTurnFortune.Settings TaskTurnSettings;
+    readonly TaskTurnFortune taskTurn;
+    bool IKiller.CanKill => false;
+    bool IKiller.IsKiller => false;
+    bool IKiller.CanUseKillButton() => taskTurn.CanUseKillButton();
+    float IKiller.CalculateKillCooldown() => taskTurn.Cooldown;
+    bool IKiller.CanUseSabotageButton() => false;
+    bool IKiller.CanUseImpostorVentButton() => false;
+    public override void Add() => taskTurn.Add();
+    public override void OnDestroy() => taskTurn.OnDestroy();
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target) => taskTurn.OnReportDeadBody();
+    public override void AfterMeetingTasks() => taskTurn.AfterMeetingTasks();
+    public override void OnFixedUpdate(PlayerControl player) => taskTurn.OnFixedUpdate();
+    public override string GetMark(PlayerControl seer, PlayerControl seen = null, bool isForMeeting = false) => taskTurn.GetMark(seer, seen ?? seer, isForMeeting);
+    // タスクターンで占う時は、シェリフと同じくクルーの視界にする
+    public override void ApplyGameOptions(IGameOptions opt) { if (taskTurn.On) opt.SetVision(false); }
 }

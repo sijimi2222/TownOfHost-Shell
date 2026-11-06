@@ -108,6 +108,8 @@ namespace TownOfHost
 
         {
 
+            if (Tasks.Count == 0) return; // The common idle frame allocates nothing.
+
             var TasksToRemove = new List<LateTask>();
 
             for (int i = 0; i < Tasks.Count; i++)
@@ -120,6 +122,19 @@ namespace TownOfHost
 
                 {
 
+                    if (task.IsStop)
+
+                    {
+
+                        if (Main.DebugVersion && task.name != "" && task.NoLog is not true)
+
+                            Logger.Info($"\"{task.name}\"isStoped.", "LateTask");
+
+                        TasksToRemove.Add(task);
+                        continue;
+
+                    }
+
                     if (task.Run(deltaTime))
 
                     {
@@ -131,18 +146,6 @@ namespace TownOfHost
                         TasksToRemove.Add(task);
 
                         continue;
-
-                    }
-
-                    if (task.IsStop)
-
-                    {
-
-                        if (Main.DebugVersion && task.name != "" && task.NoLog is not true)
-
-                            Logger.Info($"\"{task.name}\"isStoped.", "LateTask");
-
-                        TasksToRemove.Add(task);
 
                     }
 

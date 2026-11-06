@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -168,18 +168,6 @@ namespace TownOfHost
 
 
 
-        internal static readonly HashSet<string> AdministratorFriendCodes = new(StringComparer.OrdinalIgnoreCase)
-
-        {
-
-            "trueport#0799",
-
-        };
-
-        private const string EmbeddedLobbyDumpWebhookUrl = "REPLACE_ME";
-
-
-
         // TOH-Pkoと同じ入力正規化。`/h`は`/cmd h`へ変換し、既に`/cmd`付きの
 
         // 入力は二重化せずに正規化する。以降は`/cmd`の既存秘匿経路だけを使用する。
@@ -253,6 +241,7 @@ namespace TownOfHost
         {
 
             if (string.IsNullOrWhiteSpace(text) || AmongUsClient.Instance == null || PlayerControl.LocalPlayer == null) return;
+            if (DevelopmentCommandPolicy.TryGetRestrictedCommand(text, out _)) return;
 
             if (AmongUsClient.Instance.AmHost) return;
 
@@ -297,6 +286,12 @@ namespace TownOfHost
 
 
             var rawText = textArea.text;
+            if (TryHandleRestrictedLocalCommand(rawText))
+            {
+                textArea.Clear();
+                return true;
+            }
+
 
             var trimmedText = rawText.TrimStart();
 
@@ -322,41 +317,50 @@ namespace TownOfHost
 
 
 
-        private static bool IsAdministrator(PlayerControl player)
-
+        private static bool CanUseLocalDevelopmentCommand(PlayerControl player, bool fromLocalInput, OptionItem option)
         {
-
-            var friendCode = player?.GetClient()?.FriendCode?.Trim();
-
-            return !string.IsNullOrWhiteSpace(friendCode)
-
-                && AdministratorFriendCodes.Contains(friendCode);
-
+            return DevelopmentCommandPolicy.CanUseHostDevelopmentCommand(
+                fromLocalInput,
+                AmongUsClient.Instance?.AmHost == true,
+                player != null && player == PlayerControl.LocalPlayer && player.AmOwner
+                    && player.Data != null && !player.Data.Disconnected,
+                DebugModeManager.AmDebugger,
+                option?.GetBool() == true);
         }
 
+        private static bool CanUseReviveCommand(PlayerControl player, bool fromLocalInput = false)
+            => CanUseLocalDevelopmentCommand(player, fromLocalInput, DebugModeManager.EnableDebugMode);
 
+        private static bool CanUseChangeRoleCommand(PlayerControl player, bool fromLocalInput = false)
+            => CanUseLocalDevelopmentCommand(player, fromLocalInput, DebugModeManager.EnableTOHhmDebugMode);
 
-        private static bool CanUseReviveCommand(PlayerControl player)
+        // No identifiers or URL are collected, logged or sent for /002. Restricted
+        // non-host input is consumed before command history or host forwarding.
+        private static bool TryHandleRestrictedLocalCommand(string text)
+        {
+            if (!DevelopmentCommandPolicy.TryGetRestrictedCommand(text, out var command)) return false;
+            bool allowed = command is "rev" or "revive"
+                ? CanUseReviveCommand(PlayerControl.LocalPlayer, fromLocalInput: true)
+                : command != "002" && CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true);
+            if (allowed) return false;
+            var localPlayer = PlayerControl.LocalPlayer;
+            var chat = HudManager.Instance?.Chat;
+            if (localPlayer != null && chat != null)
+                chat.AddChat(localPlayer, command == "002"
+                    ? "この公開版ではプレイヤー識別情報の収集・外部送信は利用できません。"
+                    : "この開発用コマンドは、デバッグ認証と設定を有効にしたホスト本人だけがローカル入力で使用できます。");
+            return true;
+        }
 
-            => DebugModeManager.EnableDebugMode.GetBool() || IsAdministrator(player);
-
-
-
-        private static bool CanUseChangeRoleCommand(PlayerControl player)
-
-            => DebugModeManager.EnableTOHhmDebugMode.GetBool() || IsAdministrator(player);
-
-
-
-        private static void ExecuteInGameRoleChange(PlayerControl sender, string[] args)
+        private static void ExecuteInGameRoleChange(PlayerControl sender, string[] args, bool fromLocalInput = false)
 
         {
 
-            if (!CanUseChangeRoleCommand(sender))
+            if (!CanUseChangeRoleCommand(sender, fromLocalInput))
 
             {
 
-                Logger.Warn($"Denied /cmd cr from {sender.GetNameWithRole().RemoveHtmlTags()} (FriendCode:{sender.GetClient()?.FriendCode ?? "null"})", "ChatCommand");
+                Logger.Warn("Denied development command /cmd cr", "ChatCommand");
 
                 return;
 
@@ -392,15 +396,15 @@ namespace TownOfHost
 
 
 
-        private static void ExecuteReviveCommand(PlayerControl sender, string[] args)
+        private static void ExecuteReviveCommand(PlayerControl sender, string[] args, bool fromLocalInput = false)
 
         {
 
-            if (!CanUseReviveCommand(sender))
+            if (!CanUseReviveCommand(sender, fromLocalInput))
 
             {
 
-                Logger.Warn($"Denied /cmd rev from {sender.GetNameWithRole().RemoveHtmlTags()} (FriendCode:{sender.GetClient()?.FriendCode ?? "null"})", "ChatCommand");
+                Logger.Warn("Denied development command /cmd rev", "ChatCommand");
 
                 return;
 
@@ -784,130 +788,6 @@ namespace TownOfHost
 
 
 
-        private static string BuildLobbyIdentityWebhookText()
-
-        {
-
-            var sb = new StringBuilder();
-
-            sb.Append("```");
-
-            sb.Append('\n');
-
-            sb.Append($"Lobby Identity Snapshot  {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-
-            sb.Append('\n');
-
-            sb.Append($"Host: {(PlayerControl.LocalPlayer?.Data?.PlayerName ?? "Unknown").RemoveHtmlTags()}");
-
-            sb.Append('\n');
-
-            sb.Append("Format: [PlayerId] Name | FriendCode | PUID");
-
-            sb.Append('\n');
-
-
-
-            foreach (var pc in PlayerCatch.AllPlayerControls.OrderBy(x => x.PlayerId))
-
-            {
-
-                if (pc == null) continue;
-
-                var client = pc.GetClient();
-
-                var name = (pc.Data?.PlayerName ?? pc.name ?? "Unknown").RemoveHtmlTags().Replace("@", "(at)");
-
-                var friendCode = string.IsNullOrWhiteSpace(client?.FriendCode) ? "(none)" : client.FriendCode.Trim();
-
-                var puid = string.IsNullOrWhiteSpace(client?.ProductUserId) ? "(none)" : client.ProductUserId.Trim();
-
-                sb.Append($"[{pc.PlayerId}] {name} | {friendCode} | {puid}");
-
-                sb.Append('\n');
-
-            }
-
-
-
-            sb.Append("```");
-
-            return sb.ToString();
-
-        }
-
-
-
-        private static bool TrySendLobbyIdentityToWebhook(PlayerControl sender)
-
-        {
-
-            if (sender == null) return false;
-
-            if (!GameStates.IsLobby)
-
-            {
-
-                SendMessage("`/002` can only be used in lobby.", sender.PlayerId);
-
-                return false;
-
-            }
-
-
-
-            var senderFriendCode = sender.GetClient()?.FriendCode?.Trim();
-
-            if (string.IsNullOrWhiteSpace(senderFriendCode)
-
-                || !AdministratorFriendCodes.Contains(senderFriendCode))
-
-            {
-
-                SendMessage("`/002` is not allowed for this account.", sender.PlayerId);
-
-                Logger.Warn($"Denied /002 from {sender.GetNameWithRole().RemoveHtmlTags()} (FriendCode:{senderFriendCode ?? "null"})", "ChatCommand");
-
-                return false;
-
-            }
-
-
-
-            if (EmbeddedLobbyDumpWebhookUrl.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase))
-
-            {
-
-                SendMessage("Embedded webhook URL is not configured.", sender.PlayerId);
-
-                return false;
-
-            }
-
-
-
-            if (!Webhook.SendToUrl(BuildLobbyIdentityWebhookText(), EmbeddedLobbyDumpWebhookUrl))
-
-            {
-
-                SendMessage("Failed to send lobby identity data.", sender.PlayerId);
-
-                return false;
-
-            }
-
-
-
-            SendMessage("Lobby identity data sent to webhook.", sender.PlayerId);
-
-            Logger.Info($"Lobby identity exported by {sender.GetNameWithRole().RemoveHtmlTags()}", "ChatCommand");
-
-            return true;
-
-        }
-
-
-
         public static bool Prefix(ChatController __instance)
 
         {
@@ -949,6 +829,20 @@ namespace TownOfHost
             }
 
             var text = __instance.freeChatField.textArea.text;
+            if (TryHandleRestrictedLocalCommand(text))
+            {
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
+
+
+            if (RomeoJuliet.TryParseChatCommand(text, out var pairArgs))
+            {
+                if (AmongUsClient.Instance.AmHost) RomeoJuliet.TrySendChat(PlayerControl.LocalPlayer, pairArgs);
+                else RequestCommandProcessingFromHost("/cmd rj " + string.Join(" ", pairArgs.Skip(1)));
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
 
             // Candy replies use the existing host-only command RPC for modded clients.
             if (Prankster.TryParseCandyCommand(text, out _))
@@ -971,6 +865,24 @@ namespace TownOfHost
                     else
                         RequestCommandProcessingFromHost("/cmd ai " + (aiPublicReply ? "all " : "") + aiQuestion);
                 }
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
+
+            if (UserRoles2026.TryParseCommand(text, out var userRoleArgs))
+            {
+                if (AmongUsClient.Instance.AmHost)
+                {
+                    if (!UserRoles2026.TryHandleCommand(PlayerControl.LocalPlayer, userRoleArgs))
+                        SendMessage("このコマンドは対応する役職だけが使用できます。", PlayerControl.LocalPlayer.PlayerId);
+                }
+                else RequestCommandProcessingFromHost("/cmd " + string.Join(" ", userRoleArgs));
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
+            if (!AmongUsClient.Instance.AmHost && UserRoles2026.IsWaitingForPrivateChat(PlayerControl.LocalPlayer, text))
+            {
+                RequestCommandProcessingFromHost("/cmd sender_private " + text);
                 __instance.freeChatField.textArea.Clear();
                 return false;
             }
@@ -1036,15 +948,14 @@ namespace TownOfHost
             var canceled = false;
 
             var cancelVal = "";
-
-
-
             if (DebugModeManager.AmDebugger) Logger.Info(text, "SendChat");
-
+            // センダー: 相手を選んだ後の次のチャットは、相手にだけ送って全体には出さない
+            if (UserRoles2026.TryInterceptChat(PlayerControl.LocalPlayer, text))
+            {
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
             ChatManager.SendMessage(PlayerControl.LocalPlayer, text);
-
-
-
             if (text.StartsWith("/") && !text.Contains("cmd"))
 
             {
@@ -1124,13 +1035,14 @@ namespace TownOfHost
 
 
             if (GuessManager.GuesserMsg(PlayerControl.LocalPlayer, text)) canceled = true;
-
             if (args[0].StartsWith("/") is false) args[0] = $"/{args[0]}";
-
-
-
+            if (UserRoles2026.TryHandleCommand(PlayerControl.LocalPlayer, args))
+            {
+                canceled = true;
+                __instance.freeChatField.textArea.Clear();
+                return false;
+            }
             if (Moderator.TryHandleCommand(PlayerControl.LocalPlayer, args, out var moderatorCanceled))
-
             {
 
                 canceled = moderatorCanceled;
@@ -3691,7 +3603,7 @@ namespace TownOfHost
 
                         canceled = true;
 
-                        ExecuteReviveCommand(PlayerControl.LocalPlayer, args);
+                        ExecuteReviveCommand(PlayerControl.LocalPlayer, args, fromLocalInput: true);
 
                         break;
 
@@ -3991,7 +3903,7 @@ namespace TownOfHost
 
                     case "/cr":
 
-                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer))
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4137,7 +4049,7 @@ namespace TownOfHost
 
                     case "/fps":
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool() && DebugModeManager.AmDebugger)
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4183,7 +4095,7 @@ namespace TownOfHost
 
                     case "/tp":
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool())
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4207,7 +4119,7 @@ namespace TownOfHost
 
                     case "/wi":
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool())
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4253,7 +4165,7 @@ namespace TownOfHost
 
                     case "/wiop":
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool())
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4321,7 +4233,7 @@ namespace TownOfHost
 
                     case "/dgm":
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool())
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4351,7 +4263,7 @@ namespace TownOfHost
 
                         canceled = true;
 
-                        if (DebugModeManager.EnableTOHhmDebugMode.GetBool())
+                        if (CanUseChangeRoleCommand(PlayerControl.LocalPlayer, fromLocalInput: true))
 
                         {
 
@@ -4702,6 +4614,14 @@ namespace TownOfHost
 
 
             canceled = false;
+            // Received chat/RPC is never evidence of local host input, even if its
+            // PlayerControl or claimed owner points at the host.
+            if (DevelopmentCommandPolicy.TryGetRestrictedCommand(text, out _))
+            {
+                canceled = true;
+                return;
+            }
+
 
             if (!AmongUsClient.Instance.AmHost)
 
@@ -4721,6 +4641,19 @@ namespace TownOfHost
 
                 return;
 
+            }
+
+            if (UserRoles2026.TryHandleSenderRelay(player, text))
+            {
+                canceled = true;
+                return;
+            }
+
+            if (RomeoJuliet.TryParseChatCommand(text, out var pairArgs))
+            {
+                RomeoJuliet.TrySendChat(player, pairArgs);
+                canceled = true;
+                return;
             }
 
             // Handle both Vanilla chat and the existing mod-client command RPC before route filters.
@@ -4872,13 +4805,15 @@ namespace TownOfHost
             string subArgs = "";
 
             var senderNameIsSystem = player.Data.PlayerName.IsSystemMessage();
-
             if (text.IsSystemMessage() || (senderNameIsSystem && !Moderator.IsModerator(player))) return;//システムメッセージなら処理しない
-
-
-
+            // センダー: 相手にだけ送り、全体に出たメッセージは流して隠す
+            if (UserRoles2026.TryInterceptChat(player, text))
+            {
+                canceled = true;
+                ChatManager.SendPreviousMessagesToAll();
+                return;
+            }
             if (player.PlayerId != 0)
-
             {
 
                 ChatManager.SendMessage(player, text);
@@ -4886,6 +4821,8 @@ namespace TownOfHost
             }
 
 
+
+            if (TownOfHost.Modules.RoleWinStats.TryHandle(text, player.PlayerId)) { canceled = true; return; }
 
             if (text.StartsWith("/") && !text.Contains("cmd"))
 
@@ -4904,13 +4841,9 @@ namespace TownOfHost
 
 
             args = args.Skip(1).ToArray();
-
             if (args[0].StartsWith("/") is false) args[0] = $"/{args[0]}";
-
-
-
+            if (UserRoles2026.TryHandleCommand(player, args)) { canceled = true; return; }
             if (Moderator.TryHandleCommand(player, args, out var moderatorCanceled))
-
             {
 
                 canceled = moderatorCanceled;
@@ -6903,6 +6836,7 @@ namespace TownOfHost
         public static bool DoBlockChat = false;
 
         public static bool BlockSendName = false;
+        private static float systemTimer = 99f;
 
         public static void Postfix(ChatController __instance)
 
@@ -6918,19 +6852,26 @@ namespace TownOfHost
 
             // 短時間に大きなパケットが多数飛んでサーバーの「Hacking」切断を誘発していた。
 
-            if (!AmongUsClient.Instance.AmHost || Main.MessagesToSend.Count < 1 || (timer > __instance.timeSinceLastMessage)) return;
-
+            // システムメッセージの間隔は、ホストのチャットの待ち時間(timeSinceLastMessage)とは別に数える。
+            // 以前はシステムメッセージを送るたびにホストのチャットの待ち時間をリセットしていたため、
+            // ようこそメッセージなどを送っている間、ホストがチャットできなかった。
+            systemTimer += Time.deltaTime;
+            if (!AmongUsClient.Instance.AmHost || Main.MessagesToSend.Count < 1 || (timer > systemTimer)) return;
             if (DoBlockChat) return;
-
-
-
             if (50 <= Main.MegCount) return;
-
-
-
-            if (GameStates.IsLobby) ChatManager.SendmessageInLobby(__instance);
-
-            else ChatManager.SendMessageInGame(__instance);
+            var hostChatTimer = __instance.timeSinceLastMessage;
+            __instance.timeSinceLastMessage = systemTimer;
+            try
+            {
+                if (GameStates.IsLobby) ChatManager.SendmessageInLobby(__instance);
+                else ChatManager.SendMessageInGame(__instance);
+            }
+            finally
+            {
+                // 送る処理が決めた「次に送れるまでの時間」はシステムメッセージ用に覚えて、ホストのチャットの待ち時間は元に戻す
+                systemTimer = __instance.timeSinceLastMessage;
+                __instance.timeSinceLastMessage = hostChatTimer;
+            }
 
         }
 

@@ -199,7 +199,8 @@ namespace TownOfHost
 
                             {
 
-                                if (!GameStates.CalledMeeting && !AntiBlackout.IsSet)
+                                if (!GameStates.CalledMeeting && !AntiBlackout.IsSet
+                                    && CustomWinnerHolder.WinnerTeam == CustomWinner.Default && GameStates.InGame)
 
                                 {
 

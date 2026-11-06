@@ -457,15 +457,8 @@ public sealed class Monika : RoleBase, ILNKiller
 // [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.CastVote))]
 public static class MonikaTrashedVoteBlockPatch
 {
-    public static bool Prefix([HarmonyArgument(0)] byte srcPlayerId)
-    {
-        if (!AmongUsClient.Instance.AmHost) return true;
-        if (!Monika.IsTrashed(srcPlayerId)) return true;
-        Logger.Info($"[Monika] ゴミ箱プレイヤー {srcPlayerId} の投票をブロック", "Monika");
-        return false;
-    }
+    // The existing V12-safe MeetingHud patch enforces this restriction.
 }
-
 [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.ReportDeadBody))]
 public static class MonikaTrashedReportBlockPatch
 {

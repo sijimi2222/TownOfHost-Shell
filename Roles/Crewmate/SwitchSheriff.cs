@@ -217,6 +217,13 @@ public sealed class SwitchSheriff : RoleBase, IKiller, ISchrodingerCatOwner
             if (Event.CheckRole(neutral) is false) continue;
 
             if (neutral is CustomRoles.SchrodingerCat) continue;
+            // New-only slots: do not advance any legacy neutral/cat option offset.
+            if (neutral is CustomRoles.Informant or CustomRoles.LifeSaver)
+            {
+                int optionId = neutral == CustomRoles.Informant ? 994392 : 994492;
+                SetUpKillTargetOption(neutral, optionId - RoleInfo.ConfigId, true, CanKillNeutrals);
+                continue;
+            }
 
             SetUpKillTargetOption(neutral, idOffset, true, CanKillNeutrals);
 
@@ -638,7 +645,7 @@ public sealed class SwitchSheriff : RoleBase, IKiller, ISchrodingerCatOwner
 
             CustomRoleTypes.Neutral => CanKillNeutrals.GetValue() == 0 || (!KillTargetOptions.TryGetValue(cRole, out var option) && option.GetBool()),
 
-            CustomRoleTypes.Crewmate => cRole is CustomRoles.WolfBoy,
+            CustomRoleTypes.Crewmate => cRole is CustomRoles.WolfBoy && WolfBoy.SeenAsImpostor,
 
             _ => false,
 

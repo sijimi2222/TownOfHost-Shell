@@ -659,6 +659,9 @@ class RoleInfoShower
 
                                 {
 
+                                    if (ShellRoleOrigins.HasOverride(customrole))
+                                        RoleInfo.text += "\n" + UtilsOption.GetFrom(From.None, customrole, false).RemoveSizeTags() + "\n";
+
                                     RoleInfo.text += $"\n\n<size=50%>{GetString($"{customrole}InfoLong")}\n";
 
                                 }

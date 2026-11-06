@@ -64,6 +64,7 @@ public static class Reporting
         if (!player.IsAlive()) return;
 
         var reportDistance = DetectRange.GetFloat();
+        var lightDistance = Mathf.Max(reportDistance, player.MaxReportDistance);
         var myPos = player.GetTruePosition();
 
         foreach (var body in UnityEngine.Object.FindObjectsOfType<DeadBody>())
@@ -71,8 +72,12 @@ public static class Reporting
             if (body == null || (UnityEngine.Object)(object)body.gameObject == null) continue;
 
             if (TownOfHost.Roles.Neutral.Tiger.IsPredatedBody(body.ParentId)) continue;
-            var bodyPos = body.transform.position;
-            if (Vector2.Distance(myPos, bodyPos) > reportDistance) continue;
+            if (body.Reported || Modules.DeadBodyEraser.IsUnreportable(body.ParentId)) continue;
+            Vector2 bodyPos = body.TruePosition;
+            float distance = Vector2.Distance(myPos, bodyPos);
+            if (distance > lightDistance) continue;
+            if (distance > reportDistance && PhysicsHelpers.AnyNonTriggersBetween(myPos,
+                (bodyPos-myPos).normalized, distance, Constants.ShipAndObjectsMask)) continue;
 
             var targetInfo = GameData.Instance.GetPlayerById(body.ParentId);
             if (targetInfo == null) continue;

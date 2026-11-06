@@ -23,7 +23,7 @@ namespace TownOfHost.Roles.AddOns.Crewmate
         public static int NumShortTasks;
         public static void SetupCustomOption()
         {
-            SetupRoleOptions(Id, TabGroup.Addons, CustomRoles.Workhorse, fromtext: "<color=#000000>From:</color><color=#00bfff>TownOfHost</color></size>");
+            SetupRoleOptions(Id, TabGroup.Addons, CustomRoles.Workhorse, fromtext: UtilsOption.GetFrom(From.TownOfHost));
             OptionAssignOnlyToCrewmate = BooleanOptionItem.Create(Id + 10, "AssignOnlyTo%role%", true, TabGroup.Addons, false).SetParentRole(CustomRoles.Workhorse).SetParent(CustomRoleSpawnChances[CustomRoles.Workhorse]);
             OptionAssignOnlyToCrewmate.ReplacementDictionary = new Dictionary<string, string> { { "%role%", Utils.ColorString(Palette.CrewmateBlue, UtilsRoleText.GetRoleName(CustomRoles.Crewmate)) } };
             OptionNumCommonTasks = IntegerOptionItem.Create(Id + 13, "WorkhorseNumCommonTasks", new(0, 99, 1), 1, TabGroup.Addons, false).SetParentRole(CustomRoles.Workhorse).SetParent(CustomRoleSpawnChances[CustomRoles.Workhorse])
@@ -50,7 +50,7 @@ namespace TownOfHost.Roles.AddOns.Crewmate
         public static (bool, int, int, int) TaskData => (false, NumCommonTasks, NumLongTasks, NumShortTasks);
         private static bool IsAssignTarget(PlayerControl pc)
         {
-            if (!pc.IsAlive() || playerIdList.Contains(pc.PlayerId) || pc.Is(CustomRoles.Amanojaku)) return false;
+            if (!pc.IsAlive() || playerIdList.Contains(pc.PlayerId) || pc.Is(CustomRoles.Amanojaku) || pc.Is(CustomRoles.Surmount)) return false;
             var taskState = pc.GetPlayerTaskState();
             if (taskState.CompletedTasksCount < taskState.AllTasksCount) return false;
             if (!UtilsTask.HasTasks(pc.Data)) return false;

@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using AmongUs.GameOptions;
 
 using TownOfHost.Roles.Core;
@@ -26,6 +27,21 @@ public sealed class Professional : RoleBase, IImpostor, IKiller, IUsePhantomButt
     : base(RoleInfo, player)
     {
     }
+
+    readonly HashSet<byte> specialTargets = new();
+    int generation;
+    bool disposed;
+    bool Current => !disposed && Player != null && ReferenceEquals(Player.GetRoleClass(), this);
+    void ClearSpecialTargets()
+    {
+        generation++;
+        if (ReportDeadBodyPatch.IgnoreBodyids != null)
+            foreach (byte id in specialTargets) ReportDeadBodyPatch.IgnoreBodyids[id] = false;
+        specialTargets.Clear();
+    }
+    public override void OnStartMeeting() => ClearSpecialTargets();
+    public override void OnReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target) => ClearSpecialTargets();
+    public override void OnDestroy() { ClearSpecialTargets(); disposed = true; }
 
     private static OptionItem OptionKillCooldown;
     private static OptionItem OptionNormalKillCooldown;
@@ -70,7 +86,7 @@ public sealed class Professional : RoleBase, IImpostor, IKiller, IUsePhantomButt
     {
         // 通常キルの死体は必ず通報可能にする。ゲーム開始時の初期値や過去の特殊キルで
         // 通報禁止フラグが残っていても、通常キル対象についてはここで解除する。
-        if (info.AttemptTarget != null && ReportDeadBodyPatch.IgnoreBodyids != null)
+        if (info.AttemptTarget != null && ReportDeadBodyPatch.IgnoreBodyids != null && !specialTargets.Contains(info.AttemptTarget.PlayerId))
             ReportDeadBodyPatch.IgnoreBodyids[info.AttemptTarget.PlayerId] = false;
 
         // DoKill はデフォルトのまま true とし、通常のキル処理を通す。
@@ -78,48 +94,57 @@ public sealed class Professional : RoleBase, IImpostor, IKiller, IUsePhantomButt
 
     void IUsePhantomButton.OnClick(ref bool AdjustKillCooldown, ref bool? ResetCooldown)
     {
-        if (!Player.IsAlive()) return;
+        AdjustKillCooldown = true;
+        ResetCooldown = false;
+
+        if (AmongUsClient.Instance?.AmHost != true || !Current || !Player.IsAlive()
+            || !GameStates.IsInTask || GameStates.IsMeeting || GameStates.CalledMeeting) return;
 
         var target = Player.GetKillTarget(true);
-        if (target == null) return;
+        if (target == null || !target.IsAlive() || target.Data.Disconnected || target.PlayerId == Player.PlayerId) return;
 
         AdjustKillCooldown = false;
         ResetCooldown = true;
 
         var victimId = target.PlayerId;
+        specialTargets.Add(victimId);
         // 通常キル用フックが通報禁止を解除しても、特殊キルでは直後に必ず再設定する。
         if (ReportDeadBodyPatch.IgnoreBodyids != null)
             ReportDeadBodyPatch.IgnoreBodyids[victimId] = true;
 
-        if (!CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 1, CustomDeathReason.Kill))
+        bool accepted = false;
+        try
         {
-            if (ReportDeadBodyPatch.IgnoreBodyids != null)
-                ReportDeadBodyPatch.IgnoreBodyids[victimId] = false;
-            ResetCooldown = false;
-            return;
+            accepted = CustomRoleManager.OnCheckMurder(Player, target, target, target, true, false, 1, CustomDeathReason.Kill);
         }
+        finally
+        {
+            if (!accepted)
+            {
+                specialTargets.Remove(victimId);
+                if (ReportDeadBodyPatch.IgnoreBodyids != null) ReportDeadBodyPatch.IgnoreBodyids[victimId] = false;
+                ResetCooldown = false;
+            }
+        }
+        if (!accepted) return;
 
+        // The restriction starts before the kill and lasts the configured time;
+        // no extra 0.15-second task can race a delayed murder callback.
+        if (ReportDeadBodyPatch.IgnoreBodyids != null) ReportDeadBodyPatch.IgnoreBodyids[victimId] = true;
         var reportSeconds = OptionAutoReportSeconds.GetFloat();
-        // OnCheckMurder内の通常キルフックが後から実行される構成でも、キル確定後に
-        // 通報禁止を再適用する。これにより透明ボタンの特殊キルだけが通報不可になる。
+        int captured = generation;
+        var victimNetId = target.NetId;
         _ = new LateTask(() =>
         {
+            if (!Current || captured != generation) return;
+            specialTargets.Remove(victimId);
+            if (ReportDeadBodyPatch.IgnoreBodyids != null) ReportDeadBodyPatch.IgnoreBodyids[victimId] = false;
             var victim = victimId.GetPlayerControl();
-            if (victim == null || victim.IsAlive()) return;
-            if (ReportDeadBodyPatch.IgnoreBodyids != null)
-                ReportDeadBodyPatch.IgnoreBodyids[victimId] = true;
-
-            _ = new LateTask(() =>
-            {
-                if (ReportDeadBodyPatch.IgnoreBodyids != null && ReportDeadBodyPatch.IgnoreBodyids.ContainsKey(victimId))
-                    ReportDeadBodyPatch.IgnoreBodyids[victimId] = false;
-
-                // 設定秒数後、被害者自身が死体を通報したことにする(証拠が残る)。
-                var victimInfo = PlayerCatch.GetPlayerInfoById(victimId);
-                if (victim != null && victimInfo != null && GameStates.IsInTask)
-                    victim.ReportDeadBody(victimInfo);
-            }, reportSeconds, "Professional.AutoReport", true);
-        }, 0.15f, "Professional.ApplyBodyBlock", true);
+            var victimInfo = PlayerCatch.GetPlayerInfoById(victimId);
+            if (victim != null && victim.NetId == victimNetId && !victim.IsAlive() && victimInfo != null
+                && GameStates.IsInTask && !GameStates.IsMeeting && !GameStates.CalledMeeting)
+                victim.ReportDeadBody(victimInfo);
+        }, reportSeconds, "Professional.AutoReport", true);
 
         // 特殊キル後も通常キルボタン側は「通常キルのクールダウン」設定で同期する。
         Player.SetKillCooldown(OptionNormalKillCooldown.GetFloat(), delay: true);

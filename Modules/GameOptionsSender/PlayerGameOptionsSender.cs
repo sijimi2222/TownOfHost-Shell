@@ -97,6 +97,7 @@ namespace TownOfHost.Modules
         {
 
             var opt = BuildGameOptions();
+            opt.SetBool(BoolOptionNames.AnonymousVotes, Main.NormalOptions.GetBool(BoolOptionNames.AnonymousVotes));
 
             if (player.AmOwner)
 
@@ -747,6 +748,8 @@ namespace TownOfHost.Modules
                         case CustomRoles.DemonicVenter: AURoleOptions.GuardianAngelCooldown = CoolDown(DemonicVenter.CoolDown.GetFloat()); break;
 
                         case CustomRoles.AsistingAngel: AURoleOptions.GuardianAngelCooldown = CoolDown(AsistingAngel.GetNowCoolDown()); break;
+                        case CustomRoles.Arsene: AURoleOptions.GuardianAngelCooldown = CoolDown(TownOfHost.Roles.Neutral.Lupin.OptionArseneCooldown.GetFloat()); break;
+                        case CustomRoles.Kyonshi: AURoleOptions.GuardianAngelCooldown = CoolDown(TownOfHost.Roles.Neutral.Daoshi.OptionKyonshiCooldown.GetFloat()); break;
 
                     }
 
@@ -773,6 +776,7 @@ namespace TownOfHost.Modules
                 }
 
                 if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tiger) speed *= tiger.SpeedMultiplier;
+                speed = TownOfHost.Roles.Crewmate.Idol.ApplyMovement(player, speed);
                 if (state.CanMove is false) speed = Main.MinSpeed;
 
                 AURoleOptions.PlayerSpeedMod = Mathf.Clamp(speed, Main.MinSpeed, 10f);

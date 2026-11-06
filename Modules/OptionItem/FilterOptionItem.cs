@@ -19,7 +19,7 @@ namespace TownOfHost
         // Saved filters store list indices. Keep pre-beta Shell roles (including 496-499)
         // before the newly allocated beta range, rather than shifting existing selections.
         private static IEnumerable<CustomRoles> OrderedRoles => EnumHelper.GetAllValues<CustomRoles>()
-            .Where(role => role < CustomRoles.NotAssigned)
+            .Where(role => role.IsMainRole())
             .OrderBy(role => (int)role >= 312 && (int)role <= 349 ? 1 : 0)
             .ThenBy(role => (int)role);
 

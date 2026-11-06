@@ -1,4 +1,4 @@
-using AmongUs.GameOptions;
+﻿using AmongUs.GameOptions;
 using System;
 using System.Linq;
 using UnityEngine;
@@ -23,6 +23,7 @@ public sealed class Turncoat : RoleBase, IKiller
             "Tu",
             "#371a1a",
             (7, 1),
+            isDesyncImpostor: true,
             from: From.TownOfHost_K
         );
     public Turncoat(PlayerControl player)

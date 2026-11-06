@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AmongUs.GameOptions;
 using Hazel;
 using TownOfHost.Roles.Core;
@@ -89,6 +89,7 @@ public sealed class EarnestWolf : RoleBase, IImpostor, IUsePhantomButton
             if (info.IsCanKilling is false) return false;
             CustomRoleManager.CheckMurderInfos[info.AppearanceKiller.PlayerId] = info;
             dummykiller.RpcMurderPlayer(target);
+            if (dummykiller.PlayerId != killer.PlayerId) target.SetRealKiller(killer);
             OverKillMode = OptionOverKillCanCount.GetBool() is false;
             OverKillList.Add(target.PlayerId);
 

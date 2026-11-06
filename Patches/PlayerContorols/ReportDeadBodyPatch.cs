@@ -50,7 +50,7 @@ namespace TownOfHost
 
         {
 
-            if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId)) return false;
+            if (target != null && (Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId) || Modules.DeadBodyEraser.IsUnreportable(target.PlayerId))) return false;
             if (GameStates.IsMeeting || GameStates.IsLobby || Wait) return false;
 
             if (CustomWinnerHolder.WinnerTeam is not CustomWinner.Default) return false;
@@ -235,6 +235,7 @@ namespace TownOfHost
         {
 
             if (!AmongUsClient.Instance.AmHost) return;
+            if (target != null && Modules.DeadBodyEraser.IsUnreportable(target.PlayerId)) return;
 
             if (CustomWinnerHolder.WinnerTeam is not CustomWinner.Default) return;
 
@@ -313,11 +314,9 @@ namespace TownOfHost
                         case DontReportreson.Other: return "<size=120%><#bd9391>×</color></size>";
 
                         case DontReportreson.Eat: return "<size=120%><#6f4204>×</color></size>";
-
                         case DontReportreson.Impostor: return "<size=120%><#ff1919>×</color></size>";
-
+                        case DontReportreson.Kyonshi: return $"<size=120%><{Daoshi.RoleInfo.RoleColorCode}>×</color></size>";
                     }
-
                 }
 
 
@@ -660,15 +659,9 @@ namespace TownOfHost
             targetid = target?.PlayerId ?? byte.MaxValue;
 
             Wait = true;
-
             GameStates.task = false;
-
-            bool IsMeetingBlackout = Options.ExCallMeetingBlackout.GetBool() || CustomRoles.Monochromer.IsEnable() || GameStates.AlreadyDied;
-
+            bool IsMeetingBlackout = Options.ExCallMeetingBlackout.GetBool() || CustomRoles.Monochromer.IsEnable() || CustomRoles.Daoshi.IsEnable() || CustomRoles.BlackVisioner.IsEnable() || GameStates.AlreadyDied;
             IsMeetingBlackout &= (Options.firstturnmeeting && MeetingStates.FirstMeeting) is false;
-
-
-
             DisableDevice.StartMeeting();
 
             foreach (var kvp in PlayerState.AllPlayerStates)
@@ -763,6 +756,9 @@ namespace TownOfHost
 
 
 
+            TownOfHost.Roles.Crewmate.Marshall.PrepareMeeting();
+
+            Notice.OnReportDeadBody(reporter, target);
             var meetingInfo = UtilsNotifyRoles.ExtendedMeetingText;
 
             foreach (var pc in PlayerCatch.AllPlayerControls)

@@ -59,3 +59,18 @@ help rolesコマンドの日本語化<br>
 前から細かく書いたほうがいいかなと思ってて追加しました<br>
 
 
+
+
+## UchuAddon / Nova
+
+TOH-hamo mainのNova実装を元にTOH-Shellへ適合しています。上流の出典表記は`From.UchuAddon`です。
+提供されたmain ZIPのGNU GPL v3（LICENSE）を保持しています。個人名・既存クレジットは変更していません。
+
+## TOH-hamo 4.40.04α からの選択移植
+
+提供されたmain ZIPを経由し、Slugger（スラッガー）・Pusher（突き落とし師）の
+SuperNewRoles表記、Gimlet（ギムレット）・Cleaner（クリーナー）のNebula on the Ship表記を保持しています。
+Informant・LifeSaver・Bloodlust・EvilButtoner・Noticeおよび選択した共通修正の出典は、
+同梱の上流ソースと既存のFrom表記に従います。既存の作者・Nova提供者の記載は変更していません。
+GNU GPL v3のLICENSEを保持し、統合上の調整・未採用部分は
+`docs/integration/hamo-4.40.04-alpha.md` と `hamo-4.40.04-decisions.csv` に記録しています。
