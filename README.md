@@ -142,7 +142,7 @@ TOH-Shellの直接のフォーク元・ベースとなった旧TOH-hamoです。
 [TheOtherRole GM](https://github.com/yukinogatari/TheOtherRoles-GM)<br>
 　一部役職を参考/移植させていただきました<br>
 
-TheOtherRole GM Haoming Edition<br>
+[TheOtherRole GM Haoming](https://github.com/shu-TownofHost/TheOtherRoles-GM-Haoming)<br>
 　イビルトラッカー、シュレディンガーの猫等を参考/移植させていただきました<br>
 
 [Nebula On The Ship](https://github.com/Dolly1016/Nebula/)<br>
