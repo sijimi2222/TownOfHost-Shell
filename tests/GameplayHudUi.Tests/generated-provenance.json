@@ -1,0 +1,10 @@
+{
+  "role_sha256": "8e5942d750ca366199fe26319ccf708a39665af33c5d36b88db8194bd3d65527",
+  "credentials_sha256": "80dd8b60931f4cee16a62e274a189ff3aa0b0836adf3223d9edd7863fbe72b88",
+  "methods": [
+    "KeepHeaderClearOfGuide(bool)",
+    "HeaderLateLayout",
+    "both native anchor overloads",
+    "current production layout and aspect block"
+  ]
+}

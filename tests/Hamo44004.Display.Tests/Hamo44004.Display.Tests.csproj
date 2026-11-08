@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><CheckEolTargetFramework>false</CheckEolTargetFramework></PropertyGroup><ItemGroup>
+<Compile Include="../../Modules/ShellRoleOrigins.cs" Link="ShellRoleOrigins.cs" />
+<Compile Include="../../Modules/RoleSettingsReadings.cs" Link="RoleSettingsReadings.cs" />
+<Compile Include="../../Patches/GameOptions/RoleSettingsDisplay.cs" Link="RoleSettingsDisplay.cs" />
+<Compile Include="../../Roles/Core/SimpleRoleInfo.cs" Link="SimpleRoleInfo.cs" />
+<Compile Include="../../Modules/Hamo435RoleOrder.cs" Link="Hamo435RoleOrder.cs" />
+
+</ItemGroup></Project>

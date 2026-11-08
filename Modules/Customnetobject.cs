@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.InnerNet.GameDataMessages;
@@ -14,12 +14,15 @@ public class CustomNetObject
     private static int MaxId = -1;
 
     private static readonly Queue<Action> SpawnQueue = new();
+    private static readonly Queue<Action> VisualSpawnQueue = new();
+    private static bool visualCoolingDown;
     private static bool IsSpawning = false;
     private static uint spawnGeneration;
     private static bool CurrentSpawn(uint generation, AmongUsClient client, int game)
         => generation == spawnGeneration && client != null && client == AmongUsClient.Instance
             && client.AmHost && client.GameId == game && client.GameState == AmongUsClient.GameStates.Started;
 
+    private bool spawnAssignmentsComplete;
     protected int Id;
     public PlayerControl PlayerControl;
     public Vector2 Position;
@@ -27,34 +30,46 @@ public class CustomNetObject
     protected virtual bool IsDynamic => false;
     protected virtual bool CanCreate => true;
     protected virtual bool DelayPlayerIdReset => false;
+    // Opt-in for Nova's large visual pool. Other CNO consumers keep their existing cadence/envelopes.
+    protected virtual bool BatchSpawnAssignments => false;
+    protected virtual float SpawnInterval => 0.4f;
 
     public void Despawn()
     {
-        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
-
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "remove");
+#endif
+        var client = AmongUsClient.Instance;
+        if (client == null || !client.AmHost) return;
+        var capturedPC = PlayerControl;
         try
         {
-            if (PlayerControl != null)
+            if (capturedPC != null)
             {
                 MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
                 try
                 {
-                writer.StartMessage(5);
-                writer.Write(AmongUsClient.Instance.GameId);
-                writer.StartMessage(5);
-                writer.WritePacked(PlayerControl.NetId);
-                writer.EndMessage();
-                writer.EndMessage();
-                AmongUsClient.Instance.SendOrDisconnect(writer);
+                    writer.StartMessage(5);
+                    writer.Write(client.GameId);
+                    writer.StartMessage(5);
+                    writer.WritePacked(capturedPC.NetId);
+                    writer.EndMessage();
+                    writer.EndMessage();
+                    client.SendOrDisconnect(writer);
                 }
                 finally { writer.Recycle(); }
-
-                AmongUsClient.Instance.RemoveNetObject(PlayerControl);
-                UnityEngine.Object.Destroy(PlayerControl.gameObject);
             }
-            AllObjects.Remove(this);
         }
         catch (Exception e) { Logger.Error(e.ToString(), "CNO.Despawn"); }
+        finally
+        {
+            // A failed send cannot leave a host-side dummy updating after its owner has retired it.
+            try { if (capturedPC != null) client.RemoveNetObject(capturedPC); }
+            catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.Local"); }
+            try { if (capturedPC != null) UnityEngine.Object.Destroy(capturedPC.gameObject); }
+            catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.Destroy"); }
+            AllObjects.Remove(this);
+        }
     }
 
     protected void Hide(PlayerControl player)
@@ -166,6 +181,57 @@ public class CustomNetObject
         sender.SendMessage();
     }
 
+    // Nova's visual transaction never edits the borrowed host outfit or invokes local
+    // Shapeshift on a dummy whose CachedPlayerData aliases the host. Vanilla still receives
+    // the same temporary-info -> Shapeshift -> original-info sequence.
+    protected void SetVisualName(string name)
+    {
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Name(this, name);
+#endif
+        var client = AmongUsClient.Instance;
+        var host = global::PlayerControl.LocalPlayer;
+        var dummy = PlayerControl;
+        var data = host == null ? null : host.Data;
+        if (client == null || !client.AmHost || data == null || dummy == null)
+            throw new InvalidOperationException("Visual owner is unavailable");
+        var outfits = data.Outfits;
+        var original = outfits[PlayerOutfitType.Default];
+        if (original == null) throw new InvalidOperationException("Default outfit is unavailable");
+        // Native PlayerOutfit.Serialize/Deserialize layout verified against the current v19s binary:
+        // name, packed color, hat/pet/skin/visor/nameplate, five sequence bytes.
+        // Deserialize performs native managed-reference stores; no generated raw string field setters.
+        var visual = new NetworkedPlayerInfo.PlayerOutfit();
+        var buffer = MessageWriter.Get(SendOption.Reliable);
+        try
+        {
+            buffer.Write(name ?? ""); buffer.WritePacked(0);
+            for (int i = 0; i < 5; i++) buffer.Write("");
+            for (int i = 0; i < 5; i++) buffer.Write((byte)0);
+            var reader = MessageReader.Get(buffer.ToByteArray(false));
+            try { visual.Deserialize(reader); }
+            finally { reader.Recycle(); }
+        }
+        finally { buffer.Recycle(); }
+        using var sender = CustomRpcSender.Create("CNO.VisualName", SendOption.Reliable);
+        var writer = sender.stream;
+        sender.StartMessage();
+        try
+        {
+            outfits[PlayerOutfitType.Default] = visual;
+            writer.StartMessage(1); writer.WritePacked(data.NetId); data.Serialize(writer, false); writer.EndMessage();
+            sender.StartRpc(dummy.NetId, RpcCalls.Shapeshift).WriteNetObject(host).Write(false).EndRpc();
+        }
+        finally
+        {
+            outfits[PlayerOutfitType.Default] = original;
+            GC.KeepAlive(original); GC.KeepAlive(visual);
+        }
+        writer.StartMessage(1); writer.WritePacked(data.NetId); data.Serialize(writer, false); writer.EndMessage();
+        sender.EndMessage(); sender.SendMessage();
+        GC.KeepAlive(original); GC.KeepAlive(visual);
+    }
+
     protected void SetName(string name)
     {
         if (PlayerControl == null) return;
@@ -183,6 +249,9 @@ public class CustomNetObject
 
     protected void SnapToPosition(Vector2 position)
     {
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "move");
+#endif
         if (PlayerControl == null) return;
         Position = position;
 
@@ -204,15 +273,19 @@ public class CustomNetObject
 
         uint generation = spawnGeneration;
         int game = client.GameId;
-        SpawnQueue.Enqueue(() => { if (CurrentSpawn(generation, client, game) && CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
+        var queue = BatchSpawnAssignments ? VisualSpawnQueue : SpawnQueue;
+        queue.Enqueue(() => { if (CurrentSpawn(generation, client, game) && CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
         ProcessQueue();
     }
 
     private static void ProcessQueue()
     {
-        if (IsSpawning || SpawnQueue.Count == 0) return;
+        if (IsSpawning) return;
+        // Mandatory/legacy effects are never held behind Nova's cosmetic pacing interval.
+        var queue = SpawnQueue.Count > 0 ? SpawnQueue : !visualCoolingDown ? VisualSpawnQueue : null;
+        if (queue == null || queue.Count == 0) return;
         IsSpawning = true;
-        var action = SpawnQueue.Dequeue();
+        var action = queue.Dequeue();
         try
         {
             action();
@@ -229,11 +302,16 @@ public class CustomNetObject
     {
         unchecked { spawnGeneration++; }
         SpawnQueue.Clear();
+        VisualSpawnQueue.Clear();
+        visualCoolingDown = false;
         IsSpawning = false;
     }
 
     private void DoCreate(Vector2 position)
     {
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "spawn");
+#endif
         var spawnClient = AmongUsClient.Instance;
         int spawnGame = spawnClient.GameId;
         uint generation = spawnGeneration;
@@ -294,13 +372,20 @@ public class CustomNetObject
         _ = new LateTask(() =>
         {
             if (!CurrentSpawn(generation, spawnClient, spawnGame) || !capturedPC || !capturedSelf.CanCreate) return;
+#if SHELL_DEBUG_CONTROLLER
+            using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(capturedSelf, "assignment");
+#endif
             var localHost = PlayerControl.LocalPlayer;
             if (localHost == null || localHost.Data == null) return;
+            CustomRpcSender sender = null;
+            int pending = 0;
+            try
+            {
             foreach (var pc in PlayerCatch.AllPlayerControls)
             {
                 if (pc == null || pc.Data == null || pc.Data.Disconnected || pc.AmOwner) continue;
 
-                var sender = CustomRpcSender.Create("CNO.AssignId", SendOption.Reliable);
+                sender ??= CustomRpcSender.Create("CNO.AssignId", SendOption.Reliable);
                 MessageWriter writer = sender.stream;
                 sender.StartMessage(pc.OwnerId);
 
@@ -323,10 +408,20 @@ public class CustomNetObject
                 }
 
                 sender.EndMessage();
-                sender.SendMessage();
+                // Complete GameDataTo envelopes retain each recipient and the original RPC ordering.
+                // At most eight small assignment envelopes per reliable packet (well below 1000 bytes).
+                if (++pending >= (capturedSelf.BatchSpawnAssignments ? 8 : 1))
+                {
+                    sender.SendMessage(); sender.Dispose(); sender = null; pending = 0;
+                }
             }
 
+            if (pending > 0) sender.SendMessage();
+            }
+            finally { sender?.Dispose(); }
+
             capturedPC.CachedPlayerData = localHost.Data;
+            capturedSelf.spawnAssignmentsComplete = true;
         }, 0.1f, "CNO.AssignId", true);
 
         if (DelayPlayerIdReset)
@@ -355,6 +450,8 @@ public class CustomNetObject
             try
             {
                 if (!capturedPC || !capturedSelf.CanCreate) capturedSelf.Despawn();
+                else if (capturedSelf.BatchSpawnAssignments && !capturedSelf.spawnAssignmentsComplete)
+                { capturedSelf.OnCreateFailed(); capturedSelf.Despawn(); }
                 else capturedSelf.OnCreated();
             }
             catch (Exception e)
@@ -388,6 +485,17 @@ public class CustomNetObject
 
             if (CurrentSpawn(generation, spawnClient, spawnGame))
             {
+                float pause = Math.Max(0f, capturedSelf.SpawnInterval - 0.4f);
+                if (capturedSelf.BatchSpawnAssignments && pause > 0f)
+                {
+                    visualCoolingDown = true;
+                    _ = new LateTask(() =>
+                    {
+                        if (!CurrentSpawn(generation, spawnClient, spawnGame)) return;
+                        visualCoolingDown = false;
+                        ProcessQueue();
+                    }, pause, "CNO.SpawnNext", true);
+                }
                 IsSpawning = false;
                 ProcessQueue();
             }
@@ -395,6 +503,7 @@ public class CustomNetObject
     }
 
     protected virtual void OnCreated() { }
+    protected virtual void OnCreateFailed() { }
 
     public virtual void OnMeeting()
     {

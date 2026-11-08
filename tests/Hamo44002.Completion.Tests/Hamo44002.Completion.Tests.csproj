@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><CheckEolTargetFramework>false</CheckEolTargetFramework></PropertyGroup><ItemGroup>
+<Compile Include="../Hamo44002.Regression.Tests/Stubs.cs" Link="Stubs.cs"/>
+<Compile Include="../Hamo44002.Regression.Tests/BlackoutProperty.cs" Link="BlackoutProperty.cs"/>
+<Compile Include="../Hamo44002.Regression.Tests/NativeValidator.cs" Link="NativeValidator.cs"/>
+<Compile Include="../../Roles/Madmate/Madpsycho.cs" Link="Madpsycho.cs"/>
+<Compile Include="../../Roles/Impostor/DoubleKiller.cs" Link="DoubleKiller.cs"/>
+<Compile Include="../../Roles/Impostor/HateKiller.cs" Link="HateKiller.cs"/>
+<Compile Include="../../Roles/Neutral/Hunter.cs" Link="Hunter.cs"/>
+<Compile Include="../../Modules/HunterVisionLeases.cs" Link="HunterVisionLeases.cs"/>
+<Compile Include="../../Modules/MiraVentRules.cs" Link="MiraVentRules.cs"/>
+<Compile Include="../../Patches/MiraVentLockPatch.cs" Link="MiraVentLockPatch.cs"/>
+<Compile Include="../../Roles/Impostor/Professional.cs" Link="Professional.cs"/></ItemGroup></Project>

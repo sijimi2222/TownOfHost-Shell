@@ -1,0 +1,25 @@
+using System;using System.Linq;using System.Collections.Generic;using TownOfHost.Roles.Core;
+namespace UnityEngine {public struct Color{public static Color white=>new();}}
+namespace TownOfHost.Roles.Core {public enum CustomRoleTypes{Impostor,Madmate,Crewmate,Neutral}public enum CombinationRoles{None}public enum From{None}public class AssignInfo{public IntegerValueRule AssignCountRule=new(1,15,1);}public class SimpleRoleInfo{public int ConfigId;public CustomRoles RoleName;public TabGroup Tab;public CustomRoleTypes CustomRoleType;public (int TabNumber,int SortNumber) OptionSort;public CombinationRoles Combination;public Action OptionCreator;public AssignInfo AssignInfo=new();public OptionItem RoleOption=>Options.CustomRoleSpawnChances[RoleName];}public static class CustomRoleManager{public static List<CustomRoles> SortCustomRoles=new();public static Dictionary<CustomRoles,SimpleRoleInfo> AllRolesInfo=new();}}
+namespace TownOfHost {
+public enum GeneralOption{TaskAwakening,AwakeningTaskcount,KillCooldown,cantaskcount,MeetingMaxTime,AbilityAwakening}public enum AbilityVoteMode{NomalVote,SelfVote}public enum CustomOptionTags{All,Role,HideAndSeek,MurderMystery}public enum CustomGameMode{Standard,HideAndSeek,MurderMystery}
+public class LogHandler{public void Warn(string s)=>Logger.Warnings.Add(s);public void Info(string s){} }
+public static class Logger{public static List<string> Errors=new(),Warnings=new();public static void Error(string s,string tag)=>Errors.Add(s);public static void Warn(string s,string tag)=>Warnings.Add(s);}
+public static class Translator{public static string GetString(string s)=>s;}
+public class ConfigString {public string Value;}
+public static class Main{public static ConfigString Preset1=new();public static ConfigString Preset2=new();public static ConfigString Preset3=new();public static ConfigString Preset4=new();public static ConfigString Preset5=new();public static ConfigString Preset6=new();public static ConfigString Preset7=new();public static ConfigString Preset8=new();public static ConfigString Preset9=new();public static ConfigString Preset10=new();public static ConfigString Preset11=new();public static ConfigString Preset12=new();public static ConfigString Preset13=new();public static ConfigString Preset14=new();public static ConfigString Preset15=new();public static ConfigString Preset16=new();}
+public static class Utils{public static string ColorString(UnityEngine.Color c,string t)=>t;}
+public static class UtilsRoleText{public static UnityEngine.Color GetRoleColor(CustomRoles role,bool b=false)=>new();public static string GetRoleColorCode(CustomRoles role)=>"#fff";public static string GetRoleName(CustomRoles r)=>r.ToString();}
+public static class UtilsOption{public static string GetFrom(From f,CustomRoles r)=>"";}
+public static class ShellRoleOrigins{public static bool HasOverride(CustomRoles r)=>false;}
+public static class SlotRoleAssign{public static bool IsSeted(CustomRoles r)=>false;}
+public static class MonkeyBehaviorBanOption{public static void Create(SimpleRoleInfo i){}}
+public static class SaruWarningOption{public static void AddTo(SimpleRoleInfo i){}}
+public static class EnumHelper{public static string[] GetAllNames<T>()=>Enum.GetNames(typeof(T));}
+public static class GameModeManager{public static CustomOptionTags[] GetTags(CustomGameMode m)=>new[]{CustomOptionTags.Role};}
+public class OverrideKilldistance {public static OverrideKilldistance Create(SimpleRoleInfo i,int offset){StringOptionItem.Create(i.ConfigId+offset,"Killdistance",new[]{"KDShort","KDMidium","KDLong"},0,i.Tab,false).SetParent(i.RoleOption).SetParentRole(i.RoleName);return new();}}
+public class StringOptionItem:OptionItem{public StringOptionItem(int id,string n,int v,TabGroup t,bool s):base(id,n,v,t,s){}public static StringOptionItem Create(int id,string n,string[] vals,int v,TabGroup t,bool s)=>new(id,n,v,t,s);public static StringOptionItem Create(SimpleRoleInfo i,int off,Enum n,string[] vals,int v,bool s){var o=new StringOptionItem(i.ConfigId+off,n.ToString(),v,i.Tab,s);o.SetParent(i.RoleOption);o.SetParentRole(i.RoleName);return o;}}
+public class AssignOptionItem:OptionItem{public Dictionary<int,List<CustomRoles>> RoleValues=new();public AssignOptionItem():base(-999,"assign",0,TabGroup.MainSettings,false){}}
+public static class RPC{public static List<(int Id,int Value)> Sent=new();public static void SyncCustomSettingsRPC(OptionItem item)=>Sent.Add((item.Id,item.GetValue()));}
+public static class Extensions {public static void Do<T>(this IEnumerable<T> values,Action<T> a){foreach(var v in values)a(v);}public static SimpleRoleInfo GetRoleInfo(this CustomRoles r)=>CustomRoleManager.AllRolesInfo.GetValueOrDefault(r);public static CustomRoles GetCombination(this CustomRoles r)=>CustomRoles.NotAssigned;public static bool IsVanilla(this CustomRoles r)=>r is CustomRoles.Crewmate or CustomRoles.Impostor or CustomRoles.Phantom or CustomRoles.Viper or CustomRoles.Judge or CustomRoles.Influencer;public static bool IsCombinationRole(this CustomRoles r)=>false;public static bool IsLovers(this CustomRoles r)=>false;}
+}

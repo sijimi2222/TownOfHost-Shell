@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><CheckEolTargetFramework>false</CheckEolTargetFramework></PropertyGroup>
+ <ItemGroup>
+  <PackageReference Include="csv" Version="2.0.245" />
+  <Compile Include="../../Modules/Translator.cs" Link="Translator.cs" />
+  <EmbeddedResource Include="../../Resources/string.csv" LogicalName="TownOfHost.Resources.string.csv" />
+  <EmbeddedResource Include="../../Resources/achievements.csv" LogicalName="TownOfHost.Resources.achievements.csv" />
+ </ItemGroup>
+</Project>

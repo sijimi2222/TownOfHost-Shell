@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>ShellDebugController</AssemblyName>
+    <Version>1.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <CopyToAmongUs>false</CopyToAmongUs>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="../../Modules/NovaVisualPoolRules.cs" Link="NovaVisualPoolRules.cs"/><Compile Include="../../Development/DebugController/Shared/*.cs" Link="Shared/%(Filename)%(Extension)" /></ItemGroup>
+</Project>

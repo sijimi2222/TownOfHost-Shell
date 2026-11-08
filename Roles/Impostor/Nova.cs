@@ -1,7 +1,8 @@
-// Adapted from the supplied TOH-hamo main Nova (GNU GPL v3; see LICENSE).
+﻿// Adapted from the supplied TOH-hamo main Nova (GNU GPL v3; see LICENSE).
 // Upstream SHA-256: fdb3a6b244a88662e9c1dd29820817088742b404609a27744fd60be7f788f465
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using AmongUs.GameOptions;
@@ -90,8 +91,8 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
     private readonly float fireDelay;
 
     private const float BeamTime = 1.5f;
-    private const float BeamLength = 10f;
-    // 今回のビームが届く長さ(壁に当たったらそこまで)
+    private const float BeamLength = 50f;
+    // 描画と命中判定で共有する最大射程。壁・扉・命中対象では短縮しない。
     private float reach = BeamLength;
     // ビームが自分の体から少し前で始まるように
     private const float BeamStart = 0.5f;
@@ -108,7 +109,6 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
     private const float GuideAngleStep = 1.5f;
     // チャージが終わってから、この秒数ボタンを押さなかったら自動で撃つ(ずっと止まったままにならないように)
     private const float MaxHoldTime = 10f;
-    private const int MaxTiles = 16;
 
     private bool charging;
     // 向きを決めてから、ビームが出るまでの待ち
@@ -186,6 +186,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         }
         // 梯子・ジップライン・移動床の上では使えない(照準を戻す瞬間移動で、体がプルプル震えていた)
         if (OnLadder()) return;
+        Logger.Info($"NOVA_CHARGE playerId={ownerId}", "NovaTraffic");
         charging = true;
         chargeUntil = Time.time + chargeTime;
         anchor = Player.GetTruePosition();
@@ -200,6 +201,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         guideAngle = float.NaN;
         SetSpeed(AimSpeed);
         ShowGuide(NovaBeamTile.Style.Guide);
+        if (!TilesReady) { Stop(); return; }
         SendRpc();
         UtilsNotifyRoles.NotifyRoles(ForceLoop: true);
     }
@@ -220,11 +222,13 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
     private void RestoreSpeed()
     {
         if (savedSpeed < 0f) return;
+        float restore = savedSpeed, expected = forcedSpeed;
+        savedSpeed = forcedSpeed = -1f;
         var owner = PlayerCatch.GetPlayerById(ownerId);
         if (owner != null && owner.NetId == ownerNetId
-            && Main.AllPlayerSpeed.TryGetValue(ownerId, out float now) && Mathf.Abs(now - forcedSpeed) < .0001f)
+            && Main.AllPlayerSpeed.TryGetValue(ownerId, out float now) && Mathf.Abs(now - expected) < .0001f)
         {
-            Main.AllPlayerSpeed[ownerId] = savedSpeed;
+            Main.AllPlayerSpeed[ownerId] = restore;
             owner.MarkDirtySettings();
         }
         savedSpeed = forcedSpeed = -1f;
@@ -295,15 +299,17 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
             tiles.Add(new NovaBeamTile(render, () => Phase, gameId));
             restSpawnAt = Time.time + 2f;
         }
-        // The shared queue serializes creation; include the short-wall fallback.
+        // The shared queue serializes creation; include the grid-rendering fallback.
         if (tilesSpawned && restSpawnAt >= 0f && (render.Measured || Time.time >= restSpawnAt))
         {
             restSpawnAt = -1f;
             for (var i = tiles.Count; i < TileCount(); i++) tiles.Add(new NovaBeamTile(render, () => Phase, gameId));
+            Logger.Info($"NOVA_PREPARE_QUEUED playerId={ownerId} tiles={tiles.Count} (visual preparation, not firing)", "NovaTraffic");
         }
         if (lastVisualStatus != VisualStatus)
         {
             lastVisualStatus = VisualStatus; SendRpc(); UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
+            Logger.Info($"NOVA_VISUAL_STATUS playerId={ownerId} status={lastVisualStatus} tiles={tiles.Count}", "NovaTraffic");
         }
         if ((charging || waiting || beaming) && !TilesReady) { Stop(); return; }
         // チャージ中・発射待ちに梯子などへ乗ったら、取り消す
@@ -357,16 +363,10 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         }
     }
 
-    // ビームを描くのに必要なダミーの数(マス目の絵 1 枚が受け持つ広さから決める)
-    private int TileCount()
-    {
-        float tile = render.TileWorldSize;
-        int grid = Mathf.Clamp(Mathf.CeilToInt((BeamLength + beamSize) / tile * 1.42f) + 3, 4, MaxTiles);
-        if (!render.Smooth) return grid + 1;
-        float bar = render.BarLength, span = BeamLength - BeamStart;
-        int bars = span <= bar ? 1 : Mathf.CeilToInt((span - bar) / (bar * .7f)) + 1;
-        return Mathf.Max(grid, Mathf.Clamp(bars, 1, MaxTiles)) + 1;
-    }
+    // One star plus the reusable drawing pool: Fungle 11, every other map 10.
+    // Use the same actual selected-map identity as existing Shell role code.
+    private int TileCount() => NovaVisualPoolRules.Count(
+        Main.NormalOptions != null && (MapNames)Main.NormalOptions.MapId == MapNames.Fungle);
 
     private Vector2 Dir => new(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     private int ShownAngle() => ((Mathf.RoundToInt(angle) % 360) + 360) % 360;
@@ -394,6 +394,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         nextAlarmAt = 0f;
         SetSpeed(Main.MinSpeed);
         ShowGuide(NovaBeamTile.Style.Locked);
+        if (!TilesReady) { Stop(); return; }
         SendRpc();
         UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
         if (fireDelay <= 0f) Fire();
@@ -404,91 +405,100 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         charging = false;
         waiting = false;
         beaming = false; beamVisible = false; attempted.Clear();
-        RestoreSpeed();
-        foreach (var tile in tiles) tile.Park();
-        SendRpc();
-        UtilsNotifyRoles.NotifyRoles(ForceLoop: true);
+        try { RestoreSpeed(); } catch (Exception e) { Logger.Warn("NOVA_SPEED_RESTORE_FAILED " + e.GetType().Name, "NovaTraffic"); }
+        foreach (var tile in tiles)
+        {
+            try { tile.Park(); }
+            catch (Exception e) { Logger.Warn("NOVA_CLEANUP_FAILED " + e.GetType().Name, "NovaTraffic"); try { tile.Remove(); } catch { } }
+        }
+        try { SendRpc(); } catch (Exception e) { Logger.Warn("NOVA_STOP_SYNC_FAILED " + e.GetType().Name, "NovaTraffic"); }
+        try { UtilsNotifyRoles.NotifyRoles(ForceLoop: true); } catch (Exception e) { Logger.Warn("NOVA_STOP_NOTIFY_FAILED " + e.GetType().Name, "NovaTraffic"); }
     }
+
+    private string drawFailure;
+    private bool RejectDraw(string reason) { drawFailure = reason; return false; }
 
     private void Fire()
     {
+        Logger.Info($"NOVA_FIRE_REQUEST playerId={ownerId}", "NovaTraffic");
         if (!Phase || !TilesReady) { Stop(); return; }
         charging = waiting = false; beaming = true; beamVisible = false;
         attempted.Clear(); visualDeadline = Time.time + 2f;
         SetSpeed(Main.MinSpeed);
-        reach = WallDistance(anchor, Dir);
-        if (reach <= BeamStart || !DrawBeam())
+        bool drawable = false; drawFailure = null;
+        try { reach = BeamLength; drawable = reach > BeamStart && DrawBeam(); }
+        catch (Exception e) { drawFailure = "exception_" + e.GetType().Name; Logger.Warn("NOVA_DRAW_FAILED " + e.GetType().Name, "NovaTraffic"); }
+        if (!drawable || !TilesReady)
         {
+            string reason = !TilesReady ? "tiles_not_ready" : drawFailure ?? render.LayoutFailure ?? "coverage_unknown";
+            Logger.Warn($"NOVA_DRAW_ABORT reason={reason} ready={TilesReady} slots={tiles.Count - 1} reach={reach:F2}", "NovaTraffic");
             Logger.Warn("Beam has no safe drawable coverage; attack cancelled.", "Nova"); Stop(); return;
         }
         if (tiles.Count > 0) tiles[0].Park();
         SendRpc(); UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
     }
 
-    // 撃つ向きに、壁(扉も)がどこにあるかを少しずつ確かめる。壁より先には届かない
-    private static float WallDistance(Vector2 from, Vector2 dir)
-    {
-        const float step = 0.25f;
-        for (var t = step; t <= BeamLength; t += step)
-        {
-            if (PhysicsHelpers.AnyNonTriggersBetween(from, dir, t, Constants.ShipAndObjectsMask))
-                return Mathf.Max(0f, t - step);
-        }
-        return BeamLength;
-    }
-
-    // ビームの帯を、マス目(1 マスはビームの太さの 1/4 くらい)で塗り、マス目の絵を何枚かのダミーに分けて貼る。
-    // 絵どうしは同じマス目の上に並ぶので、つなぎ目がずれず、角度があっても段差がマス目 1 つぶんだけになる。
+    // Pack several unscaled glyphs into each existing dummy. The bodies remain
+    // at the real firing position: standard NetHelpers coordinates are only +/-50.
     private bool DrawBeam()
     {
-        if (render.Smooth && reach - BeamStart >= render.BarLength) return DrawSmoothBeam();
-        var dir = Dir;
-        var perp = new Vector2(-dir.y, dir.x);
-        var tile = render.TileWorldSize;
-        var half = beamSize * 0.5f;
-        var used = new List<Vector2Int>();
-        for (var t = 0f; t <= reach + tile; t += tile * 0.25f)
-        {
-            for (var k = -1; k <= 1; k++)
-            {
-                var p = dir * Mathf.Min(t, reach) + perp * (half * k);
-                var cell = new Vector2Int(Mathf.FloorToInt(p.x / tile), Mathf.FloorToInt(p.y / tile));
-                if (!used.Contains(cell)) used.Add(cell);
-            }
-        }
-        var artTiles = used.Select(cell => (cell, art: render.BuildTile(cell, tile, dir, perp, half, BeamStart, reach)))
-            .Where(x => x.art != null).ToArray();
-        if (artTiles.Length == 0 || artTiles.Length > tiles.Count - 1) return false;
-        var index = 1;
-        foreach (var sample in artTiles.OrderBy(c => Vector2.Dot(((Vector2)c.cell + Vector2.one * 0.5f) * tile, dir)))
-        {
-            tiles[index].ShowBeam(sample.art);
-            tiles[index].MoveTo(anchor + ((Vector2)sample.cell + Vector2.one * 0.5f) * tile);
-            index++;
-        }
-        for (; index < tiles.Count; index++) tiles[index].Park();
-        return true;
+        if (!NovaBeamRules.Finite(anchor.x) || !NovaBeamRules.Finite(anchor.y)
+            || Mathf.Abs(anchor.x) > 50f || Mathf.Abs(anchor.y) > 50f || tiles.Count < 2) return RejectDraw("invalid_anchor_or_pool");
+        return render.PreparePacked(tiles[0].PlayerControl, angle, reach) && DrawSmoothBeam();
     }
 
-    // なめらかなビーム: ふちの無いフォントの「-」をビームの向きに回し、少しずつ重ねて並べる
     private bool DrawSmoothBeam()
     {
-        var dir = Dir;
-        var bar = render.BarLength;
-        var span = reach - BeamStart;
-        var count = span <= bar ? 1 : Mathf.CeilToInt((span - bar) / (bar * 0.7f)) + 1;
-        if (count > tiles.Count - 1) return false;
-        var first = BeamStart + bar * 0.5f;
-        var last = Mathf.Max(first, reach - bar * 0.5f);
-        var art = render.BarName(angle);
-        for (var i = 0; i < count; i++)
+        float bar = render.PackedBarLength, span = reach - BeamStart;
+        if (!NovaBeamRules.Finite(bar) || bar <= 0f || bar > span) return RejectDraw("invalid_glyph_length");
+        int slots = tiles.Count - 1;
+        int count = NovaVisualPoolRules.GlyphCount(span, bar, slots * NovaBeamTile.RenderProfile.MaxGlyphsPerTile);
+        if (count < 1 || count > NovaBeamTile.RenderProfile.MaxPackedGlyphs
+            || count > slots * NovaBeamTile.RenderProfile.MaxGlyphsPerTile) return RejectDraw($"glyph_capacity count={count}");
+        float first = BeamStart + bar * .5f, last = reach - bar * .5f;
+        var allPoints = new List<Vector2>(count);
+        for (int i = 0; i < count; i++)
+            allPoints.Add(Dir * (count == 1 ? first : Mathf.Lerp(first, last, i / (float)(count - 1))));
+        List<string> names = null;
+        string failure = "no_plan";
+        // A font/platform can need fewer than twelve glyphs per name. Retry only
+        // local, bounded layout work; never create extra bodies or send a probe.
+        int minimum = Mathf.CeilToInt(count / (float)slots);
+        for (int perTile = NovaBeamTile.RenderProfile.MaxGlyphsPerTile; perTile >= minimum; perTile--)
         {
-            var t = count == 1 ? first : Mathf.Lerp(first, last, i / (float)(count - 1));
-            tiles[i + 1].ShowBeam(art, true);
-            tiles[i + 1].MoveTo(anchor + dir * t);
+            var candidate = new List<string>();
+            var coverage = new List<(float Min, float Max)>();
+            bool valid = true;
+            for (int offset = 0; offset < count; offset += perTile)
+            {
+                var points = allPoints.GetRange(offset, Math.Min(perTile, count - offset));
+                string name = render.PackedName(angle, points, Vector2.zero);
+                if (Encoding.UTF8.GetByteCount(name) > NetworkSafety.NameByteLimit)
+                { failure = "name_bytes"; valid = false; break; }
+                if (!render.ValidatePackedName(tiles[0].PlayerControl, name, points, angle, out var intervals))
+                { failure = render.LayoutFailure; valid = false; break; }
+                coverage.AddRange(intervals); candidate.Add(name);
+            }
+            if (!valid) continue;
+            float covered = BeamStart;
+            foreach (var interval in coverage)
+            {
+                if (interval.Min > covered + .005f) { valid = false; failure = "coverage_gap"; break; }
+                covered = Mathf.Max(covered, interval.Max);
+            }
+            if (!valid || covered < reach - .005f) { failure = valid ? "coverage_far_end" : failure; continue; }
+            names = candidate; break;
         }
-        for (var i = count + 1; i < tiles.Count; i++) tiles[i].Park();
-        return count > 0;
+        // Every final name, glyph center and interval is checked before publishing.
+        if (names == null || names.Count == 0 || names.Count > slots) return RejectDraw(failure);
+        Logger.Info($"NOVA_DRAW_PLAN reach={reach:F2} glyphs={count} chunks={names.Count} maxBytes={names.Max(n => Encoding.UTF8.GetByteCount(n))} bar={bar:F3}", "NovaTraffic");
+        for (int i = 0; i < names.Count; i++)
+        {
+            tiles[i + 1].MoveTo(anchor, true);
+            tiles[i + 1].ShowBeam(names[i], true, true);
+        }
+        for (int i = names.Count + 1; i < tiles.Count; i++) tiles[i].Park();
+        return true;
     }
 
     // ビームの線の上にいる人をキルする(仲間は巻き込まない)。
@@ -517,7 +527,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
 
     private void RemoveTiles()
     {
-        foreach (var tile in tiles) tile.Remove();
+        foreach (var tile in tiles) { try { tile.Remove(); } catch (Exception e) { Logger.Warn("NOVA_REMOVE_FAILED " + e.GetType().Name, "NovaTraffic"); } }
         tiles.Clear(); tilesSpawned = false; tileSpawnAt = restSpawnAt = -1f;
     }
 
@@ -660,7 +670,7 @@ public sealed class NovaBeamTile : CustomNetObject
             }
             catch (System.Exception e) { Logger.Warn($"{name} を使えませんでした: {e.Message}", "Nova"); }
         }
-        Logger.Info("ふちの無いフォントが見つからないので、ビームはマス目で描きます", "Nova");
+        Logger.Info("優先ビームフォントを読み込めませんでした。既定フォントを検査します", "Nova");
     }
         public void SetupPixel(float beamSize)
     {
@@ -705,6 +715,160 @@ public sealed class NovaBeamTile : CustomNetObject
         var center = text.transform.TransformPoint(text.textBounds.center);
         return (Vector2)center - (Vector2)player.transform.position;
     }
+        public const int MaxPackedGlyphs = 192;
+        public const int MaxGlyphsPerTile = 12;
+        private const float FrameWorld = 128f;
+        public Vector2 PackedCorrection { get; private set; }
+        public float PackedBarLength { get; private set; }
+        private float PackedEm => emAt100 * barSize / 100f;
+
+        private bool UseDefaultFont(TMPro.TMP_FontAsset font)
+        {
+            if (font == null || !font.characterLookupTable.TryGetValue(BarChar, out var ch) || ch?.glyph == null) return false;
+            var mat = font.material;
+            if (mat != null && mat.HasProperty("_OutlineWidth") && mat.GetFloat("_OutlineWidth") > .01f) return false;
+            var m = ch.glyph.metrics; var f = font.faceInfo;
+            float unit = f.scale / f.pointSize, height = m.height * unit, width = m.width * unit;
+            if (!NovaBeamRules.Finite(height) || !NovaBeamRules.Finite(width) || height <= 0f || width <= 0f) return false;
+            string name = font.name;
+            if (string.IsNullOrEmpty(name) || name.Length > 64 || name.IndexOfAny(new[] { '<', '>', '\"', '\r', '\n' }) >= 0) return false;
+            barSize = Mathf.Clamp(Mathf.RoundToInt(setupBeamSize / height / emAt100 * 100f), 50, 20000);
+            BarLength = width * PackedEm * BarLengthFix;
+            smoothFont = name;
+            return true;
+        }
+
+        // Preferred text width is NOT the native <pos>/<voffset> font-unit
+        // scale. Measure the actual final mesh and invert its two-axis mapping.
+        private Vector2 layoutOrigin, layoutX, layoutY;
+        private float layoutDet, frameUnits;
+        public string LayoutFailure { get; private set; }
+        private bool LayoutReject(string reason) { LayoutFailure = reason; return false; }
+        private static string Number(float value) => value.ToString("0.#####", CultureInfo.InvariantCulture);
+        private Vector2 ToLayout(Vector2 point)
+        {
+            var p = point - layoutOrigin;
+            return new Vector2((p.x * layoutY.y - p.y * layoutY.x) / layoutDet,
+                (layoutX.x * p.y - layoutX.y * p.x) / layoutDet);
+        }
+        private static void PlaceRaw(StringBuilder sb, Vector2 point)
+        {
+            if (!NovaBeamRules.Finite(point.x) || !NovaBeamRules.Finite(point.y)) throw new InvalidOperationException("Invalid beam point");
+            sb.Append("<pos=").Append(Number(point.x)).Append("em><voffset=")
+                .Append(Number(point.y)).Append("em>");
+        }
+        private string RawPackedName(float angle, IReadOnlyList<Vector2> points)
+        {
+            var sb = new StringBuilder($"<font=\"{smoothFont}\"><size={barSize}%><nobr><alpha=#00>");
+            PlaceRaw(sb, new Vector2(-frameUnits, -frameUnits)); sb.Append('.');
+            sb.Append("<alpha=#FF><rotate=").Append(Mathf.RoundToInt(Mathf.DeltaAngle(0f, angle))).Append("><#7FEFFF>");
+            foreach (var point in points) { PlaceRaw(sb, point); sb.Append(BarChar); }
+            sb.Append("</color></rotate><alpha=#00>");
+            PlaceRaw(sb, new Vector2(frameUnits, frameUnits)); sb.Append(".</voffset></nobr></size></font>");
+            return sb.ToString();
+        }
+        public string PackedName(float angle, IReadOnlyList<Vector2> points, Vector2 correction)
+        {
+            if (points.Count < 1 || points.Count > MaxGlyphsPerTile || !NovaBeamRules.Finite(layoutDet) || Mathf.Abs(layoutDet) < .000001f)
+                throw new InvalidOperationException("Invalid packed beam");
+            return RawPackedName(angle, points.Select(p => ToLayout(p + correction)).ToArray());
+        }
+        private static Vector2[] GlyphVertices(PlayerControl player, TMPro.TextMeshPro text, int index, int count)
+        {
+            var info = text.textInfo;
+            if (info == null || info.characterCount != count + 2 || info.characterInfo == null || info.characterInfo.Length < count + 2)
+                throw new InvalidOperationException("Packed character count unavailable");
+            var ch = info.characterInfo[index + 1];
+            if (ch.character != BarChar || !ch.isVisible || info.meshInfo == null
+                || ch.materialReferenceIndex < 0 || ch.materialReferenceIndex >= info.meshInfo.Length)
+                throw new InvalidOperationException("Packed glyph unavailable");
+            // characterInfo.vertex_* can be intermediate layout buffers. The
+            // material mesh holds the quad actually submitted for rendering.
+            var vertices = info.meshInfo[ch.materialReferenceIndex].vertices;
+            if (vertices == null || ch.vertexIndex < 0 || ch.vertexIndex > vertices.Length - 4)
+                throw new InvalidOperationException("Packed mesh unavailable");
+            var result = new Vector2[4];
+            for (int i = 0; i < 4; i++)
+            {
+                result[i] = (Vector2)text.transform.TransformPoint(vertices[ch.vertexIndex + i]) - (Vector2)player.transform.position;
+                if (!NovaBeamRules.Finite(result[i].x) || !NovaBeamRules.Finite(result[i].y)) throw new InvalidOperationException("Invalid packed mesh");
+            }
+            return result;
+        }
+        private static Vector2 Center(Vector2[] vertices) => (vertices[0] + vertices[1] + vertices[2] + vertices[3]) * .25f;
+        private Vector2[] Probe(PlayerControl player, TMPro.TextMeshPro text, float angle, Vector2 raw)
+        {
+            text.text = RawPackedName(angle, new[] { raw }); text.ForceMeshUpdate(true, true);
+            return GlyphVertices(player, text, 0, 1);
+        }
+        public bool ValidatePackedName(PlayerControl player, string name, IReadOnlyList<Vector2> points, float angle,
+            out List<(float Min, float Max)> intervals)
+        {
+            intervals = new List<(float Min, float Max)>(points.Count);
+            var text = player?.cosmetics?.nameText;
+            if (text == null) return LayoutReject("missing_text");
+            try
+            {
+                text.text = name; text.ForceMeshUpdate(true, true);
+                var dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+                for (int i = 0; i < points.Count; i++)
+                {
+                    var vertices = GlyphVertices(player, text, i, points.Count);
+                    float error = Vector2.Distance(Center(vertices), points[i]);
+                    if (error > .04f) return LayoutReject($"glyph_position index={i} error={Number(error)}");
+                    float lo = float.MaxValue, hi = float.MinValue;
+                    foreach (var vertex in vertices) { float along = Vector2.Dot(vertex, dir); lo = Mathf.Min(lo, along); hi = Mathf.Max(hi, along); }
+                    if (hi - lo < .001f) return LayoutReject("empty_glyph_mesh");
+                    intervals.Add((lo, hi));
+                }
+                LayoutFailure = null;
+                return true;
+            }
+            catch (Exception e) { return LayoutReject("mesh_" + e.GetType().Name); }
+            finally { try { text.text = ""; } catch { } }
+        }
+        public bool PreparePacked(PlayerControl player, float angle, float length)
+        {
+            LayoutFailure = null; PackedCorrection = Vector2.zero; PackedBarLength = 0f;
+            var text = player?.cosmetics?.nameText;
+            if (text == null) return LayoutReject("missing_text");
+            try
+            {
+                if (!Smooth && !UseDefaultFont(text.font)) return LayoutReject("missing_font");
+                if (!NovaBeamRules.Finite(PackedEm) || PackedEm <= 0f) return LayoutReject("invalid_font_scale");
+                frameUnits = FrameWorld / PackedEm;
+                var dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+                for (int attempt = 0; attempt < 2; attempt++)
+                {
+                    var vertices = Probe(player, text, angle, Vector2.zero);
+                    layoutOrigin = Center(vertices);
+                    layoutX = Center(Probe(player, text, angle, new Vector2(1f, 0f))) - layoutOrigin;
+                    layoutY = Center(Probe(player, text, angle, new Vector2(0f, 1f))) - layoutOrigin;
+                    layoutDet = layoutX.x * layoutY.y - layoutX.y * layoutY.x;
+                    if (!NovaBeamRules.Finite(layoutDet) || Mathf.Abs(layoutDet) < .000001f) return LayoutReject("singular_layout");
+                    float lo = float.MaxValue, hi = float.MinValue;
+                    foreach (var vertex in vertices) { float along = Vector2.Dot(vertex, dir); lo = Mathf.Min(lo, along); hi = Mathf.Max(hi, along); }
+                    PackedBarLength = hi - lo;
+                    if (!NovaBeamRules.Finite(PackedBarLength) || PackedBarLength < .001f) return LayoutReject("invalid_glyph_length");
+                    var near = ToLayout(Vector2.zero); var far = ToLayout(dir * length);
+                    float extent = Mathf.Max(Mathf.Max(Mathf.Abs(near.x), Mathf.Abs(near.y)), Mathf.Max(Mathf.Abs(far.x), Mathf.Abs(far.y)));
+                    if (!NovaBeamRules.Finite(extent) || extent > 100000f) return LayoutReject("layout_extent");
+                    if (extent <= frameUnits * .8f) break;
+                    if (attempt == 1) return LayoutReject("layout_frame");
+                    frameUnits = extent * 2f + 2f;
+                }
+                // Validate the native conversion at the origin, middle and far
+                // end; the final multi-glyph names are validated separately.
+                foreach (float distance in new[] { 0f, length * .5f, length })
+                {
+                    var points = new[] { dir * distance };
+                    if (!ValidatePackedName(player, PackedName(angle, points, Vector2.zero), points, angle, out _)) return false;
+                }
+                return true;
+            }
+            catch (Exception e) { return LayoutReject("prepare_" + e.GetType().Name); }
+            finally { try { text.text = ""; } catch { } }
+        }
         public string BuildTile(Vector2Int cell, float tile, Vector2 dir, Vector2 perp, float half, float start, float length)
     {
         var sb = new StringBuilder($"<size={sizePercent}%>{TilePrefix}");
@@ -740,7 +904,10 @@ public sealed class NovaBeamTile : CustomNetObject
     bool failed;
     public bool Failed => failed;
     public bool Ready => created && !removed && !failed && PlayerControl != null;
-    public bool Committed => Ready && Vector2.Distance(Position, wanted) < .02f;
+    public bool Committed => Ready && Vector2.Distance(Position, wanted) < .02f
+        && (style != Style.Beam || !beamPacked || shownName == beamArt);
+    protected override bool BatchSpawnAssignments => true;
+    protected override float SpawnInterval => 1f;
     protected override bool CanCreate => !removed && ownerCurrent() && GameStates.IsInTask
         && !GameStates.CalledMeeting && !GameStates.IsMeeting;
     private bool created;
@@ -748,7 +915,7 @@ public sealed class NovaBeamTile : CustomNetObject
     private Style style = Style.Hidden;
     private string shownName;
     private string beamArt;
-    private bool beamSmooth;
+    private bool beamSmooth, beamPacked;
 
     // ===== なめらかなビーム用 =====
     // ゲームに入っている、ふち(黒い外枠)の無いフォントを探して、その「-」を回して使う。見つからない時はマス目で描く
@@ -775,12 +942,16 @@ public sealed class NovaBeamTile : CustomNetObject
         ? "<size=500%><color=#FF2040>★</color></size>"
         : $"<size=500%><color={color}>★</color></size>";
 
+    protected override void OnCreateFailed()
+    { failed = true; Logger.Warn("NOVA_PREPARE_FAILED assignment batch incomplete; attack disabled", "NovaTraffic"); }
+
     protected override void OnCreated()
     {
         if (removed) { Despawn(); return; }
         created = true;
-        if (!profile.Measured) profile.Measure(PlayerControl, GuideColor);
-        SendTileName("");
+        try { if (!profile.Measured) profile.Measure(PlayerControl, GuideColor); }
+        catch (Exception e) { FailVisual(e.GetType().Name); return; }
+        if (!SendTileName("")) return;
         shownName = "";
         CommitPosition();
         Apply();
@@ -798,39 +969,42 @@ public sealed class NovaBeamTile : CustomNetObject
     // ホストの画面では、ダミーの体が見えてしまうので、名前の文字以外を消す
     // Use Shell's existing appearance transaction, not a SetName RPC referring
     // to nonexistent dummy GameData. Always restore the host outfit on failure.
-    void SendTileName(string name)
+    bool SendTileName(string name)
     {
-        if (Encoding.UTF8.GetByteCount(name) > NetworkSafety.NameByteLimit)
+        if (failed || removed) return false;
+        try
         {
-            failed = true; Logger.Warn("Nova visual exceeds the safe name budget; attack disabled.", "Nova"); return;
+            if (Encoding.UTF8.GetByteCount(name) > NetworkSafety.NameByteLimit)
+                throw new InvalidOperationException("Visual name exceeds budget");
+            if (!CanCreate || PlayerControl == null) throw new InvalidOperationException("Visual owner retired");
+            SetVisualName(name);
+            if (PlayerControl.cosmetics?.nameText != null) PlayerControl.cosmetics.nameText.text = name;
+            return true;
         }
-        var host = global::PlayerControl.LocalPlayer;
-        if (!CanCreate || host?.Data == null || PlayerControl == null) { failed = true; return; }
-        var outfit = host.Data.Outfits[PlayerOutfitType.Default];
-        var oldName = outfit.PlayerName; var oldColor = outfit.ColorId;
-        var oldHat = outfit.HatId; var oldSkin = outfit.SkinId; var oldPet = outfit.PetId; var oldVisor = outfit.VisorId;
-        try { SetAppearance(0, "", "", "", "", displayName: name); }
-        catch (Exception e) { failed = true; Logger.Warn("Nova visual failed: " + e.GetType().Name, "Nova"); }
-        finally
-        {
-            outfit.PlayerName = oldName; outfit.ColorId = oldColor; outfit.HatId = oldHat;
-            outfit.SkinId = oldSkin; outfit.PetId = oldPet; outfit.VisorId = oldVisor;
-        }
-        if (!failed && PlayerControl.cosmetics?.nameText != null) PlayerControl.cosmetics.nameText.text = name;
+        catch (Exception e) { FailVisual(e.GetType().Name); return false; }
+    }
+    void FailVisual(string reason)
+    {
+        if (failed) return;
+        failed = true;
+        Logger.Warn("NOVA_VISUAL_FAILED " + reason + "; visual retired, attack disabled", "NovaTraffic");
+        // Despawn does not read outfits or update display names, unlike Park/Apply.
+        Remove();
     }
     void CommitPosition()
     {
         if (Ready && CanCreate && Vector2.Distance(Position, wanted) >= .01f && NovaVisualTraffic.Take(ownerGame, Time.time))
         {
             try { SnapToPosition(wanted); }
-            catch (Exception e) { failed = true; Logger.Warn("Nova visual move failed: " + e.GetType().Name, "Nova"); }
+            catch (Exception e) { FailVisual(e.GetType().Name); }
         }
     }
     protected override void OnFixedUpdate()
     {
         if (removed) return;
-        if (!CanCreate) { Remove(); return; }
+        if (failed || !CanCreate) { Remove(); return; }
         CommitPosition();
+        if (style == Style.Beam && beamPacked) Apply();
     }
     private void HideBody()
     {
@@ -849,9 +1023,9 @@ public sealed class NovaBeamTile : CustomNetObject
         if (created && !removed) Apply();
     }
 
-    public void ShowBeam(string art, bool smooth = false)
+    public void ShowBeam(string art, bool smooth = false, bool packed = false)
     {
-        beamSmooth = smooth;
+        beamSmooth = smooth; beamPacked = packed;
         style = Style.Beam;
         beamArt = art;
         if (created && !removed) Apply();
@@ -859,6 +1033,8 @@ public sealed class NovaBeamTile : CustomNetObject
 
     private void Apply()
     {
+        // Keep packed art hidden until its standard position RPC is committed.
+        if (style == Style.Beam && beamPacked && Vector2.Distance(Position, wanted) >= .02f) return;
         var name = style switch
         {
             Style.Guide => GuideName(false, GuideColor),
@@ -867,15 +1043,15 @@ public sealed class NovaBeamTile : CustomNetObject
             _ => "",
         };
         if (name == shownName) return;
-        SendTileName(name);
-        if (!failed) shownName = name;
+        if (SendTileName(name)) shownName = name;
         HideBody();
     }
 
     // 絵の真ん中が、point に来るように置く
-    public void MoveTo(Vector2 point)
+    public void MoveTo(Vector2 point, bool packed = false)
     {
-        var offset = style != Style.Beam ? profile.guideOffset : beamSmooth ? profile.tileOffset + profile.barShift : profile.tileOffset;
+        if (packed) beamPacked = true;
+        var offset = packed ? Vector2.zero : style != Style.Beam ? profile.guideOffset : beamPacked ? Vector2.zero : beamSmooth ? profile.tileOffset + profile.barShift : profile.tileOffset;
         wanted = point - offset;
         if (!created || removed) return;
         if (Vector2.Distance(Position, wanted) < 0.01f) return;
@@ -886,8 +1062,10 @@ public sealed class NovaBeamTile : CustomNetObject
     {
         style = Style.Hidden;
         wanted = ParkPos;
+        if (failed || !CanCreate) { Remove(); return; }
         if (!created || removed) return;
         Apply();
+        if (failed || removed) return;
         // もう外にある時は送らない(通信を減らす)
         if (Vector2.Distance(Position, ParkPos) < 0.02f) return;
         CommitPosition();
@@ -897,7 +1075,9 @@ public sealed class NovaBeamTile : CustomNetObject
     {
         if (removed) return;
         removed = true;
-        if (PlayerControl != null) Despawn();
+        try { if (PlayerControl?.cosmetics?.nameText != null) PlayerControl.cosmetics.nameText.text = ""; } catch { }
+        try { if (PlayerControl != null) Despawn(); }
+        finally { AllObjects.Remove(this); }
     }
 
     // 会議では消さずに、マップの外へ戻すだけ(作り直すと時間がかかるため)

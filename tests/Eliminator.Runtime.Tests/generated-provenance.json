@@ -1,0 +1,9 @@
+{
+  "Roles/Core/CustomRoleManager.cs": "80edf079a04a7cef0c716d2c6d062d8ec7ac65db43332a9e69a4e73c5e8f84e6",
+  "Helpers/CustomRolesHelper.cs": "06586c6af9789c590d9a128d0556c9a2a9ed283a8b5f6f4f026b1b34c1eef674",
+  "main.cs": "ff6d5dbce45074ee5fe17687a4b5161a79328af7aba8094efdb690cfb5f9c59d",
+  "Roles/Crewmate/Sheriff.cs": "1b830109449b583ca1ed100059e3ab65328da3ef6a99bcbc0eb5ece6d4b3e91c",
+  "Roles/AddOns/Neutral/Faction.cs": "643290fc5d3c4aa512ac0da3279b844634f4ee17f438bc855c30489fd65b5f6c",
+  "Modules/ExtendedPlayerControl/ExtendedPlayerControl.cs": "b2d8ebea4d680c0b0d070f050fe875b350a817a2c187c266beab8b67fd6bfecc",
+  "Roles/Neutral/Obolus.cs": "f8a6e07a33cc98bc307ba2c8e8e4964942bd13509f50aca99d6a72e7c66f5ac5"
+}

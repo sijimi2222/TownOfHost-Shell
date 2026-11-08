@@ -6,3 +6,14 @@ FodyWeavers.xsd
 .tmp_ehr_ref/
 .TownOfHost.proj/
 memo.md
+# Local validation and controller outputs; never publish personal/runtime data.
+/artifacts/
+/reports/
+/backups/
+**/TestResults/
+*.log
+*.local.*
+.env
+.env.*
+*.user
+*.suo

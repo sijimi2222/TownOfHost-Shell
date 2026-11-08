@@ -1,0 +1,8 @@
+{
+  "Roles/Neutral/Eliminator.cs": "1d2a8b98e417db0049a249a94ea63c01f1c877ea12e4e22f76515ca0d0174df2",
+  "Modules/OptionSaver.cs": "cae89ebf8d4275dd3918c4ea730584fc9ea2f17246cc633b1e3f964b301ba71b",
+  "Modules/OptionSerializer.cs": "23c0b7e81c769c396b35a3aa4500f4306c305ec07432a4266cbd6386ad56a572",
+  "Modules/OptionItem/FloatOptionItem.cs": "20153f7c302632738477855f8cb85fb1efc076fc10ed128c1ed5f696021c5928",
+  "Modules/OptionItem/IntegerOptionItem.cs": "1018b5ae22457b198fbebf37a2eccec14313cd8a6f95be28035802231177959f",
+  "Modules/OptionItem/BooleanOptionItem.cs": "0c4f4e9f0eed09f5641ebdaa3c9d5f6d9f5078dce227ae31ed61270372181d7c"
+}

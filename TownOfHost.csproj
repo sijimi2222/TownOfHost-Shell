@@ -3,6 +3,13 @@
 	<PropertyGroup>
 
 		<TargetFramework>net6.0</TargetFramework>
+        <Configurations>Debug;Release;ShellDevelopment</Configurations>
+        <ShellDebugController Condition="'$(ShellDebugController)' == '' And '$(Configuration)' == 'ShellDevelopment'">true</ShellDebugController>
+        <ShellDebugController Condition="'$(ShellDebugController)' == ''">false</ShellDebugController>
+        <DefineConstants Condition="'$(ShellDebugController)' == 'true'">$(DefineConstants);SHELL_DEBUG_CONTROLLER</DefineConstants>
+        <Optimize Condition="'$(Configuration)' == 'ShellDevelopment'">true</Optimize>
+        <DebugType Condition="'$(Configuration)' == 'ShellDevelopment'">embedded</DebugType>
+
         <DefineConstants Condition="'$(MatchmakingDevelopment)' == 'true'">$(DefineConstants);SHELL_MATCHMAKING_DEVELOPMENT</DefineConstants>
 
         <!-- Do not embed the build user's profile path in public DLL/PDB metadata. -->
@@ -46,6 +53,8 @@
 	<ItemGroup>
 
 		<Compile Remove="Roles\Madmate\MadSheriff_Sample.cs" />
+        <Compile Remove="tests\**\*.cs;tools\**\*.cs;artifacts\**\*.cs" />
+        <Compile Remove="Development\DebugController\**\*.cs" Condition="'$(ShellDebugController)' != 'true'" />
 
 	</ItemGroup>
 
@@ -136,6 +145,14 @@
 	</ItemGroup>
 
 
+
+    <Target Name="ValidateShellDebugFlavor" BeforeTargets="PrepareForBuild">
+        <Error Condition="'$(ShellDebugController)' == 'true' And '$(Configuration)' != 'ShellDevelopment'" Text="Debug controller is only permitted in ShellDevelopment, never public Release." />
+        <Error Condition="'$(ShellDebugController)' != 'true' And $([System.String]::Copy('$(DefineConstants)').Contains('SHELL_DEBUG_CONTROLLER'))" Text="Debug symbol cannot be injected into a public build." />
+        <Error Condition="'$(ShellDebugController)' == 'true' And !$([System.String]::Copy('$(DefineConstants)').Contains('SHELL_DEBUG_CONTROLLER'))" Text="ShellDevelopment requires its dedicated compile symbol." />
+        <Error Condition="'$(Configuration)' == 'ShellDevelopment' And '$(ShellDebugController)' != 'true'" Text="ShellDevelopment requires the debug controller build flag." />
+        <Error Condition="'$(Configuration)' == 'ShellDevelopment' And '$(CopyToAmongUs)' != 'false'" Text="ShellDevelopment must never auto-install into Among Us." />
+    </Target>
 
 	<Target Name="Copy" AfterTargets="Build" Condition="'$(CopyToAmongUs)' == 'true' And '$(AmongUs)' != ''">
 
