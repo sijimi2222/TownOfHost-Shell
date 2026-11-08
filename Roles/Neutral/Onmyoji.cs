@@ -1238,35 +1238,30 @@ public sealed class Onmyoji : RoleBase, IKiller, ISelfVoter
 
 
     bool IsOnmyojiKillerTarget(PlayerControl target)
-
     {
-
         if (target == null) return false;
 
         if (target.Is(CustomRoleTypes.Impostor)) return true;
-
         if (target.Is(CustomRoles.StandMaster) && StandMaster.EnableKillAbility) return true;
-
         if (target.Is(CustomRoles.Opportunist) && Opportunist.HasKillButton) return true;
+        if (target.GetRoleClass() is Victim vic) return vic.IsAwakened;
 
         return target.GetCustomRole() is
-
-            CustomRoles.CountKiller or CustomRoles.Strawdoll or
-
+            CustomRoles.CountKiller or
             CustomRoles.Jackal or CustomRoles.JackalHadouHo or CustomRoles.JackalMafia or CustomRoles.JackalAlien or
-
             CustomRoles.DoppelGanger or CustomRoles.GrimReaper or CustomRoles.Remotekiller or
-
             CustomRoles.Egoist or CustomRoles.Eater or CustomRoles.PavlovDog or
-
-            CustomRoles.Sheriff or CustomRoles.SwitchSheriff or
-
-            CustomRoles.WolfBoy or CustomRoles.JackalWolf or CustomRoles.Stand or CustomRoles.Ogre;
+            CustomRoles.Sheriff or CustomRoles.SwitchSheriff or CustomRoles.WolfBoy or
+            CustomRoles.JackalWolf or CustomRoles.Stand or CustomRoles.Ogre or
+            CustomRoles.Mermaid or CustomRoles.Hunter or CustomRoles.Tiger or CustomRoles.Monika or
+            CustomRoles.Altair or CustomRoles.AntiHero or CustomRoles.Catalyst or CustomRoles.Conductor or
+            CustomRoles.Fool or CustomRoles.HathorSekhmet or CustomRoles.JackalSeer or CustomRoles.Lupin or
+            CustomRoles.LoversBreaker or CustomRoles.Missioneer or CustomRoles.Pharaoh or CustomRoles.RaccoonChild or
+            CustomRoles.RaccoonParent
+            ;
 
     }
-
 }
-
 
 
 public sealed class Shikigami : RoleBase, IUsePhantomButton, IKillFlashSeeable
