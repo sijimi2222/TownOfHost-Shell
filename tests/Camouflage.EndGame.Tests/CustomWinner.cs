@@ -1,0 +1,1 @@
+namespace TownOfHost;public enum CustomWinner {Default=0,Crewmate=1,Draw=2,God=3,Impostor=4,None=5,PurpleLovers=6,Special=7,SuddenDeathBlue=8,SuddenDeathGreen=9,SuddenDeathRed=10,SuddenDeathYellow=11}

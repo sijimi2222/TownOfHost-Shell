@@ -32,6 +32,8 @@ try {
  Assert-Test 'public has no controller metadata marker' (@($pub.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'AssemblyMetadataAttribute' -and $_.ConstructorArguments[0].Value -eq 'ShellDebugController'}).Count -eq 0)
  Assert-Test 'development has debug metadata marker' (@($dev.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'AssemblyMetadataAttribute' -and $_.ConstructorArguments[0].Value -eq 'ShellDebugController'}).Count -eq 1)
  foreach($name in @('ShellDebugRuntime','NoClipMovement','DebugPipeServer','LocalPipe')){Assert-Test ("development contains "+$name) (@($developmentTypes | Where-Object Name -eq $name).Count -eq 1)}
+ Assert-Test 'public has no Nova distance observer' (@($publicTypes | Where-Object Name -eq 'NovaDistanceDiagnostics').Count -eq 0)
+ Assert-Test 'development contains Nova distance observer' (@($developmentTypes | Where-Object Name -eq 'NovaDistanceDiagnostics').Count -eq 1)
  Assert-Test 'public contains no named-pipe PInvoke endpoint' (@($publicTypes.Methods | Where-Object {$_.HasPInvokeInfo -and $_.PInvokeInfo.EntryPoint -match 'CreateNamedPipe|GetNamedPipeClientProcessId'}).Count -eq 0)
  $publicZoom=($publicTypes | Where-Object FullName -eq 'TownOfHost.Zoom').Methods | Where-Object Name -eq 'Postfix'
  $developmentZoom=($developmentTypes | Where-Object FullName -eq 'TownOfHost.Zoom').Methods | Where-Object Name -eq 'Postfix'
@@ -39,7 +41,9 @@ try {
  Assert-Test 'development living zoom requires controller lease' ((IL $developmentZoom) -match 'get_ZoomEnabled')
  foreach($assembly in @($pub,$dev)){
   $nova=$assembly.MainModule.Types | Where-Object FullName -eq 'TownOfHost.Roles.Impostor.Nova'
-  Assert-Test ("range50 preserved in "+$assembly.MainModule.FileName) ((IL ($nova.Methods|Where-Object Name -eq 'Fire')) -match 'ldc.r4 50')
+   $range=IL ($nova.Methods|Where-Object Name -eq 'get_BeamRange')
+  Assert-Test ("map-dependent 50/70 range in "+$assembly.MainModule.FileName) ($range -match 'ldc.r4 50' -and $range -match 'ldc.r4 70' -and $range -match 'get_MapId')
+  Assert-Test ("Fire uses selected range in "+$assembly.MainModule.FileName) ((IL ($nova.Methods|Where-Object Name -eq 'Fire')) -match 'get_BeamRange')
  }
  # Public CNO and Nova retain exactly the previous verified network/gameplay IL.
  if($old){foreach($name in @('TownOfHost.Modules.CustomNetObject','TownOfHost.Roles.Impostor.Nova','TownOfHost.Roles.Impostor.NovaBeamTile','TownOfHost.Modules.NetworkSafety')){

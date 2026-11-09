@@ -1,10 +1,15 @@
 {
-  "role_sha256": "8e5942d750ca366199fe26319ccf708a39665af33c5d36b88db8194bd3d65527",
-  "credentials_sha256": "80dd8b60931f4cee16a62e274a189ff3aa0b0836adf3223d9edd7863fbe72b88",
-  "methods": [
-    "KeepHeaderClearOfGuide(bool)",
-    "HeaderLateLayout",
-    "both native anchor overloads",
-    "current production layout and aspect block"
+  "role_sha256": "9ef8c8851ef5cccfccb37223165d56e89d1a81aa6019d8960a74f255900d5ed3",
+  "credentials_sha256": "9a301b98102ecca849f4df6a57782ef84dd97b7aaa4f93ee12abb0e53f21b0e2",
+  "method_signatures": [
+    "public static void UpdateTopRightButtonLayout()",
+    "public static void UpdateButtonVisibility()",
+    "internal static bool TryGetHeaderRightOffset(out float offset)",
+    "internal static bool TryGetHeaderLeftEdge(Transform space, out float left)",
+    "private static bool BindHeaderToHud()",
+    "private static void KeepHeaderClearOfGuide(bool refreshMesh = false)",
+    "private static void HeaderLateLayout()",
+    "private static class HeaderAnchorAdjustedPatch",
+    "private static class HeaderAnchorAspectAdjustedPatch"
   ]
 }

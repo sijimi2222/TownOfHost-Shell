@@ -9,7 +9,7 @@ partial class Program {
    Check(prep==pool*4);var events=new List<(double time,int index,string name,float x,float y,bool move)>();
    foreach(var e in input.GetProperty("names").EnumerateArray())events.Add((e.GetProperty("time").GetDouble(),e.GetProperty("index").GetInt32(),e.GetProperty("name").GetString(),0,0,false));
    foreach(var e in input.GetProperty("moves").EnumerateArray())events.Add((e.GetProperty("time").GetDouble(),e.GetProperty("index").GetInt32(),null,e.GetProperty("x").GetSingle(),e.GetProperty("y").GetSingle(),true));
-   double begin=clock;foreach(var e in events.OrderBy(e=>e.time).ThenBy(e=>input.GetProperty("reach").GetSingle()==50&&e.move?0:1)){
+   double begin=clock;foreach(var e in events.OrderBy(e=>e.time).ThenBy(e=>(input.GetProperty("reach").GetSingle()==50||input.GetProperty("reach").GetSingle()==70)&&e.move?0:1)){
     Check(e.index>=0&&e.index<pool);if(begin+e.time>clock)Advance((float)(begin+e.time-clock));
     if(e.move)p.pool[e.index].Move(new(e.x,e.y));else p.pool[e.index].Visual(e.name);
    }

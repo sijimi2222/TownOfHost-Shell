@@ -20,8 +20,8 @@ namespace UnityEngine {
  public class Color {public static Color clear=new();}
  public static class ColorUtility {public static string ToHtmlStringRGB(Color c)=>"ABCDEF";}
  public class SpriteRenderer {public bool enabled=true;}
- public class Material {public bool HasProperty(string name)=>false;public float GetFloat(string name)=>0;}
- public static class Resources {public static object Load(string name,Type type)=>null;}
+ public class Material {public float OutlineWidth;public bool HasProperty(string name)=>name=="_OutlineWidth";public float GetFloat(string name)=>OutlineWidth;}
+ public static class Resources {public static int LoadCalls;public static Dictionary<string,object> Assets=new();public static object Load(string name,Type type){LoadCalls++;return Assets.GetValueOrDefault(name);}}
  public struct Bounds {public Vector3 center;}
 }
 namespace TMPro {
@@ -30,25 +30,28 @@ namespace TMPro {
  public class TMP_Character {public Glyph glyph=new();}public class Glyph{public GlyphMetrics metrics=new();}
  public class GlyphMetrics{public float width,height,horizontalBearingX,horizontalBearingY,horizontalAdvance;}
  public class FaceInfo{public float scale=1,pointSize=1,ascentLine=1,descentLine;}
- public class TMP_TextInfo {public int characterCount;public TMP_CharacterInfo[] characterInfo;public TMP_MeshInfo[] meshInfo;}
+ public class TMP_TextInfo {public int characterCount;public TMP_CharacterInfo[] characterInfo;public TMP_MeshInfo[] meshInfo;public Vector3[] InkVertices;}
  public struct TMP_MeshInfo {public Vector3[] vertices;}
  public struct TMP_Vertex {public Vector3 position;}
- public struct TMP_CharacterInfo {public char character;public bool isVisible;public int vertexIndex,materialReferenceIndex;public TMP_Vertex vertex_BL,vertex_TL,vertex_TR,vertex_BR;}
+ public struct TMP_CharacterInfo {public float scale;public TMP_Character textElement;public char character;public bool isVisible;public int vertexIndex,materialReferenceIndex;public TMP_Vertex vertex_BL,vertex_TL,vertex_TR,vertex_BR;}
  public class TextMeshPro {
   public static bool ThrowLayout,WrongFar,MissingGlyph,StaleWorkingVertices,MissingMesh,NonlinearMiddle,DegenerateAxis;
+  public static string InkFault="";public static bool WideGlyphAvailable;public static float GeometryPadding;public static int LayoutCalls;
   public static float UnitsX=.25f,UnitsY=.25f,PreferredWidth=2.5f;public static int GlyphLimit=12;
-  public static void ResetLayout(){ThrowLayout=WrongFar=MissingGlyph=StaleWorkingVertices=MissingMesh=NonlinearMiddle=DegenerateAxis=false;UnitsX=UnitsY=.25f;PreferredWidth=2.5f;GlyphLimit=12;}
+  public static void ResetLayout(){Resources.Assets.Clear();Resources.LoadCalls=0;InkFault="";WideGlyphAvailable=false;GeometryPadding=0;LayoutCalls=0;ThrowLayout=WrongFar=MissingGlyph=StaleWorkingVertices=MissingMesh=NonlinearMiddle=DegenerateAxis=false;UnitsX=UnitsY=.25f;PreferredWidth=2.5f;GlyphLimit=12;}
   public string text="";public Color color=new();public Transform transform=new();public Bounds textBounds=new();public TMP_TextInfo textInfo=new();
   public TMP_FontAsset font=MakeFont();
-  static TMP_FontAsset MakeFont(){var f=new TMP_FontAsset();f.characterLookupTable['-']=new(){glyph=new(){metrics=new(){width=.568f,height=.25f,horizontalAdvance=.6f,horizontalBearingY=.25f}}};return f;}
+  static TMP_FontAsset MakeFont(){var f=new TMP_FontAsset();f.characterLookupTable['-']=new(){glyph=new(){metrics=new(){width=.568f,height=.25f,horizontalAdvance=.6f,horizontalBearingY=.25f}}};if(WideGlyphAvailable)f.characterLookupTable['\u2014']=new(){glyph=new(){metrics=new(){width=.568f*(51.953125f/32.625f),height=.25f,horizontalAdvance=.99f,horizontalBearingY=.25f}}};return f;}
   public Vector2 GetPreferredValues(string value)=>new(PreferredWidth,2.5f);
-  public void ForceMeshUpdate(bool a,bool b){
+  public void ForceMeshUpdate(bool a,bool b){LayoutCalls++;
    if(!text.Contains("<nobr>"))return;
    if(ThrowLayout)throw new OutOfMemoryException("synthetic native layout");
-   float em=.25f,size=1f,x=0,y=0,angle=0;bool visible=true;var chars=new List<TMP_CharacterInfo>();var vertices=new List<Vector3>();int bars=System.Text.RegularExpressions.Regex.Matches(text,@"em>-").Count;
+   var activeFont=font;
+   float em=.25f,size=1f,x=0,y=0,angle=0;bool visible=true;var chars=new List<TMP_CharacterInfo>();var vertices=new List<Vector3>();var ink=new List<Vector3>();int bars=System.Text.RegularExpressions.Regex.Matches(text,@"em>[-_—]").Count;
    foreach(System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text,"<[^>]*>|[^<]")){
     string token=m.Value;
     float Value(string prefix,string suffix)=>float.Parse(token.Substring(prefix.Length,token.Length-prefix.Length-suffix.Length),System.Globalization.CultureInfo.InvariantCulture);
+    if(token.StartsWith("<font=")){var assetName=token.Substring(6,token.Length-7).Trim('"');activeFont=Resources.Assets.GetValueOrDefault("Fonts & Materials/"+assetName) as TMP_FontAsset??font;continue;}
     if(token.StartsWith("<size=")){size=Value("<size=","%>")/100f;em=.25f*size;continue;}
     if(token.StartsWith("<pos=")){x=Value("<pos=","em>")*UnitsX*size;continue;}
     if(token.StartsWith("<voffset=")){y=DegenerateAxis?0:Value("<voffset=","em>")*UnitsY*size;continue;}
@@ -57,14 +60,18 @@ namespace TMPro {
     if(token.StartsWith("<alpha=")){visible=token!="<alpha=#00>";continue;}
     if(token.StartsWith("<"))continue;
     float cx=x+.01f,cy=y+.7f;if(WrongFar&&MathF.Abs(x)+MathF.Abs(y)>20){cx=x*.5f+.01f;cy=y*.5f+.7f;}
-    if(NonlinearMiddle&&token=="-"&&bars>1)cx+=.2f;
+    if(NonlinearMiddle&&(token=="-"||token=="_"||token=="—")&&bars>1)cx+=.2f;
     Vector3 Vertex(float dx,float dy)=>new(cx+dx*MathF.Cos(angle)-dy*MathF.Sin(angle),cy+dx*MathF.Sin(angle)+dy*MathF.Cos(angle));
-    float w=.568f*em*.5f,h=.25f*em*.5f;
+    var element=activeFont!=null&&activeFont.characterLookupTable.TryGetValue(token[0],out var known)?known:new TMP_Character{glyph=new(){metrics=new(){width=.568f,height=.25f}}};
+    float elementScale=em*activeFont.faceInfo.scale/activeFont.faceInfo.pointSize;
+    float iw=element.glyph.metrics.width*elementScale*.5f,ih=element.glyph.metrics.height*elementScale*.5f;
+    ink.AddRange(new[]{Vertex(-iw,-ih),Vertex(-iw,ih),Vertex(iw,ih),Vertex(iw,-ih)});
+    float w=iw+GeometryPadding*elementScale,h=ih+GeometryPadding*elementScale;
     int vi=vertices.Count;var bl=Vertex(-w,-h);var tl=Vertex(-w,h);var tr=Vertex(w,h);var br=Vertex(w,-h);vertices.AddRange(new[]{bl,tl,tr,br});
-    chars.Add(new(){character=MissingGlyph?'?':token[0],isVisible=visible&&bars<=GlyphLimit,vertexIndex=vi,materialReferenceIndex=0,
+    chars.Add(new(){scale=InkFault=="nan-scale"?float.NaN:InkFault=="negative-scale"?-1:InkFault=="oversize-metrics"?elementScale*3:elementScale,textElement=InkFault=="missing-metrics"?null:element,character=MissingGlyph?'?':token[0],isVisible=visible&&bars<=GlyphLimit,vertexIndex=vi,materialReferenceIndex=0,
      vertex_BL=new(){position=StaleWorkingVertices?default:bl},vertex_TL=new(){position=StaleWorkingVertices?default:tl},vertex_TR=new(){position=StaleWorkingVertices?default:tr},vertex_BR=new(){position=StaleWorkingVertices?default:br}});
    }
-   textInfo=new(){characterCount=chars.Count,characterInfo=chars.ToArray(),meshInfo=MissingMesh?null:new[]{new TMP_MeshInfo{vertices=vertices.ToArray()}}};
+   textInfo=new(){InkVertices=ink.ToArray(),characterCount=chars.Count,characterInfo=chars.ToArray(),meshInfo=MissingMesh?null:new[]{new TMP_MeshInfo{vertices=vertices.ToArray()}}};
   }
  }
 

@@ -65,7 +65,7 @@ internal static class ShellDebugRuntime
             {
             value.MapId=Main.NormalOptions?.MapId;
             value.IsFungle=value.MapId.HasValue ? (MapNames)value.MapId.Value==MapNames.Fungle : null;
-            value.NovaPoolTarget=value.IsFungle.HasValue ? NovaVisualPoolRules.Count(value.IsFungle.Value) : null;
+            value.NovaPoolTarget=value.IsFungle.HasValue ? NovaVisualPoolRules.Count(value.IsFungle.Value, value.MapId == (int)MapNames.Airship) : null;
             value.Participants=PlayerCatch.AllPlayerControls.Count(p=>p!=null&&p.PlayerId<254&&p.Data!=null&&!p.Data.Disconnected);
             var tiles=CustomNetObject.AllObjects.OfType<NovaBeamTile>().ToArray();value.NovaDummies=tiles.Length;
             var roles=CustomRoleManager.AllActiveRoles.Values.OfType<Nova>().ToArray();

@@ -92,6 +92,8 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
 
     private const float BeamTime = 1.5f;
     private const float BeamLength = 50f;
+    private const float AirshipBeamLength = 70f;
+    private float BeamRange => Main.NormalOptions?.MapId == (byte)MapNames.Airship ? AirshipBeamLength : BeamLength;
     // 描画と命中判定で共有する最大射程。壁・扉・命中対象では短縮しない。
     private float reach = BeamLength;
     // ビームが自分の体から少し前で始まるように
@@ -363,10 +365,13 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         }
     }
 
-    // One star plus the reusable drawing pool: Fungle 11, every other map 10.
+    // One star plus the reusable drawing pool: Airship 15, Fungle 11, others 10.
     // Use the same actual selected-map identity as existing Shell role code.
-    private int TileCount() => NovaVisualPoolRules.Count(
-        Main.NormalOptions != null && (MapNames)Main.NormalOptions.MapId == MapNames.Fungle);
+    private int TileCount()
+    {
+        var map = Main.NormalOptions?.MapId;
+        return NovaVisualPoolRules.Count(map == (byte)MapNames.Fungle, map == (byte)MapNames.Airship);
+    }
 
     private Vector2 Dir => new(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     private int ShownAngle() => ((Mathf.RoundToInt(angle) % 360) + 360) % 360;
@@ -426,7 +431,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
         attempted.Clear(); visualDeadline = Time.time + 2f;
         SetSpeed(Main.MinSpeed);
         bool drawable = false; drawFailure = null;
-        try { reach = BeamLength; drawable = reach > BeamStart && DrawBeam(); }
+        try { reach = BeamRange; drawable = reach > BeamStart && DrawBeam(); }
         catch (Exception e) { drawFailure = "exception_" + e.GetType().Name; Logger.Warn("NOVA_DRAW_FAILED " + e.GetType().Name, "NovaTraffic"); }
         if (!drawable || !TilesReady)
         {

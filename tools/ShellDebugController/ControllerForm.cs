@@ -44,10 +44,10 @@ internal sealed class ControllerForm : Form
         realLayout.Controls.Add(new Label{Text="直近60秒 / 1秒ごとの送信回数（受信成功や再送総量の保証ではありません）",Dock=DockStyle.Fill,ForeColor=Color.DimGray},0,2);measuredChart.Dock=DockStyle.Fill;realLayout.Controls.Add(measuredChart,0,3);measured.Controls.Add(realLayout);
         var simLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=6};foreach(var h in new[]{106,72,34,130})simLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,h));simLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));simLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,116));
         var mapHeader=new TableLayoutPanel{Dock=DockStyle.Fill,RowCount=2,ColumnCount=1};mapHeader.RowStyles.Add(new RowStyle(SizeType.Absolute,70));mapHeader.RowStyles.Add(new RowStyle(SizeType.Absolute,30));
-        mapHeader.Controls.Add(new Label{Text="推定値です。実クライアントやサーバーへ送信しません。\nSpawn/空名フレームが未観測なら、下の仮定値を使用します。\n照準1体を含む総数: Fungle 11 / その他10。プールは手動調整も可能。",Dock=DockStyle.Fill,ForeColor=accent},0,0);
-        simulationMap.Items.AddRange(new object[]{"その他のマップ（10体）","The Fungle（11体）"});simulationMap.SelectedIndex=0;simulationMap.Dock=DockStyle.Fill;mapHeader.Controls.Add(simulationMap,0,1);simLayout.Controls.Add(mapHeader,0,0);
+        mapHeader.Controls.Add(new Label{Text="推定値です。実クライアントやサーバーへ送信しません。\nSpawn/空名フレームが未観測なら、下の仮定値を使用します。\n照準1体を含む総数: Airship15 / Fungle11 / その他10。プールは手動調整も可能。",Dock=DockStyle.Fill,ForeColor=accent},0,0);
+        simulationMap.Items.AddRange(new object[]{"その他のマップ（10体）","The Fungle（11体）","The Airship（15体）"});simulationMap.SelectedIndex=0;simulationMap.Dock=DockStyle.Fill;mapHeader.Controls.Add(simulationMap,0,1);simLayout.Controls.Add(mapHeader,0,0);
         var inputs=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false};AddNumber(inputs,pool,"プール(計)",2,17,NovaVisualPoolRules.Count(false));AddNumber(inputs,beam,"ビーム用",1,16,3);AddNumber(inputs,nameBytes,"表示名B",0,65535,593);AddNumber(inputs,spawnBytes,"Spawn B",1,65535,256);AddNumber(inputs,emptyBytes,"空名B",1,65535,256);simLayout.Controls.Add(inputs,0,1);
-        simulationMap.SelectedIndexChanged+=(_,_)=>{pool.Value=NovaVisualPoolRules.Count(simulationMap.SelectedIndex==1);UpdateSimulation();};
+        simulationMap.SelectedIndexChanged+=(_,_)=>{pool.Value=NovaVisualPoolRules.Count(simulationMap.SelectedIndex==1, simulationMap.SelectedIndex==2);UpdateSimulation();};
         var observed=new Button{Text="観測した最大サイズを入力に反映",Dock=DockStyle.Fill,FlatStyle=FlatStyle.Flat};observed.Click+=(_,_)=>{if(latest==null)return;internalChange=true;try{if(latest.MaximumNameBytes>0)nameBytes.Value=Math.Min(65535,latest.MaximumNameBytes);if(latest.ObservedSpawnBytes>0)spawnBytes.Value=Math.Min(65535,latest.ObservedSpawnBytes);if(latest.ObservedEmptyNameBytes>0)emptyBytes.Value=Math.Min(65535,latest.ObservedEmptyNameBytes);useObserved=true;}finally{internalChange=false;}UpdateSimulation();};simLayout.Controls.Add(observed,0,2);
         phaseGrid.Dock=DockStyle.Fill;phaseGrid.ReadOnly=true;phaseGrid.AllowUserToAddRows=phaseGrid.AllowUserToDeleteRows=false;phaseGrid.RowHeadersVisible=false;phaseGrid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;phaseGrid.BackgroundColor=Color.White;phaseGrid.BorderStyle=BorderStyle.None;phaseGrid.Columns.Add("phase","段階（推定）");phaseGrid.Columns.Add("count","送信要求回数");phaseGrid.Columns.Add("bytes","フレームB");simLayout.Controls.Add(phaseGrid,0,3);simulatedChart.Dock=DockStyle.Fill;simulatedChart.BarColor=Color.FromArgb(213,137,50);simLayout.Controls.Add(simulatedChart,0,4);simSummary.Dock=DockStyle.Fill;simSummary.Font=new Font(Font.FontFamily,9);simLayout.Controls.Add(simSummary,0,5);simulated.Controls.Add(simLayout);
         connection.Dock=DockStyle.Fill;connection.TextAlign=ContentAlignment.MiddleLeft;connection.ForeColor=Color.DimGray;shell.Controls.Add(connection,0,2);shell.SetColumnSpan(connection,2);
@@ -88,7 +88,7 @@ internal sealed class ControllerForm : Form
             if(value!=null&&value.SessionEpoch!=epoch){epoch=value.SessionEpoch;internalChange=true;master.Checked=zoom.Checked=noClip.Checked=telemetry.Checked=simulation.Checked=false;internalChange=false;}
             latest=value;
             if(value?.MapId is int map && value.IsFungle.HasValue && observedMap!=map)
-            { observedMap=map;simulationMap.SelectedIndex=value.IsFungle.Value?1:0;pool.Value=NovaVisualPoolRules.Count(value.IsFungle.Value); }
+            { observedMap=map;simulationMap.SelectedIndex=map==4?2:value.IsFungle.Value?1:0;pool.Value=NovaVisualPoolRules.Count(value.IsFungle.Value, map==4); }
             SetConnected(value!=null,status);eligibility.Text=value?.Eligibility??"";UpdatePanels();
         }));}catch(InvalidOperationException){}
     }
@@ -105,7 +105,7 @@ internal sealed class ControllerForm : Form
     {
         if(!simulation.Checked){phaseGrid.Rows.Clear();simulatedChart.Values=Array.Empty<long>();simSummary.Text="15人用通信状態はOFFです。";return;}
         try{
-            var result=TrafficSimulator.Run(new SimulationInput{IsFungle=simulationMap.SelectedIndex==1,Dummies=(int)pool.Value,BeamDummies=(int)beam.Value,NameBytes=(int)nameBytes.Value,SpawnBytes=(int)spawnBytes.Value,EmptyNameFrameBytes=(int)emptyBytes.Value,
+            var result=TrafficSimulator.Run(new SimulationInput{IsFungle=simulationMap.SelectedIndex==1,IsAirship=simulationMap.SelectedIndex==2,Dummies=(int)pool.Value,BeamDummies=(int)beam.Value,NameBytes=(int)nameBytes.Value,SpawnBytes=(int)spawnBytes.Value,EmptyNameFrameBytes=(int)emptyBytes.Value,
                 SpawnMeasured=useObserved&&latest?.ObservedSpawnBytes>0,EmptyNameMeasured=useObserved&&latest?.ObservedEmptyNameBytes>0,ChargeSeconds=latest?.NovaChargeSeconds??3,DelaySeconds=latest?.NovaDelaySeconds??1});
             phaseGrid.Rows.Clear();foreach(var phase in result.Phases)phaseGrid.Rows.Add(phase.Phase,phase.Messages,phase.Bytes);simulatedChart.Values=result.Seconds;
             simSummary.Text=($"最大要求 {result.MaximumPacketBytes:N0} B / 10秒ピーク {result.PeakTenSeconds} 回\n{result.Basis}\n"+string.Join("\n",result.Warnings)).Replace("\n",Environment.NewLine);simSummary.ForeColor=result.MaximumPacketBytes>1000||(int)nameBytes.Value>800?Color.Firebrick:Color.DimGray;
@@ -113,7 +113,8 @@ internal sealed class ControllerForm : Form
     }
     internal void SmokeTest()
     {
-        simulationMap.SelectedIndex=1;if(pool.Value!=11)throw new Exception("Fungle default pool failed");simulationMap.SelectedIndex=0;if(pool.Value!=10)throw new Exception("Normal default pool failed");
+        simulationMap.SelectedIndex=2;if(pool.Value!=15)throw new Exception("Airship default pool failed");simulationMap.SelectedIndex=1;if(pool.Value!=11)throw new Exception("Fungle default pool failed");simulationMap.SelectedIndex=0;if(pool.Value!=10)throw new Exception("Normal default pool failed");
+        Receive(new DebugSnapshot{SessionEpoch=1,MapId=4,IsFungle=false,NovaPoolTarget=15},"offline map test");Application.DoEvents();if(pool.Value!=15)throw new Exception("Live Airship map binding failed");
         Receive(new DebugSnapshot{SessionEpoch=1,MapId=5,IsFungle=true,NovaPoolTarget=11},"offline map test");Application.DoEvents();if(pool.Value!=11)throw new Exception("Live Fungle map binding failed");
         Receive(new DebugSnapshot{SessionEpoch=1,MapId=1,IsFungle=false,NovaPoolTarget=10},"offline map test");Application.DoEvents();if(pool.Value!=10)throw new Exception("Live normal map binding failed");
         epoch=1;latest=new DebugSnapshot{ProcessId=1234,SessionEpoch=1,Participants=15,RawHookAvailable=true,ErrorHookAvailable=true,RawSendCount=57,RawSendBytes=14280,LastTenSeconds=40,NovaDummies=10,NovaState="準備完了 / 非表示・回収待機 10/10",RecentSeconds=Enumerable.Range(0,60).Select(i=>(long)(i%8==0?12:i%4)).ToArray(),Eligibility="UIテスト（ゲーム通信なし）"};

@@ -8,7 +8,8 @@ public sealed class SimulationInput
 {
     private int? customDummies;
     public bool IsFungle { get; set; }
-    public int Dummies { get => customDummies ?? NovaVisualPoolRules.Count(IsFungle); set => customDummies=value; }
+    public bool IsAirship { get; set; }
+    public int Dummies { get => customDummies ?? NovaVisualPoolRules.Count(IsFungle, IsAirship); set => customDummies=value; }
     public int BeamDummies { get; set; }=3;
     public int NameBytes { get; set; }=593;
     public int SpawnBytes { get; set; }=256;
@@ -74,6 +75,6 @@ public static class TrafficSimulator
         int duration=(int)Math.Ceiling(events.Max(e=>e.At))+1;var seconds=new long[duration];foreach(var e in events)seconds[(int)e.At]++;
         return new SimulationResult{MaximumPacketBytes=maximum,PeakTenSeconds=peak,Seconds=seconds,Warnings=warning.ToArray(),
             Phases=events.GroupBy(e=>e.Phase).Select(g=>new SimulatedPhase{Phase=g.Key,Messages=g.Count(),Bytes=g.Sum(e=>(long)e.Bytes)}).ToArray(),
-            Basis=$"推定専用: {(input.IsFungle?"The Fungle":"その他のマップ")} / プール{input.Dummies}体（照準含む、既定{NovaVisualPoolRules.Count(input.IsFungle)}）。15人/1 Nova、割当8人/包、生成1秒間隔。Spawn={(input.SpawnMeasured?"観測値":"仮定")}, 空名={(input.EmptyNameMeasured?"観測値":"仮定")}"};
+            Basis=$"推定専用: {(input.IsAirship?"The Airship":input.IsFungle?"The Fungle":"その他のマップ")} / プール{input.Dummies}体（照準含む、既定{NovaVisualPoolRules.Count(input.IsFungle, input.IsAirship)}）。15人/1 Nova、割当8人/包、生成1秒間隔。Spawn={(input.SpawnMeasured?"観測値":"仮定")}, 空名={(input.EmptyNameMeasured?"観測値":"仮定")}"};
     }
 }

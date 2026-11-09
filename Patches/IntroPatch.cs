@@ -283,6 +283,7 @@ namespace TownOfHost
                 {
 
                     var colorId = pc.Data.DefaultOutfit.ColorId;
+                    Camouflage.RememberColor(pc.PlayerId, colorId);
 
 
 

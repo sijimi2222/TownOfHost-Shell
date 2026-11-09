@@ -789,17 +789,7 @@ namespace TownOfHost
 
             {
 
-                foreach (var pc in PlayerCatch.AllPlayerControls)
-
-                {
-
-                    if (!pc) continue;
-
-                    if (pc.shapeshifting) pc.RpcShapeshift(pc, false);
-
-                    Camouflage.RpcSetSkin(pc, RevertToDefault: true, force: true);
-
-                }
+                Camouflage.RestoreAllForMeeting();
 
             }, 0.35f, "SetSkin", false);
 

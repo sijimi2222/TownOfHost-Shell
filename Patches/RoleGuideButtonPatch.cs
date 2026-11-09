@@ -450,27 +450,34 @@ public static class RoleGuideButtonPatch
 
 
 
-    internal static bool TryGetHeaderLeftEdge(out float left)
+    internal static bool TryGetHeaderLeftEdge(Transform space, out float left)
     {
-        left = 0;
-        if (!HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
+        left = float.PositiveInfinity;
+        if (space == null || !HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
             || !guideFrameRenderer.gameObject.activeInHierarchy) return false;
-        left = guideFrameRenderer.bounds.min.x;
+        // Renderer.bounds is world-space and can be refreshed at a different point in the frame.
+        // Use stable local sprite bounds and current transforms within the same HUD instead.
+        var bounds = guideFrameRenderer.localBounds;
+        var transform = guideFrameRenderer.transform;
+        for (int i = 0; i < 4; i++)
+        {
+            var point = new Vector3((i & 2) == 0 ? bounds.min.x : bounds.max.x,
+                (i & 1) == 0 ? bounds.min.y : bounds.max.y, bounds.center.z);
+            left = Mathf.Min(left, space.InverseTransformPoint(transform.TransformPoint(point)).x);
+        }
         return !float.IsNaN(left) && !float.IsInfinity(left);
     }
 
     internal static bool TryGetHeaderRightOffset(out float offset)
     {
         offset = 0;
-        if (!HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
-            || !HudManager.InstanceExists) return false;
-        var camera = HudManager.Instance.UICamera;
-        if (camera == null || !camera.orthographic) return false;
-        // The guide's root SpriteRenderer has no sprite. Measure its visible native-style frame instead.
-        var bounds = guideFrameRenderer.bounds;
-        var left = camera.WorldToViewportPoint(new Vector3(bounds.min.x, bounds.center.y, bounds.center.z));
-        if (left.z <= 0) return false;
-        return HudHeaderLayout.TryRightOffset(camera.orthographicSize * 2 * camera.aspect, left.x, out offset);
+        if (!HudManager.InstanceExists) return false;
+        var hud = HudManager.Instance;
+        var camera = hud.UICamera;
+        if (camera == null || !camera.orthographic || !TryGetHeaderLeftEdge(hud.transform, out var left)) return false;
+        float width = camera.orthographicSize * 2 * camera.aspect;
+        // Convert HUD-local geometry to a normalized viewport coordinate, without world-camera translation.
+        return HudHeaderLayout.TryRightOffset(width, .5f + left / width, out offset);
     }
 
     private static bool ShouldShowTopRightChatButton()

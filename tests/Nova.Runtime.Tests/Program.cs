@@ -25,6 +25,9 @@ static partial class Program {
  static void Fire(Nova n){Tick(Time.time+1.01f,n);Check(Get<bool>(n,"beaming"));Tick(Time.time+.02f,n);}
  static string Source(string relative,[CallerFilePath]string file="")=>File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"../..",relative)));
  static void Main(string[] args){
+  if(args.Contains("--airship-diagnostic")){AirshipDiagnostic();return;}
+  if(args.Contains("--stretch-repro")){StretchRepro();return;}
+  if(args.Contains("--stretch-bench")){StretchBench();return;}
   if(args.Contains("--map-bench")){MapBench();return;}
   if(args.Contains("--layout-repro")){LayoutRepro();return;}
   if(args.Contains("--layout-bench")){LayoutBench();return;}
@@ -95,7 +98,7 @@ static partial class Program {
   Test("kill hook exception cancels attack and restores speed",()=>{var n=N();Start(n);P(2,x:2);Lock(n);CustomRoleManager.Throw=true;Fire(n);Check(!Get<bool>(n,"beaming"));Eq(1.25f,TownOfHost.Main.AllPlayerSpeed[1]);});
   Test("long-running angle is normalized before synchronization",()=>{var n=N();Start(n);Set(n,"angle",36045f);Tick(Time.time+.02f,n);Eq(45f,Get<float>(n,"angle"));});
   Test("disposed private hint is safe even if Player is cleared",()=>{var n=N();n.OnDestroy();n.Player=null;Eq("",n.GetLowerText(PlayerControl.LocalPlayer));});
-  WallPenetrationTests();RangeTests();OutfitFailureTests();LayoutTests();MapPoolTests();Console.WriteLine($"NOVA_RESULT {passed} passed, {failed} failed");Environment.ExitCode=failed==0?0:1;
+  WallPenetrationTests();RangeTests();OutfitFailureTests();LayoutTests();MapPoolTests();LegacyBeamTests();DistanceTests();AirshipRangeTests();Console.WriteLine($"NOVA_RESULT {passed} passed, {failed} failed");Environment.ExitCode=failed==0?0:1;
  }
  sealed class Defense:RoleBase{PlayerControl reflected;public Defense(PlayerControl p,PlayerControl r=null):base(new(),p){reflected=r;}public override bool OnCheckMurderAsTarget(MurderInfo info){if(reflected!=null)reflected.Data.IsDead=true;return false;}}
 }

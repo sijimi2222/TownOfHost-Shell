@@ -5,8 +5,8 @@ namespace TownOfHost.Modules;
 // estimator; no controller/IPC dependency may enter the public game assembly.
 internal static class NovaVisualPoolRules
 {
-    internal const int NormalTotal = 10, FungleTotal = 11;
-    internal static int Count(bool isFungle) => isFungle ? FungleTotal : NormalTotal;
+    internal const int NormalTotal = 10, FungleTotal = 11, AirshipTotal = 15;
+    internal static int Count(bool isFungle, bool isAirship = false) => isAirship ? AirshipTotal : isFungle ? FungleTotal : NormalTotal;
     internal static int GlyphCount(float span, float bar, int capacity)
     {
         if (!float.IsFinite(span) || !float.IsFinite(bar) || span <= 0 || bar <= 0 || bar > span || capacity < 1) return 0;
