@@ -236,7 +236,7 @@ namespace TownOfHost
 
             {
 
-                PlayerCatch.AllPlayerControls.Do(pc => Camouflage.RpcSetSkin(pc, ForceRevert: true, RevertToDefault: true));
+                Camouflage.RestoreAllForGameEnd();
 
 
 

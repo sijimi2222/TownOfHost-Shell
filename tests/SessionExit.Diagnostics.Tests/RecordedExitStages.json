@@ -1,0 +1,6 @@
+{
+  "date": "2026-11-14",
+  "lastStage": "MenuStartReturned",
+  "lastElapsedMs": 1263,
+  "stages": ["ExitRequested", "DisconnectStarted", "ObjectsResetStarted", "ObjectsResetReturned", "CommentsStopStarted", "CommentsStopReturned", "RolesDisposeStarted", "RolesDisposeReturned", "DisconnectReturned", "ExitReturned", "HudDestroyStarted", "HudDestroyReturned", "SceneChangeStarted", "SceneChangeReturned", "MenuStartStarted", "MenuStartReturned"]
+}

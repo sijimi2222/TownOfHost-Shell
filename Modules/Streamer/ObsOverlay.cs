@@ -52,5 +52,5 @@ public static class ObsOverlay
     [HarmonyPatch(typeof(HudManager),nameof(HudManager.OnDestroy)),HarmonyPrefix]
     private static void OnHudDestroyed(){Stop();StreamerInfo.StopNetwork();}
     [HarmonyPatch(typeof(AmongUsClient),nameof(AmongUsClient.OnDisconnected)),HarmonyPrefix]
-    private static void OnDisconnected(){Stop();StreamerInfo.StopNetwork();TownOfHost.Modules.YouTubeMapVote.Reset();}
+    private static void OnDisconnected(){Stop();StreamerInfo.DisconnectInternal();}
 }

@@ -15,7 +15,7 @@ internal static class NovaBeamRules
     }
     internal static bool Contains(float along, float side, float reach, float width, float start)
         => Finite(along) && Finite(side) && Finite(reach) && Finite(width)
-            && along >= start && along <= reach && side <= width * .5f + .3f;
+            && along >= start && along <= reach + .0001f && side <= width * .5f + .3f;
 }
 // Nova-only cosmetic budget. Never suppress unrelated mandatory Shell teleports.
 internal static class NovaVisualTraffic

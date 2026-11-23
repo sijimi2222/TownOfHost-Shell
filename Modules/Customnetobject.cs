@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.InnerNet.GameDataMessages;
@@ -14,12 +14,28 @@ public class CustomNetObject
     private static int MaxId = -1;
 
     private static readonly Queue<Action> SpawnQueue = new();
+    private static readonly Queue<Action> VisualSpawnQueue = new();
+    private static bool visualCoolingDown;
     private static bool IsSpawning = false;
     private static uint spawnGeneration;
+    // Includes queued/partially constructed objects, before AllObjects registration.
+    private static readonly HashSet<CustomNetObject> OwnedObjects = new();
+    private static AmongUsClient sessionClient;
+    private static int sessionGame;
+    private AmongUsClient spawnClient;
+    private int spawnGame;
+    private uint objectGeneration;
+    private bool bound, retired, failureNotified, spawnPublishAttempted;
     private static bool CurrentSpawn(uint generation, AmongUsClient client, int game)
         => generation == spawnGeneration && client != null && client == AmongUsClient.Instance
-            && client.AmHost && client.GameId == game && client.GameState == AmongUsClient.GameStates.Started;
+            && client.AmHost && client.AmConnected && client.GameId == game
+            && client.GameState == AmongUsClient.GameStates.Started && !GameStates.IsEnded;
 
+    private bool CanTransmit => !retired && (bound
+        ? CurrentSpawn(objectGeneration, spawnClient, spawnGame)
+        : CurrentSpawn(spawnGeneration, AmongUsClient.Instance, AmongUsClient.Instance?.GameId ?? 0));
+
+    private bool spawnAssignmentsComplete;
     protected int Id;
     public PlayerControl PlayerControl;
     public Vector2 Position;
@@ -27,39 +43,86 @@ public class CustomNetObject
     protected virtual bool IsDynamic => false;
     protected virtual bool CanCreate => true;
     protected virtual bool DelayPlayerIdReset => false;
+    // Opt-in for Nova's large visual pool. Other CNO consumers keep their existing cadence/envelopes.
+    protected virtual bool BatchSpawnAssignments => false;
+    protected virtual float SpawnInterval => 0.4f;
 
     public void Despawn()
     {
-        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
-
+        // Retire first: callbacks, repeated cleanup and reentrant failure handlers cannot respawn it.
+        if (retired) return;
+        retired = true;
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "remove");
+#endif
+        var client = bound ? spawnClient : AmongUsClient.Instance;
+        var capturedPC = PlayerControl;
+        bool canSend = bound
+            ? spawnPublishAttempted && CurrentSpawn(objectGeneration, client, spawnGame)
+            : CurrentSpawn(spawnGeneration, client, client?.GameId ?? 0);
         try
         {
-            if (PlayerControl != null)
+            if (capturedPC != null && canSend)
             {
-                MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
+                var writer = MessageWriter.Get(SendOption.Reliable);
                 try
                 {
-                writer.StartMessage(5);
-                writer.Write(AmongUsClient.Instance.GameId);
-                writer.StartMessage(5);
-                writer.WritePacked(PlayerControl.NetId);
-                writer.EndMessage();
-                writer.EndMessage();
-                AmongUsClient.Instance.SendOrDisconnect(writer);
+                    writer.StartMessage(5); writer.Write(client.GameId);
+                    writer.StartMessage(5); writer.WritePacked(capturedPC.NetId);
+                    writer.EndMessage(); writer.EndMessage();
+                    client.SendOrDisconnect(writer);
                 }
                 finally { writer.Recycle(); }
-
-                AmongUsClient.Instance.RemoveNetObject(PlayerControl);
-                UnityEngine.Object.Destroy(PlayerControl.gameObject);
+            }
+        }
+        catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn"); }
+        finally
+        {
+            // Local ownership cleanup must not depend on a live connection/current host.
+            if (capturedPC != null)
+            {
+                try { capturedPC.gameObject.SetActive(false); } catch { }
+                try { PlayerControl.AllPlayerControls.Remove(capturedPC); }
+                catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.Players"); }
+                RemoveDummyGameData(capturedPC);
+                try { if (client != null) client.RemoveNetObject(capturedPC); }
+                catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.Local"); }
+                try { UnityEngine.Object.Destroy(capturedPC.gameObject); }
+                catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.Destroy"); }
             }
             AllObjects.Remove(this);
+            OwnedObjects.Remove(this);
         }
-        catch (Exception e) { Logger.Error(e.ToString(), "CNO.Despawn"); }
+    }
+
+    private static void RemoveDummyGameData(PlayerControl pc)
+    {
+        try
+        {
+            var players = GameData.Instance?.AllPlayers;
+            if (players == null || pc == null) return;
+            for (int i = players.Count - 1; i >= 0; i--)
+                if (players[i] != null && players[i].PlayerId == 254 && players[i].Object == pc)
+                    players.RemoveAt(i);
+        }
+        catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.Despawn.GameData"); }
+    }
+
+    private void FailCreation()
+    {
+        if (retired) return;
+        if (!failureNotified)
+        {
+            failureNotified = true;
+            try { OnCreateFailed(); }
+            catch (Exception e) { Logger.Error(e.GetType().Name, "CNO.CreateFailed"); }
+        }
+        Despawn();
     }
 
     protected void Hide(PlayerControl player)
     {
-        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
+        if (!CanTransmit) return;
 
         if (player.AmOwner)
         {
@@ -110,7 +173,7 @@ public class CustomNetObject
 
     protected void SetAppearance(int colorId, string skinId = "", string hatId = "", string petId = "", string visorId = "", string displayName = null)
     {
-        if (PlayerControl == null) return;
+        if (PlayerControl == null || !CanTransmit) return;
 
         var capturedPC = PlayerControl;
         var outfit = PlayerControl.LocalPlayer.Data.Outfits[PlayerOutfitType.Default];
@@ -166,9 +229,60 @@ public class CustomNetObject
         sender.SendMessage();
     }
 
+    // Nova's visual transaction never edits the borrowed host outfit or invokes local
+    // Shapeshift on a dummy whose CachedPlayerData aliases the host. Vanilla still receives
+    // the same temporary-info -> Shapeshift -> original-info sequence.
+    protected void SetVisualName(string name)
+    {
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Name(this, name);
+#endif
+        var client = AmongUsClient.Instance;
+        var host = global::PlayerControl.LocalPlayer;
+        var dummy = PlayerControl;
+        var data = host == null ? null : host.Data;
+        if (!CanTransmit || data == null || dummy == null)
+            throw new InvalidOperationException("Visual owner is unavailable");
+        var outfits = data.Outfits;
+        var original = outfits[PlayerOutfitType.Default];
+        if (original == null) throw new InvalidOperationException("Default outfit is unavailable");
+        // Native PlayerOutfit.Serialize/Deserialize layout verified against the current v19s binary:
+        // name, packed color, hat/pet/skin/visor/nameplate, five sequence bytes.
+        // Deserialize performs native managed-reference stores; no generated raw string field setters.
+        var visual = new NetworkedPlayerInfo.PlayerOutfit();
+        var buffer = MessageWriter.Get(SendOption.Reliable);
+        try
+        {
+            buffer.Write(name ?? ""); buffer.WritePacked(0);
+            for (int i = 0; i < 5; i++) buffer.Write("");
+            for (int i = 0; i < 5; i++) buffer.Write((byte)0);
+            var reader = MessageReader.Get(buffer.ToByteArray(false));
+            try { visual.Deserialize(reader); }
+            finally { reader.Recycle(); }
+        }
+        finally { buffer.Recycle(); }
+        using var sender = CustomRpcSender.Create("CNO.VisualName", SendOption.Reliable);
+        var writer = sender.stream;
+        sender.StartMessage();
+        try
+        {
+            outfits[PlayerOutfitType.Default] = visual;
+            writer.StartMessage(1); writer.WritePacked(data.NetId); data.Serialize(writer, false); writer.EndMessage();
+            sender.StartRpc(dummy.NetId, RpcCalls.Shapeshift).WriteNetObject(host).Write(false).EndRpc();
+        }
+        finally
+        {
+            outfits[PlayerOutfitType.Default] = original;
+            GC.KeepAlive(original); GC.KeepAlive(visual);
+        }
+        writer.StartMessage(1); writer.WritePacked(data.NetId); data.Serialize(writer, false); writer.EndMessage();
+        sender.EndMessage(); sender.SendMessage();
+        GC.KeepAlive(original); GC.KeepAlive(visual);
+    }
+
     protected void SetName(string name)
     {
-        if (PlayerControl == null) return;
+        if (PlayerControl == null || !CanTransmit) return;
 
         if (PlayerControl.cosmetics?.nameText != null)
             PlayerControl.cosmetics.nameText.text = name;
@@ -183,7 +297,10 @@ public class CustomNetObject
 
     protected void SnapToPosition(Vector2 position)
     {
-        if (PlayerControl == null) return;
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "move");
+#endif
+        if (PlayerControl == null || !CanTransmit) return;
         Position = position;
 
         try { PlayerControl.NetTransform.SnapTo(position); }
@@ -200,19 +317,30 @@ public class CustomNetObject
     protected void CreateNetObject(Vector2 position)
     {
         var client = AmongUsClient.Instance;
-        if (client == null || !client.AmHost || client.GameState != AmongUsClient.GameStates.Started) return;
-
+        if (retired || bound || client == null || !CurrentSpawn(spawnGeneration, client, client.GameId)) return;
+        if (sessionClient != null && (sessionClient != client || sessionGame != client.GameId)) ResetSpawnState();
+        sessionClient = client; sessionGame = client.GameId;
+        bound = true; spawnClient = client; spawnGame = client.GameId; objectGeneration = spawnGeneration;
+        OwnedObjects.Add(this);
         uint generation = spawnGeneration;
         int game = client.GameId;
-        SpawnQueue.Enqueue(() => { if (CurrentSpawn(generation, client, game) && CanCreate) DoCreate(position); else { IsSpawning = false; ProcessQueue(); } });
+        var queue = BatchSpawnAssignments ? VisualSpawnQueue : SpawnQueue;
+        queue.Enqueue(() =>
+        {
+            if (!retired && CurrentSpawn(generation, client, game) && CanCreate) DoCreate(position);
+            else { Despawn(); IsSpawning = false; ProcessQueue(); }
+        });
         ProcessQueue();
     }
 
     private static void ProcessQueue()
     {
-        if (IsSpawning || SpawnQueue.Count == 0) return;
+        if (IsSpawning) return;
+        // Mandatory/legacy effects are never held behind Nova's cosmetic pacing interval.
+        var queue = SpawnQueue.Count > 0 ? SpawnQueue : !visualCoolingDown ? VisualSpawnQueue : null;
+        if (queue == null || queue.Count == 0) return;
         IsSpawning = true;
-        var action = SpawnQueue.Dequeue();
+        var action = queue.Dequeue();
         try
         {
             action();
@@ -229,11 +357,26 @@ public class CustomNetObject
     {
         unchecked { spawnGeneration++; }
         SpawnQueue.Clear();
+        VisualSpawnQueue.Clear();
+        visualCoolingDown = false;
         IsSpawning = false;
+        sessionClient = null;
+        // Generation already invalidated: this is strictly local cleanup.
+        foreach (var obj in OwnedObjects.ToArray()) obj.Despawn();
+        OwnedObjects.Clear();
     }
 
     private void DoCreate(Vector2 position)
     {
+        try { DoCreateCore(position); }
+        catch { FailCreation(); throw; }
+    }
+
+    private void DoCreateCore(Vector2 position)
+    {
+#if SHELL_DEBUG_CONTROLLER
+        using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(this, "spawn");
+#endif
         var spawnClient = AmongUsClient.Instance;
         int spawnGame = spawnClient.GameId;
         uint generation = spawnGeneration;
@@ -272,10 +415,12 @@ public class CustomNetObject
         }
 
         msg.EndMessage();
+        spawnPublishAttempted = true;
         AmongUsClient.Instance.SendOrDisconnect(msg);
         }
         finally { msg.Recycle(); }
 
+        if (retired || !CurrentSpawn(generation, spawnClient, spawnGame)) { Despawn(); return; }
         if (PlayerControl.AllPlayerControls.Contains(PlayerControl))
             PlayerControl.AllPlayerControls.Remove(PlayerControl);
 
@@ -293,14 +438,22 @@ public class CustomNetObject
 
         _ = new LateTask(() =>
         {
-            if (!CurrentSpawn(generation, spawnClient, spawnGame) || !capturedPC || !capturedSelf.CanCreate) return;
+            if (!CurrentSpawn(generation, spawnClient, spawnGame) || retired || !capturedPC || !capturedSelf.CanCreate) { capturedSelf.Despawn(); return; }
+#if SHELL_DEBUG_CONTROLLER
+            using var debugTraffic = TownOfHost.Development.ShellDebugTraffic.Begin(capturedSelf, "assignment");
+#endif
             var localHost = PlayerControl.LocalPlayer;
             if (localHost == null || localHost.Data == null) return;
+            CustomRpcSender sender = null;
+            int pending = 0;
+            try
+            {
             foreach (var pc in PlayerCatch.AllPlayerControls)
             {
+                if (retired || !CurrentSpawn(generation, spawnClient, spawnGame) || !capturedSelf.CanCreate) return;
                 if (pc == null || pc.Data == null || pc.Data.Disconnected || pc.AmOwner) continue;
 
-                var sender = CustomRpcSender.Create("CNO.AssignId", SendOption.Reliable);
+                sender ??= CustomRpcSender.Create("CNO.AssignId", SendOption.Reliable);
                 MessageWriter writer = sender.stream;
                 sender.StartMessage(pc.OwnerId);
 
@@ -323,19 +476,30 @@ public class CustomNetObject
                 }
 
                 sender.EndMessage();
-                sender.SendMessage();
+                // Complete GameDataTo envelopes retain each recipient and the original RPC ordering.
+                // At most eight small assignment envelopes per reliable packet (well below 1000 bytes).
+                if (++pending >= (capturedSelf.BatchSpawnAssignments ? 8 : 1))
+                {
+                    sender.SendMessage(); sender.Dispose(); sender = null; pending = 0;
+                }
             }
 
+            if (pending > 0) sender.SendMessage();
+            }
+            finally { sender?.Dispose(); }
+
             capturedPC.CachedPlayerData = localHost.Data;
+            capturedSelf.spawnAssignmentsComplete = true;
         }, 0.1f, "CNO.AssignId", true);
 
         if (DelayPlayerIdReset)
         {
             _ = new LateTask(() =>
             {
-                if (!CurrentSpawn(generation, spawnClient, spawnGame) || !capturedPC || !AllObjects.Contains(capturedSelf) || !capturedSelf.CanCreate) return;
+                if (!CurrentSpawn(generation, spawnClient, spawnGame) || retired || !capturedPC || !AllObjects.Contains(capturedSelf) || !capturedSelf.CanCreate) return;
                 foreach (var pc in PlayerCatch.AllPlayerControls)
                 {
+                    if (retired || !CurrentSpawn(generation, spawnClient, spawnGame) || !capturedSelf.CanCreate) return;
                     if (pc == null || pc.AmOwner || pc.Data == null || pc.Data.Disconnected) continue;
                     var sender = CustomRpcSender.Create("CNO.Text.ResetId", SendOption.Reliable);
                     sender.StartMessage(pc.OwnerId);
@@ -351,43 +515,35 @@ public class CustomNetObject
         _ = new LateTask(() =>
         {
             // A retired session must never release another session's in-flight spawn.
-            if (!CurrentSpawn(generation, spawnClient, spawnGame)) return;
+            if (!CurrentSpawn(generation, spawnClient, spawnGame)) { capturedSelf.Despawn(); return; }
             try
             {
-                if (!capturedPC || !capturedSelf.CanCreate) capturedSelf.Despawn();
+                if (retired || !capturedPC || !capturedSelf.CanCreate) capturedSelf.Despawn();
+                else if (capturedSelf.BatchSpawnAssignments && !capturedSelf.spawnAssignmentsComplete)
+                { capturedSelf.FailCreation(); }
                 else capturedSelf.OnCreated();
             }
             catch (Exception e)
             {
                 Logger.Error(e.ToString(), "CNO.OnCreated");
+                capturedSelf.FailCreation();
             }
 
-            // ★ GameData.AllPlayers からも除去（会議でのUI崩れを防ぐ）
-            try
-            {
-                var allPlayers = GameData.Instance?.AllPlayers;
-                if (allPlayers != null && capturedPC != null)
-                {
-                    for (int i = allPlayers.Count - 1; i >= 0; i--)
-                    {
-                        var info = allPlayers[i];
-                        if (info != null && info.PlayerId == 254
-                            && info.Object?.NetId == capturedPC.NetId)
-                        {
-                            allPlayers.RemoveAt(i);
-                            Logger.Info($"CNO: GameData.AllPlayersからダミーを除去 NetId={capturedPC.NetId}", "CustomNetObject");
-                            break;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"CNO.RemoveFromGameData: {e}", "CustomNetObject");
-            }
+            RemoveDummyGameData(capturedPC);
 
             if (CurrentSpawn(generation, spawnClient, spawnGame))
             {
+                float pause = Math.Max(0f, capturedSelf.SpawnInterval - 0.4f);
+                if (capturedSelf.BatchSpawnAssignments && pause > 0f)
+                {
+                    visualCoolingDown = true;
+                    _ = new LateTask(() =>
+                    {
+                        if (!CurrentSpawn(generation, spawnClient, spawnGame)) return;
+                        visualCoolingDown = false;
+                        ProcessQueue();
+                    }, pause, "CNO.SpawnNext", true);
+                }
                 IsSpawning = false;
                 ProcessQueue();
             }
@@ -395,17 +551,21 @@ public class CustomNetObject
     }
 
     protected virtual void OnCreated() { }
+    protected virtual void OnCreateFailed() { }
 
     public virtual void OnMeeting()
     {
-        if (!AmongUsClient.Instance.AmHost) return;
         Despawn();
     }
 
     public static void FixedUpdate()
     {
+        var client = AmongUsClient.Instance;
+        if (client == null || !CurrentSpawn(spawnGeneration, client, client.GameId)
+            || (sessionClient != null && (sessionClient != client || sessionGame != client.GameId)))
+        { Reset(); return; }
         foreach (var cno in AllObjects.ToArray())
-            cno?.OnFixedUpdate();
+            if (cno != null && !cno.retired) cno.OnFixedUpdate();
     }
 
     public static CustomNetObject Get(int id)

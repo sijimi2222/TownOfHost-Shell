@@ -1,0 +1,10 @@
+using TownOfHost;using Csv;using System.Reflection;
+class Program{static int passed;static void Check(bool b){if(!b)throw new Exception("assertion failed");}static void Test(string s,Action a){a();passed++;Console.WriteLine("PASS "+s);}static Stream Resource()=>Assembly.GetExecutingAssembly().GetManifestResourceStream("TownOfHost.Resources.string.csv");static void Main(){
+Test("real translator initializes with the new option",()=>{Translator.Init();Check(Translator.translateMaps.ContainsKey("DisableWaveAnimation"));});
+Test("Japanese option is the exact requested phrase",()=>Check(Translator.GetString("DisableWaveAnimation",SupportedLangs.Japanese)=="波のアニメーションをなくす"));
+Test("English option has a valid label",()=>Check(Translator.GetString("DisableWaveAnimation",SupportedLangs.English)=="Disable wave animation"));
+Test("other locales use the existing English fallback",()=>{foreach(var lang in Enum.GetValues<SupportedLangs>())if(lang is not SupportedLangs.English and not SupportedLangs.Japanese)Check(Translator.GetString("DisableWaveAnimation",lang)=="*Disable wave animation");});
+Test("new option has exactly one eight-column CSV row",()=>{using var r=Resource();var rows=CsvReader.ReadFromStream(r,new CsvOptions{HeaderMode=HeaderMode.HeaderPresent}).Where(r=>r.Values[0]=="DisableWaveAnimation").ToArray();Check(rows.Length==1&&rows[0].ColumnCount==8);});
+Test("all existing CSV keys remain unique with matching columns",()=>{using var r=Resource();var rows=CsvReader.ReadFromStream(r,new CsvOptions{HeaderMode=HeaderMode.HeaderPresent}).Where(r=>!r.Values[0].StartsWith("#")).ToArray();Check(rows.All(r=>r.ColumnCount==8)&&rows.Select(r=>r.Values[0]).Distinct().Count()==rows.Length);});
+foreach(var key in new[]{"EnableDiscordRichPresence","ShowRoomCode"})Test("existing Japanese label remains available: "+key,()=>Check(!Translator.GetString(key,SupportedLangs.Japanese).Contains("INVALID")));
+Console.WriteLine($"RESULT {passed} passed, 0 failed (actual Translator and embedded CSV)");}}

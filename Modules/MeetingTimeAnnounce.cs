@@ -7,7 +7,7 @@ public static class ExtraFeatureOptions
 {
     /// <summary>/set rule で決めたルールを、入ってきた人に「ようこそ」と一緒に送る</summary>
     public static OptionItem SendRuleOnJoin;
-    /// <summary>YouTubeのコメントで参加希望した人だけ部屋に入れる(参加希望制)</summary>
+    /// <summary>Retired option ID 1400164. Never used for admission or reception.</summary>
     public static OptionItem JoinByCommentOnly;
 }
 

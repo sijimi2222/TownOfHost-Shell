@@ -1,0 +1,2 @@
+using TownOfHost;namespace RegressionFragments;public static class FinalGuardFragments{public static bool CanRestoreGhost(bool blackout,bool inGame)=>!GameStates.CalledMeeting && !blackout
+                                    && CustomWinnerHolder.WinnerTeam == CustomWinner.Default && inGame;public static string LogColor(string str)=>str.Replace("ffffff", "000000", System.StringComparison.Ordinal);}

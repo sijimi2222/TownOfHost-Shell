@@ -1,0 +1,57 @@
+[
+  {
+    "Name": "Barlow-Black SDF",
+    "Object": 301,
+    "PointSize": 87,
+    "Width": 32.625,
+    "Height": 13.921875,
+    "WideWidth": 51.953125,
+    "WideHeight": 13.921875,
+    "AsciiWidth": 45.671875,
+    "AsciiHeight": 12.1875
+  },
+  {
+    "Name": "Barlow-Black SDF",
+    "Object": 304,
+    "PointSize": 87,
+    "Width": 34.0,
+    "Height": 15.0,
+    "WideWidth": 0,
+    "WideHeight": 0,
+    "AsciiWidth": 46.0,
+    "AsciiHeight": 12.0
+  },
+  {
+    "Name": "Barlow-Bold SDF",
+    "Object": 305,
+    "PointSize": 91,
+    "Width": 31.9375,
+    "Height": 11.0,
+    "WideWidth": 54.6875,
+    "WideHeight": 10.90625,
+    "AsciiWidth": 44.125,
+    "AsciiHeight": 9.734375
+  },
+  {
+    "Name": "Barlow-ExtraBold SDF",
+    "Object": 310,
+    "PointSize": 89,
+    "Width": 32.40625,
+    "Height": 12.640625,
+    "WideWidth": 53.3125,
+    "WideHeight": 12.546875,
+    "AsciiWidth": 45.125,
+    "AsciiHeight": 11.03125
+  },
+  {
+    "Name": "Barlow-Regular SDF",
+    "Object": 318,
+    "PointSize": 98,
+    "Width": 30.96875,
+    "Height": 6.078125,
+    "WideWidth": 59.484375,
+    "WideHeight": 6.0625,
+    "AsciiWidth": 41.75,
+    "AsciiHeight": 5.59375
+  }
+]

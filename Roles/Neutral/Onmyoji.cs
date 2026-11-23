@@ -1261,7 +1261,9 @@ public sealed class Onmyoji : RoleBase, IKiller, ISelfVoter
             ;
 
     }
+
 }
+
 
 
 public sealed class Shikigami : RoleBase, IUsePhantomButton, IKillFlashSeeable

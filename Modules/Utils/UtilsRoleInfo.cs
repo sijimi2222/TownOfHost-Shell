@@ -827,7 +827,7 @@ namespace TownOfHost
 
                 "あやしい占い師" or "怪しい占い師" or "あやしいうらないし" or "アヤシイウラナイシ" => GetString("SuspiciousTeller"),
 
-                "かけだし占い師" or "駆け出し占い師" or "かけだしうらないし" or "カケダシウラナイシ" => GetString("BeginnerTeller"),
+                "かけだし占い師" or "駆け出し占い師" or "かけだしうらないし" or "カケダシウラナイシ" => GetString("AmateurTeller"),
 
                 "ぽんこつ占い師" or "ポンコツ占い師" => GetString("PonkotuTeller"),
 

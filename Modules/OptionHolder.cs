@@ -3134,19 +3134,17 @@ namespace TownOfHost
                 .SetParent(youtubeHeader).SetColorcode("#ff8080")
                 .SetOptionName(() => "コメント枠の位置を戻す");
             ((ObjectOptionitem)OptionItem.AllOptions.Last()).SetValueOverride(() => "押すと戻る");
+            // Reserved legacy ID; old true values never control admission or reception.
             Modules.ExtraFeatureOptions.JoinByCommentOnly = BooleanOptionItem.Create(1_400_164, "JoinByCommentOnly", false, TabGroup.Other2, true)
-                .SetParent(youtubeHeader).SetColorcode("#ff8080")
-                .SetOptionName(() => "コメントで参加希望した人だけ入れる")
-                .SetTooltip(() => "ONにすると、配信のコメントで参加希望を書いた人(メインメニューのStreamで決めた言葉)だけが部屋に入れます。");
+                .SetParent(youtubeHeader).SetHidden(true);
 
             // ===== 便利機能(ホスト用・どれも最初はOFF) =====
             var extraHeader = ObjectOptionitem.Create(1_400_170, "ExtraFeatures", true, null, TabGroup.Other2)
                 .SetColorcode("#7fd8ff")
                 .SetOptionName(() => "便利機能");
+            // Reserved legacy ID; retired entry points are inert even when called directly.
             Modules.YouTubeMapVote.Enabled = BooleanOptionItem.Create(1_400_171, "YouTubeMapVote", false, TabGroup.Other2, true)
-                .SetParent(extraHeader).SetColorcode("#ff8080")
-                .SetOptionName(() => "YouTubeのコメントでマップ投票")
-                .SetTooltip(() => "配信のコメントで「!skeld」「!mira」「!polus」「!airship」「!fungle」と書くと投票できます(1人1票・書き直すと変わる)。\n試合開始時に一番多いマップになります。投票はコメント枠の上に表示されます。");
+                .SetParent(extraHeader).SetHidden(true);
             Modules.AfkDetector.Enabled = BooleanOptionItem.Create(1_400_172, "AfkDetect", false, TabGroup.Other2, true)
                 .SetParent(extraHeader).SetColorcode("#7fd8ff")
                 .SetOptionName(() => "放置している人を知らせる");

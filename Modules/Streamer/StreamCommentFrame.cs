@@ -23,8 +23,6 @@ public static class StreamCommentFrame
     private static SpriteRenderer background;
     private static AspectPosition aspect;
     private static int shownVersion = -1;
-    private static int shownVoteVersion = -1;
-    private static bool shownVoteOn;
     private static int shownStatusVersion = -1;
     private static bool dragging;
     private static Vector3 lastMouse;
@@ -36,6 +34,7 @@ public static class StreamCommentFrame
         {
             StreamerInfo.LoadSavedURL();
             StreamerInfo.CommentFrameTick(Time.deltaTime);
+            StreamerHopeMenu.Tick();
             var visible = Main.ShowStreamComments.Value && StreamerInfo.HasStream;
             if (!visible)
             {
@@ -46,14 +45,10 @@ public static class StreamCommentFrame
             if (text == null) return;
             if (!text.gameObject.activeSelf) { text.gameObject.SetActive(true); shownVersion = -1; }
             HandleDrag();
-            var voteOn = Modules.YouTubeMapVote.IsOn;
-            if (shownVersion == StreamerInfo.RecentCommentsVersion && shownVoteVersion == Modules.YouTubeMapVote.Version && shownVoteOn == voteOn && shownStatusVersion == StreamerInfo.StatusVersion) return;
+            if (shownVersion == StreamerInfo.RecentCommentsVersion && shownStatusVersion == StreamerInfo.StatusVersion) return;
             shownVersion = StreamerInfo.RecentCommentsVersion;
-            shownVoteVersion = Modules.YouTubeMapVote.Version;
-            shownVoteOn = voteOn;
             shownStatusVersion = StreamerInfo.StatusVersion;
-            // マップ投票(便利機能)がONなら、一番上に集計を出す
-            text.text = voteOn ? Modules.YouTubeMapVote.Summary() + ((char)10).ToString() + BuildText() : BuildText();
+            text.text = BuildText();
         }
         catch (System.Exception)
         {
@@ -146,9 +141,9 @@ public static class StreamCommentFrame
         (string Name, string Text)[] items;
         lock (StreamerInfo.RecentComments)
             items = StreamerInfo.RecentComments.Skip(System.Math.Max(0, StreamerInfo.RecentComments.Count - ShowCount)).ToArray();
-        if (items.Length == 0) return StreamerInfo.StatusMessage;
+        if (items.Length == 0) return YouTubeOfficialRuntime.Attribution + "\n" + StreamerInfo.StatusMessage;
         var lf = ((char)10).ToString();
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(YouTubeOfficialRuntime.Attribution);
         if (StreamerInfo.HasConnectionError) sb.Append(StreamerInfo.StatusMessage).Append(lf);
         foreach (var (name, body) in items)
         {

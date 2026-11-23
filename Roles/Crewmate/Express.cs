@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using AmongUs.GameOptions;
+using TownOfHost.Modules;
 
 using TownOfHost.Roles.Core;
 
@@ -34,7 +36,9 @@ public sealed class Express : RoleBase
         ExpressSpeed
     }
 
-    private static float speed;
+    private readonly float speed;
+    private Dictionary<byte, float> appliedSpeeds;
+    private byte appliedPlayerId;
 
     private static void SetupOptionItem()
     {
@@ -42,17 +46,29 @@ public sealed class Express : RoleBase
             .SetValueFormat(OptionFormat.Multiplier);
     }
 
-    // ★ 速度を加算方式に変更
+    // Keep the existing additive speed, once per role instance.
     public override void Add()
     {
-        Main.AllPlayerSpeed[Player.PlayerId] += speed;
+        if (appliedSpeeds != null) return;
+
+        var speeds = Main.AllPlayerSpeed;
+        var playerId = Player.PlayerId;
+        speeds[playerId] += speed;
+        appliedSpeeds = speeds;
+        appliedPlayerId = playerId;
     }
-    public override void ChengeRoleAdd()
+
+    public override void OnDestroy()
     {
-        // Express が外れた瞬間に速度を戻す
-        Main.AllPlayerSpeed[Player.PlayerId] -= speed;
+        var speeds = appliedSpeeds;
+        appliedSpeeds = null; // Repeated cleanup cannot remove the contribution twice.
 
-        base.ChengeRoleAdd();
+        // Do not touch a replacement match dictionary or dereference a destroyed player.
+        if (speeds == null || !ReferenceEquals(speeds, Main.AllPlayerSpeed)
+            || !speeds.TryGetValue(appliedPlayerId, out var currentSpeed)) return;
+
+        speeds[appliedPlayerId] = currentSpeed - speed;
+        // Queue the existing options sync; never send a new RPC during teardown.
+        PlayerGameOptionsSender.SetDirty(appliedPlayerId);
     }
-
 }

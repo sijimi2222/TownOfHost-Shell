@@ -1,0 +1,15 @@
+using TownOfHost;using TownOfHost.Roles.Core;
+partial class Program {
+static Dictionary<string,int> SheriffMap(bool include){EnumHelper.IncludeNew=include;SheriffCompatibility.Ids.Clear();SheriffCompatibility.SetUpNeutralOptions(30);return new(SheriffCompatibility.Ids);}
+static Dictionary<CustomRoles,int> FactionMap(bool include){EnumHelper.IncludeNew=include;FactionCompatibility.OptionRole.Clear();OptionItem.All.Clear();FactionCompatibility.SetUpOption();return FactionCompatibility.OptionRole.ToDictionary(p=>p.Key,p=>p.Value.Id);}
+static void CompatibilityTests(){
+Test("shared neutral-killer classifier recognizes the new role",()=>Check(CustomRoles.Eliminator.IsNeutralKiller()));
+Test("Obolus keeps every existing target ID and reserves the new one",()=>{EnumHelper.IncludeNew=false;ObolusCompatibility.ExtraWinKillTargetOptions.Clear();OptionItem.All.Clear();ObolusCompatibility.Build();var old=ObolusCompatibility.ExtraWinKillTargetOptions.ToDictionary(p=>p.Key,p=>p.Value.Id);EnumHelper.IncludeNew=true;ObolusCompatibility.ExtraWinKillTargetOptions.Clear();OptionItem.All.Clear();ObolusCompatibility.Build();var next=ObolusCompatibility.ExtraWinKillTargetOptions;Check(old.All(p=>next[p.Key].Id==p.Value)&&next[CustomRoles.Eliminator].Id==993015&&next.Count==old.Count+1);});
+Test("Sheriff all-neutrals setting permits the new target",()=>{SheriffCompatibility.CanKillNeutrals.Value=0;SheriffCompatibility.KillTargetOptions.Clear();Check(SheriffCompatibility.CanKillNewTarget(CustomRoles.Eliminator));});
+foreach(bool enabled in new[]{true,false})Test("Sheriff new per-target selection is respected: "+enabled,()=>{SheriffCompatibility.CanKillNeutrals.Value=1;SheriffCompatibility.KillTargetOptions[CustomRoles.Eliminator]=new(){Value=enabled?1:0};Check(SheriffCompatibility.CanKillNewTarget(CustomRoles.Eliminator)==enabled);});
+Test("Sheriff missing new target option fails safely",()=>{SheriffCompatibility.CanKillNeutrals.Value=1;SheriffCompatibility.KillTargetOptions.Clear();Check(!SheriffCompatibility.CanKillNewTarget(CustomRoles.Eliminator));});
+Test("Sheriff existing target and cat-team IDs are unchanged",()=>{var old=SheriffMap(false);var next=SheriffMap(true);Check(old.All(p=>next[p.Key]==p.Value)&&next[CustomRoles.Eliminator.ToString()]==993013&&next.Count==old.Count+1);});
+foreach(var solo in new[]{"none","some","all"})Test("Faction legacy IDs stay stable under solo registry: "+solo,()=>{SoloWinOption.AllData.Clear();if(solo!="none")foreach(var r in CustomRoleManager.AllRolesInfo.Keys.Where(r=>r!=CustomRoles.Eliminator))if(solo=="all"||r==CustomRoles.Jackal)SoloWinOption.AllData[r]=new();var old=FactionMap(false);var next=FactionMap(true);Check(old.Where(p=>p.Key!=CustomRoles.Eliminator).All(p=>next[p.Key]==p.Value)&&next[CustomRoles.Eliminator]==993014);});
+Test("new target options never occupy the adjacent Guarding header",()=>{SoloWinOption.AllData.Clear();var options=FactionMap(true);Check(!options.Values.Contains(70800)&&options.Values.Distinct().Count()==options.Count);});
+}
+}

@@ -7355,7 +7355,7 @@
 
 "ClickToSetURL","streamURL Click to Paste","クリックしてURLをペースト","","","","",""
 
-"JoinWordTitle","Join Word","参加ワード<size=30%>(+プレイヤー名)","","","","",""
+"JoinWordTitle","Interest keyword","参加希望キーワード","","","","",""
 
 "RemoveWordTitle","RemoveWord","辞退ワード","","","","",""
 
@@ -9229,3 +9229,14 @@
 "BloodlustAbilityExposed","Revealed","早くキルしろ","","","","",""
 "EvilButtonerAbilityText","Call","招集","","","","",""
 "RecentImportedRoles","Recently added roles","新しく追加した役職","","","","",""
+"StreamInterestCount","Expressions of interest: {0}","参加希望者：{0}人（今回受付分）","Expressions of interest: {0}","Expressions of interest: {0}","Expressions of interest: {0}","Expressions of interest: {0}","Expressions of interest: {0}"
+"StreamInterestStart","Start intake","受付開始","Start intake","Start intake","Start intake","Start intake","Start intake"
+"StreamInterestStop","Stop intake","受付終了","Stop intake","Stop intake","Stop intake","Stop intake","Stop intake"
+"StreamInterestReset","Clear interest list","希望者一覧を初期化","Clear interest list","Clear interest list","Clear interest list","Clear interest list","Clear interest list"
+"StreamInterestOpen","Intake open","受付中","Intake open","Intake open","Intake open","Intake open","Intake open"
+"StreamInterestClosed","Intake stopped","受付停止中","Intake stopped","Intake stopped","Intake stopped","Intake stopped","Intake stopped"
+"StreamInterestLimit","200-entry limit reached; some requests were not listed","上限200人・未登録の希望があります","200-entry limit reached; some requests were not listed","200-entry limit reached; some requests were not listed","200-entry limit reached; some requests were not listed","200-entry limit reached; some requests were not listed","200-entry limit reached; some requests were not listed"
+"StreamInterestNeedsURL","Set a live URL first","配信URLを設定してください","Set a live URL first","Set a live URL first","Set a live URL first","Set a live URL first","Set a live URL first"
+"StreamInterestNeedsComments","Reception uses the existing comment-display switch","取得は既存のコメント表示ON時のみ","Reception uses the existing comment-display switch","Reception uses the existing comment-display switch","Reception uses the existing comment-display switch","Reception uses the existing comment-display switch","Reception uses the existing comment-display switch"
+"StreamInterestPrevious","Previous","前へ","Previous","Previous","Previous","Previous","Previous"
+"StreamInterestNext","Next","次へ","Next","Next","Next","Next","Next"

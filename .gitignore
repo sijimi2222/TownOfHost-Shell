@@ -6,3 +6,22 @@ FodyWeavers.xsd
 .tmp_ehr_ref/
 .TownOfHost.proj/
 memo.md
+# Local validation and controller outputs; never publish personal/runtime data.
+/artifacts/
+/reports/
+/backups/
+**/TestResults/
+*.log
+*.local.*
+.env
+.env.*
+*.user
+*.suo
+
+# Local OAuth configuration and protected credentials are never source artifacts.
+**/oauth-client.json
+**/client_secret*.json
+**/client-secret.dpapi
+**/oauth.dpapi
+**/oauth.disabled
+**/.client-secret-*.tmp

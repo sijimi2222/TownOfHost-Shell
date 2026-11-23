@@ -265,7 +265,7 @@ namespace TownOfHost
 
             }
 
-            StreamerInfo.ChangeList(allname);
+            // YouTube interest lists are display-only; never match game-player names.
 
             List<PlayerControl> players = new();
 
@@ -328,6 +328,7 @@ namespace TownOfHost
 
 
                     var colorId = pl.Data.DefaultOutfit.ColorId;
+                    Camouflage.RememberColor(pc.PlayerId, colorId);
                     Main.AllPlayerNames[pc.PlayerId] = pl?.Data?.PlayerName;
                     Main.PlayerColors[pc.PlayerId] = SafePlayerColor(colorId);
                     pc.cosmetics.nameText.text = pl.name;
@@ -354,6 +355,7 @@ namespace TownOfHost
                 {
 
                     var colorId = pc.Data.DefaultOutfit.ColorId;
+                    Camouflage.RememberColor(pc.PlayerId, colorId);
 
                     if (AmongUsClient.Instance.AmHost && Options.ColorNameMode.GetBool())// pc.RpcSetName(Palette.GetColorName(colorId));
 

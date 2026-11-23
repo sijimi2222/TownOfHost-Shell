@@ -288,6 +288,9 @@ namespace TownOfHost
 
         {
 
+            // The disconnect prefix can run before state flags change and after HUD ticks stop.
+            // Reset invalidates the CNO generation first, so this never transmits to a closing session.
+            if (__instance == AmongUsClient.Instance) CustomNetObject.Reset();
             StreamerInfo.DisconnectInternal();
 
             // 部屋変わる時のみ更新
@@ -482,19 +485,7 @@ namespace TownOfHost
 
             }
 
-            if (StreamerInfo.JoinPlayer(client) is false)
-
-            {
-
-                AmongUsClient.Instance.KickPlayer(client.Id, false);
-
-                Logger.seeingame($"{client?.PlayerName}は参加希望者ではないため、kickしました");
-
-                Logger.Info($"参加希望に無いプレイヤー{client?.PlayerName}({client.FriendCode})をKickしました。", "Kick");
-
-                return;
-
-            }
+            // YouTube comments never determine admission or trigger a kick.
 
         }
 
@@ -715,7 +706,7 @@ namespace TownOfHost
 
                 }
 
-                StreamerInfo.LeftPlayer(info);
+                // Interest lists do not track game-player joins or departures.
 
             }
 

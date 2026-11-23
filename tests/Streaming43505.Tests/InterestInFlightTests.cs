@@ -1,0 +1,15 @@
+using TownOfHost;
+partial class Program {
+static void RunInterestInFlight(){
+foreach(bool reset in new[]{false,true})Test("historical in-flight official response excluded across "+(reset?"reset":"start"),()=>{
+ ResetStream();if(reset)StreamerInfo.StartInterestReception();var(info,h)=FakeStream();var published=DateTimeOffset.UtcNow.AddSeconds(-1);
+ h.Release=new(TaskCreationOptions.RunContinuationsAsynchronously);h.Batches=new[]{new YouTubeChatBatch(new[]{new LiveStreamComment("late","channel","Viewer","join:",published)},"next",false)};
+ var fetch=info.FetchAsync();Check(h.Calls==1);if(reset)StreamerInfo.ResetInterestList();else StreamerInfo.StartInterestReception();h.Release.SetResult(true);fetch.GetAwaiter().GetResult();Drain();Check(StreamerInfo.Interests.Count==0&&StreamerInfo.RecentComments.Count==1);StreamerInfo.DisconnectInternal();
+});
+Test("all historical stream batches excluded, not only first response",()=>{ResetStream();StreamerInfo.StartInterestReception();var(i,h)=FakeStream();h.Batches=Enumerable.Range(0,3).Select(n=>new YouTubeChatBatch(new[]{new LiveStreamComment(n.ToString(),"channel"+n,"V","join:",DateTimeOffset.UtcNow.AddMinutes(-1))},"next",false)).ToArray();i.FetchAsync().GetAwaiter().GetResult();Drain();Check(StreamerInfo.Interests.Count==0&&StreamerInfo.RecentComments.Count==3);});
+Test("newly published official message can enter reviewed intake",()=>{ResetStream();StreamerInfo.StartInterestReception();var(i,h)=FakeStream();h.Batches=new[]{new YouTubeChatBatch(new[]{new LiveStreamComment("new","channel","Viewer","join:",DateTimeOffset.UtcNow.AddMilliseconds(1))},"next",false)};i.FetchAsync().GetAwaiter().GetResult();Drain();Check(StreamerInfo.Interests.Count==1);});
+Test("large initial history does not overflow live intake queue",()=>{ResetStream();StreamerInfo.StartInterestReception();var(i,h)=FakeStream();h.Batches=new[]{new YouTubeChatBatch(Enumerable.Range(0,2000).Select(n=>new LiveStreamComment("h"+n,"channel","Viewer","history "+n,DateTimeOffset.UtcNow.AddMinutes(-1))).ToArray(),"next",false)};i.FetchAsync().GetAwaiter().GetResult();Drain();Check(StreamerInfo.Interests.Count==0&&StreamerInfo.RecentComments.Count==30&&StreamerInfo.RecentComments.Last().Text=="history 1999");});
+Test("concurrent producer cannot append personal data after disconnect",()=>{ResetStream();var(i,h)=FakeStream();using var ready=new ManualResetEventSlim();var producer=Task.Run(()=>{ready.Set();for(int n=0;n<300;n++)Queue(i,"race"+n,"channel","hello");});ready.Wait();StreamerInfo.DisconnectInternal();producer.GetAwaiter().GetResult();var field=typeof(StreamerInfo).GetField("received",flags).GetValue(null);int count=(int)field.GetType().GetProperty("Count").GetValue(field);Check(count==0&&StreamerInfo.RecentComments.Count==0);});
+Test("missing publish timestamp cannot enroll",()=>{ResetStream();StreamerInfo.StartInterestReception();var(i,h)=FakeStream();h.Batches=new[]{new YouTubeChatBatch(new[]{new LiveStreamComment("unknown","channel","Viewer","join:")},"next",false)};i.FetchAsync().GetAwaiter().GetResult();Drain();Check(StreamerInfo.Interests.Count==0);});
+StreamerInfo.DisconnectInternal();}
+}

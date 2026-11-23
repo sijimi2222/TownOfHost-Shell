@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><CheckEolTargetFramework>false</CheckEolTargetFramework></PropertyGroup><ItemGroup>
+<Compile Include="../../Roles/Impostor/Damocles.cs" Link="Damocles.cs" />
+<Compile Include="../../Roles/Core/Interfaces/IKiller.cs" Link="IKiller.cs" />
+<Compile Include="../../Roles/Core/Interfaces/IUsePhantomButton.cs" Link="IUsePhantomButton.cs" />
+</ItemGroup></Project>

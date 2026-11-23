@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -10,6 +11,11 @@ namespace TownOfHost
     class CreateStreameMenu
     {
         public static SimpleButton OpenMenu;
+        private static SimpleButton YouTubeTermsButton, GooglePrivacyButton;
+        private static TextMeshPro YouTubePrivacyNotice;
+        private static SimpleButton GoogleAuthButton;
+        private static Action openStreamMenu;
+        internal static void ShowMenu() => openStreamMenu?.Invoke();
         public static SimpleButton SetURL; public static TextMeshPro NowURLText; public static TextMeshPro NowURLTitle;
         /// <summary>YouTubeのコメント枠の表示ON/OFF</summary>
         public static SimpleButton CommentFrameToggle;
@@ -25,6 +31,7 @@ namespace TownOfHost
         public static TextBoxTMP RemoveWord; public static TextMeshPro RemoveWordTitle;
         public static void CreateMenu(MainMenuManager mainmenumanager)
         {
+            openStreamMenu = SetOpenMenu;
             var textbox = GameObject.Find("AccountManager/AccountTab/AccountWindow/SubWindows/EditName/NameText");
             if (SimpleButton.IsNullOrDestroyed(OpenMenu))
             {
@@ -152,8 +159,30 @@ namespace TownOfHost
                     );
                 CommentFrameReset.Button.gameObject.SetActive(false);
             }
+            if (SimpleButton.IsNullOrDestroyed(GoogleAuthButton))
+            {
+                GoogleAuthButton = MainMenuManagerPatch.CreateButton("GoogleAuthSettings", new Vector3(2.1f, -0.25f, -5), new(80, 80, 160, 255), new(110, 110, 200, 255), () => YouTubeAuthMenu.Show(mainmenumanager), "Google / YouTube連携", scale: new(3.3f, 0.5f), transform: mainmenumanager.screenTint.transform);
+                GoogleAuthButton.FontSize = 1.7f;
+                GoogleAuthButton.Button.gameObject.SetActive(false);
+            }
+            if (SimpleButton.IsNullOrDestroyed(YouTubeTermsButton))
+            {
+                YouTubeTermsButton = MainMenuManagerPatch.CreateButton("YouTubeTerms", new Vector3(-1.9f, -2.9f, -5), new(80, 80, 120, 255), new(110, 110, 150, 255), () => Application.OpenURL(YouTubeOfficialRuntime.TermsUrl), "YouTube 利用規約", transform: mainmenumanager.screenTint.transform);
+                GooglePrivacyButton = MainMenuManagerPatch.CreateButton("GooglePrivacy", new Vector3(1.9f, -2.9f, -5), new(80, 80, 120, 255), new(110, 110, 150, 255), () => Application.OpenURL(YouTubeOfficialRuntime.PrivacyUrl), "Google プライバシー", transform: mainmenumanager.screenTint.transform);
+                YouTubeTermsButton.Button.gameObject.SetActive(false); GooglePrivacyButton.Button.gameObject.SetActive(false);
+            }
             void SetOpenMenu()
             {
+                // This text depends on VersionShower/TMP readiness, not on menu startup.
+                if (YouTubePrivacyNotice == null)
+                {
+                    YouTubePrivacyNotice = TMPTemplate.Create("YouTubePrivacyNotice", "YouTube公式API：初期認証が必要／希望者受付は規約確認待ち\nコメント・希望者はメモリのみ。URL変更・退出で削除。配信画面には表示されます。", Color.white, 1.1f, TextAlignmentOptions.Center, false, mainmenumanager.screenTint.transform);
+                    YouTubePrivacyNotice.transform.localPosition = new Vector3(0f, 2.6f, -5f);
+                    YouTubePrivacyNotice.rectTransform.sizeDelta = new Vector2(11f, 0.65f);
+                }
+                GoogleAuthButton?.Button?.gameObject?.SetActive(true);
+                YouTubePrivacyNotice?.gameObject?.SetActive(true);
+                YouTubeTermsButton?.Button?.gameObject?.SetActive(true); GooglePrivacyButton?.Button?.gameObject?.SetActive(true);
                 if (!SimpleButton.IsNullOrDestroyed(CommentFrameToggle))
                 {
                     CommentFrameToggle.Button.gameObject.SetActive(true);
@@ -209,6 +238,12 @@ namespace TownOfHost
                 }
                 if (SetURL is not null)
                     SetURL?.Button?.gameObject?.SetActive(true);
+                SeasideStreamView.Show(mainmenumanager,
+                    new[] { ("Paste", SetURL), ("Auth", GoogleAuthButton), ("ObsRoles", ObsRoleMode),
+                        ("Comments", CommentFrameToggle), ("Reset", CommentFrameReset), ("Obs", ObsToggle),
+                        ("Terms", YouTubeTermsButton), ("Privacy", GooglePrivacyButton) },
+                    new[] { ("UrlTitle", NowURLTitle), ("Url", NowURLText), ("JoinTitle", JoinWordTitle),
+                        ("RemoveTitle", RemoveWordTitle), ("Notice", YouTubePrivacyNotice) });
             }
 
             void DestroyNameMono(GameObject @object)
@@ -222,10 +257,15 @@ namespace TownOfHost
 
         public static void CloseMenu()
         {
+            SeasideStreamView.Close();
             if (JoinWord?.text is not "" and not null) Main.JoinWord.Value = JoinWord.text;
             if (RemoveWord?.text is not "" and not null) Main.RemoveWord.Value = RemoveWord.text;
             try
             {
+                YouTubeAuthMenu.Hide();
+                GoogleAuthButton?.Button?.gameObject?.SetActive(false);
+                YouTubePrivacyNotice?.gameObject?.SetActive(false);
+                YouTubeTermsButton?.Button?.gameObject?.SetActive(false); GooglePrivacyButton?.Button?.gameObject?.SetActive(false);
                 StreamerInfo.SetstreamKey();
                 JoinWord?.gameObject?.SetActive(false);
                 RemoveWord?.gameObject?.SetActive(false);
@@ -254,42 +294,4 @@ namespace TownOfHost
         }
     }
 
-    public class HopeInfo
-    {
-        public string Comment;
-        public string PlayerName;
-        public string AccountName;
-        public string AccountID;
-        public int Id;
-
-        public static HopeInfo TryCrateHopeInfo(string comment, string accountid, string accountname)
-        {
-            if (!string.IsNullOrWhiteSpace(Main.JoinWord.Value) && !string.IsNullOrWhiteSpace(accountid) && comment.Contains(Main.JoinWord.Value))
-            {
-                var playername = comment.RemoveDeltext(Main.JoinWord.Value);
-                return new HopeInfo(comment, accountid, accountname, playername);
-            }
-            return null;
-        }
-        HopeInfo(string comment, string accountid, string accountname, string playername)
-        {
-            this.Comment = comment;
-            this.AccountID = accountid;
-            this.AccountName = accountname;
-            this.PlayerName = playername;
-            Id = -1;
-        }
-
-        public bool IsUpdate(HopeInfo info)
-        {
-            //アカウントIDが一緒かつ、AmongUsのプレイヤー名が異なる
-            if (this.AccountID == info.AccountID && info.PlayerName != this.PlayerName) return true;
-            else return false;
-        }
-
-        public void SetId(int id)
-        {
-            this.Id = id;
-        }
-    }
 }
