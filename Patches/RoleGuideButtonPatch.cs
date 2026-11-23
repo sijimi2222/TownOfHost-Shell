@@ -31,7 +31,7 @@ namespace TownOfHost;
 
 [HarmonyPatch(typeof(HudManager), nameof(HudManager.Start))]
 
-public static class RoleGuideButtonPatch
+public static partial class RoleGuideButtonPatch
 
 {
 
@@ -99,6 +99,7 @@ public static class RoleGuideButtonPatch
 
     private static SpriteRenderer _btnRenderer;
     private static SpriteRenderer guideFrameRenderer;
+    private static SpriteRenderer bugReportFrameRenderer;
 
     private static TextMeshPro _btnText;
 
@@ -360,7 +361,8 @@ public static class RoleGuideButtonPatch
 
 
 
-            CreateVanillaButtonFrame(hud, btnObj.transform);
+            guideFrameRenderer = CreateVanillaButtonFrame(hud, btnObj.transform);
+            bugReportFrameRenderer = null;
 
 
 
@@ -442,6 +444,9 @@ public static class RoleGuideButtonPatch
 
             }));
 
+            CreateBugReportButton(hud, btnObj.transform);
+            UpdateButtonVisibility();
+
         }
 
         catch (Exception e) { Logger.Error(e.ToString(), "RoleGuideButton"); }
@@ -450,15 +455,63 @@ public static class RoleGuideButtonPatch
 
 
 
+    private static void CreateBugReportButton(HudManager hud, Transform guideButton)
+    {
+        if (guideFrameRenderer == null) return;
+
+        var button = new GameObject("BugReportHudButton");
+        button.layer = 5;
+        button.SetActive(false);
+        button.transform.SetParent(guideButton, false);
+        float frameWidth = guideFrameRenderer.localBounds.size.x
+            * Mathf.Abs(guideFrameRenderer.transform.localScale.x);
+        float spacing = Mathf.Max(0.78f / GuideButtonScale, frameWidth + 0.4f);
+        button.transform.localPosition = new Vector3(-spacing, 0f, 0f);
+
+        bugReportFrameRenderer = UnityEngine.Object.Instantiate(guideFrameRenderer, button.transform, false);
+
+        var label = MakeText(button, "BugReportText", new Vector3(0f, 0.03f, -0.1f), "BUG", 5f,
+            TextAlignmentOptions.Center, new Vector2(2.35f, 1.4f));
+        label.enableWordWrapping = false;
+        label.overflowMode = TextOverflowModes.Overflow;
+        label.color = new Color(1f, 0.35f, 0.35f, 1f);
+
+        var collider = button.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(2.28f, 2.28f);
+
+        var passiveButton = button.AddComponent<PassiveButton>();
+        passiveButton.Colliders = new Collider2D[] { collider };
+        passiveButton.OnClick = new Button.ButtonClickedEvent();
+        passiveButton.OnClick.AddListener((UnityEngine.Events.UnityAction)(() => OpenBugReport(hud)));
+        passiveButton.OnMouseOver = new UnityEngine.Events.UnityEvent();
+        passiveButton.OnMouseOut = new UnityEngine.Events.UnityEvent();
+    }
+
+    private static bool IsBugReportLobby()
+        => AmongUsClient.Instance != null && GameStates.IsLobby && !GameStates.IsInGame && !GameStates.IsFreePlay;
+
+    private static void OpenBugReport(HudManager hud)
+    {
+        if (hud == null || !IsBugReportLobby() || GameSettingMenu.Instance || GameplayHudVisibilityPatch.OptionsOpen(hud))
+            return;
+
+        OpenBugReportPanel(hud);
+    }
+
+    private static bool IsVisibleFrame(SpriteRenderer frame)
+        => frame != null && frame.enabled && frame.gameObject.activeInHierarchy;
+
     internal static bool TryGetHeaderLeftEdge(Transform space, out float left)
     {
         left = float.PositiveInfinity;
-        if (space == null || !HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
-            || !guideFrameRenderer.gameObject.activeInHierarchy) return false;
+        if (space == null || !HasGuideButton) return false;
+
+        var frame = IsVisibleFrame(bugReportFrameRenderer) ? bugReportFrameRenderer : guideFrameRenderer;
+        if (!IsVisibleFrame(frame)) return false;
         // Renderer.bounds is world-space and can be refreshed at a different point in the frame.
         // Use stable local sprite bounds and current transforms within the same HUD instead.
-        var bounds = guideFrameRenderer.localBounds;
-        var transform = guideFrameRenderer.transform;
+        var bounds = frame.localBounds;
+        var transform = frame.transform;
         for (int i = 0; i < 4; i++)
         {
             var point = new Vector3((i & 2) == 0 ? bounds.min.x : bounds.max.x,
@@ -541,7 +594,7 @@ public static class RoleGuideButtonPatch
 
 
 
-    private static void CreateVanillaButtonFrame(HudManager hud, Transform parent)
+    private static SpriteRenderer CreateVanillaButtonFrame(HudManager hud, Transform parent)
 
     {
 
@@ -569,7 +622,7 @@ public static class RoleGuideButtonPatch
 
             Logger.Error("バニラのボタン背景スプライトが見つかりませんでした", "RoleGuideButton");
 
-            return;
+            return null;
 
         }
 
@@ -624,7 +677,7 @@ public static class RoleGuideButtonPatch
         frameRenderer.sortingOrder = 9;
 
         frameRenderer.enabled = true;
-        guideFrameRenderer = frameRenderer;
+        return frameRenderer;
 
     }
 
@@ -684,7 +737,7 @@ public static class RoleGuideButtonPatch
 
 
 
-        RestoreVanillaUi();
+        if (bugReportView == null) RestoreVanillaUi();
 
         if (guidePanel != null) UnityEngine.Object.Destroy(guidePanel);
 
@@ -745,13 +798,20 @@ public static class RoleGuideButtonPatch
 
 
 
+        if (bugReportFrameRenderer != null)
+        {
+            var bugButton = bugReportFrameRenderer.transform.parent.gameObject;
+            bool showBug = shouldShow && IsBugReportLobby();
+            if (bugButton.activeSelf != showBug) bugButton.SetActive(showBug);
+        }
+
         if (!shouldShow && isPanelOpen) ClosePanel();
 
     }
 
 
 
-    private static void BlockVanillaUi()
+    private static void BlockVanillaUi(Transform modalRoot = null)
 
     {
 
@@ -775,7 +835,8 @@ public static class RoleGuideButtonPatch
 
             bool isGuideToggleButton = button.gameObject.name == "RoleGuideButton";
 
-            if (isGuidePanelButton || isGuideToggleButton) continue;
+            if (modalRoot != null ? buttonTransform.IsChildOf(modalRoot) : isGuidePanelButton || isGuideToggleButton)
+                continue;
 
 
 
@@ -4003,6 +4064,7 @@ public static class RoleGuideUpdatePatch
         RoleGuideButtonPatch.UpdateTopRightButtonLayout();
 
         RoleGuideButtonPatch.UpdateButtonVisibility();
+        RoleGuideButtonPatch.UpdateBugReportPanel();
 
         if (GameSettingMenu.Instance) return;
 

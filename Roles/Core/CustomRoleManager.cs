@@ -26,6 +26,8 @@ using TownOfHost.Roles.Ghost;
 
 using TownOfHost.Roles.Impostor;
 
+using TownOfHost.Roles.Madmate;
+
 using TownOfHost.Roles.Neutral;
 
 using UnityEngine;
@@ -508,6 +510,12 @@ public static class CustomRoleManager
         if (info.CanKill && info.DoKill)//ノイメ対応
 
         {
+            if (!appearanceTarget.IsProtected() && MadAlternate.TrySacrificeFor(attemptTarget))
+            {
+                attemptKiller.RpcProtectedMurderPlayer(attemptTarget);
+                return false;
+            }
+
 
             if ((appearanceKiller.GetCustomRole() is CustomRoles.Viper || (appearanceKiller.GetRoleClass()?.HaveAddRole() is CustomRoles.Viper)) && !info.IsFakeSuicide && !info.IsSuicide)//DesyncImp役職だと死体が溶けないので一瞬だけViperにする。
 
@@ -2450,6 +2458,7 @@ public enum CustomRoles
     LifeSaver = 387,
     Bloodlust = 388,
     EvilButtoner = 389,
+    MadAlternate = 390,
     Notice = 1073,
     // Added without changing any existing Shell role/add-on IDs.
     MadKind = 377,

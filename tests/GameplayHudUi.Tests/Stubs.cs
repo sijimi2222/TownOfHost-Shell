@@ -2,6 +2,7 @@ using UnityEngine;
 namespace HarmonyLib {
  [AttributeUsage(AttributeTargets.All,AllowMultiple=true)] public class HarmonyPatch:Attribute {public HarmonyPatch(){}public HarmonyPatch(Type t,string m){}}
  public class HarmonyPostfix:Attribute{}
+ public class HarmonyPrefix:Attribute{}
 }
 namespace UnityEngine {
  public struct Vector3 {
@@ -53,13 +54,25 @@ public class DestroyableSingleton<T> {public static bool InstanceExists=>HudMana
 public class PlayerData {public bool IsDead,Disconnected;}
 public class PlayerControl {public static PlayerControl LocalPlayer;public PlayerData Data=new();}
 public static class GameSettingMenu {public static bool Instance;}
+public class AmongUsClient
+{
+    public static AmongUsClient Instance;
+    public void OnGameEnd() { }
+    public void OnGameJoined() { }
+    public void ExitGame() { }
+}
+public class ShipStatus { public void Start() { } }
+public class MeetingHud { public void Start() { } }
+namespace BepInEx.Logging { public enum LogLevel { Warning, Error, Fatal } }
 namespace TownOfHost {
- public static class GameStates {public static bool IsModHost=true,IsLobby,IsMeeting,IsInGame,IsInTask,Intro;}
+ public static class GameStates {public static bool IsModHost=true,IsLobby,IsMeeting,IsInGame,IsInTask,IsFreePlay,Intro;}
  public class OptionItem {public bool Value;public bool GetBool()=>Value;}
  public static class Options {public static OptionItem OptionGameChatSetting=new();}
  public static class NaturalDisasters {public static bool IsThisMode;}
  public static partial class RoleGuideButtonPatch {
-  public static SpriteRenderer _btnRenderer,guideFrameRenderer;public static bool isPanelOpen;public static int CloseCalls;
+  public static SpriteRenderer _btnRenderer,guideFrameRenderer,bugReportFrameRenderer;public static bool isPanelOpen;public static int CloseCalls;
+  public static HudManager BugReportPanelOpenedFor;
+  static void OpenBugReportPanel(HudManager hud) => BugReportPanelOpenedFor = hud;
   const float GuideFrameGap=.42f;public static bool HasGuideButton=>_btnRenderer!=null&&_btnRenderer.gameObject.activeInHierarchy;
   static bool ShouldShowTopRightChatButton()=>GameStates.IsLobby||GameStates.IsMeeting;
   public static void ClosePanel(){CloseCalls++;isPanelOpen=false;}

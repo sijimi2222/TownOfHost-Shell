@@ -907,6 +907,7 @@ namespace TownOfHost
 
         etc = -1,
         MagicC = 38,
+        Sacrifice = 39,
 
 
     }

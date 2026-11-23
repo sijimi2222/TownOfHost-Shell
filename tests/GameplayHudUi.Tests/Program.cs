@@ -62,6 +62,7 @@ partial class Program {
  AnchorTests();
  BaselineTests();
  LifecycleTests();
+ BugReportTests();
  Console.WriteLine($"RESULT {passed} passed, 0 failed (production HUD policy and extracted UI methods, native substitutes)");
  }
 

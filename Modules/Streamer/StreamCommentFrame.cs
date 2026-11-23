@@ -90,11 +90,22 @@ public static class StreamCommentFrame
         if (textRenderer != null) background.sortingOrder = textRenderer.sortingOrder - 1;
     }
 
-    /// <summary>枠を左クリックでつかんで動かす。離した時に位置を保存する</summary>
+    /// <summary>枠を左クリックでつかんで動かす。離した時に位置を保存する。タスク画面を開いている間は動かせない</summary>
     private static void HandleDrag()
     {
         var cam = Camera.main;
         if (cam == null || background == null || aspect == null) return;
+        // タスクなどの画面が開いている間は、クリックが枠に重なっても動かさない
+        if (Minigame.Instance != null)
+        {
+            if (dragging)
+            {
+                dragging = false;
+                Main.StreamCommentPosX.Value = aspect.DistanceFromEdge.x;
+                Main.StreamCommentPosY.Value = aspect.DistanceFromEdge.y;
+            }
+            return;
+        }
         var mouse = cam.ScreenToWorldPoint(Input.mousePosition);
         if (!dragging)
         {

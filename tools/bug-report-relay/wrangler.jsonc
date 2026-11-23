@@ -1,0 +1,16 @@
+{
+  "name": "toh-shell-bug-report-relay",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "DISCORD_FORUM_ID": "1560956581838069901",
+    "DISCORD_GUILD_ID": "",
+    "DISCORD_FORUM_TAG_ID": ""
+  },
+  "ratelimits": [
+    { "name": "REPORTS_PER_IP", "namespace_id": "75321", "simple": { "limit": 2, "period": 60 } },
+    { "name": "REPORTS_GLOBAL", "namespace_id": "75322", "simple": { "limit": 8, "period": 60 } }
+  ]
+}

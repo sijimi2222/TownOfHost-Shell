@@ -71,7 +71,7 @@ namespace TownOfHost
         /// <param name="tab">タブ</param>
         /// <param name="role">設定に出すロール</param>
         /// <param name="RoleName">設定名(ユニット用)</param>
-        public OverrideTasksData(int idStart, TabGroup tab, CustomRoles role, CustomRoles RoleName = CustomRoles.NotAssigned, (bool defo, int common, int Long, int Short)? tasks = null, OptionItem parent = null)
+        public OverrideTasksData(int idStart, TabGroup tab, CustomRoles role, CustomRoles RoleName = CustomRoles.NotAssigned, (bool defo, int common, int Long, int Short)? tasks = null, OptionItem parent = null, IntegerValueRule taskCountRule = null)
         {
             this.IdStart = idStart;
             this.Role = role;
@@ -80,13 +80,13 @@ namespace TownOfHost
             doOverride = BooleanOptionItem.Create(idStart++, "doOverride", tasks?.defo ?? false, tab, false).SetParent(parent is null ? CustomRoleSpawnChances[role] : parent).SetParentRole(role)
                 .SetValueFormat(OptionFormat.None);
             doOverride.ReplacementDictionary = replacementDic;
-            numCommonTasks = IntegerOptionItem.Create(idStart++, "roleCommonTasksNum", new(0, 99, 1), tasks?.common ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
+            numCommonTasks = IntegerOptionItem.Create(idStart++, "roleCommonTasksNum", taskCountRule ?? new(0, 99, 1), tasks?.common ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
                 .SetValueFormat(OptionFormat.Pieces);
             numCommonTasks.ReplacementDictionary = replacementDic;
-            numLongTasks = IntegerOptionItem.Create(idStart++, "roleLongTasksNum", new(0, 99, 1), tasks?.Long ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
+            numLongTasks = IntegerOptionItem.Create(idStart++, "roleLongTasksNum", taskCountRule ?? new(0, 99, 1), tasks?.Long ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
                 .SetValueFormat(OptionFormat.Pieces);
             numLongTasks.ReplacementDictionary = replacementDic;
-            numShortTasks = IntegerOptionItem.Create(idStart++, "roleShortTasksNum", new(0, 99, 1), tasks?.Short ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
+            numShortTasks = IntegerOptionItem.Create(idStart++, "roleShortTasksNum", taskCountRule ?? new(0, 99, 1), tasks?.Short ?? 3, tab, false).SetParent(doOverride).SetParentRole(role)
                 .SetValueFormat(OptionFormat.Pieces);
             numShortTasks.ReplacementDictionary = replacementDic;
 
@@ -102,9 +102,9 @@ namespace TownOfHost
         /// <param name="tab">タブ</param>
         /// <param name="role">設定に出すロール</param>
         /// <param name="RoleName">設定名(ユニット用)</param>
-        public static OverrideTasksData Create(SimpleRoleInfo roleInfo, int idOffset, CustomRoles rolename = CustomRoles.NotAssigned, (bool defo, int common, int Long, int Short)? tasks = null, OptionItem parent = null)
+        public static OverrideTasksData Create(SimpleRoleInfo roleInfo, int idOffset, CustomRoles rolename = CustomRoles.NotAssigned, (bool defo, int common, int Long, int Short)? tasks = null, OptionItem parent = null, IntegerValueRule taskCountRule = null)
         {
-            return new OverrideTasksData(roleInfo.ConfigId + idOffset, roleInfo.Tab, roleInfo.RoleName, rolename, tasks, parent);
+            return new OverrideTasksData(roleInfo.ConfigId + idOffset, roleInfo.Tab, roleInfo.RoleName, rolename, tasks, parent, taskCountRule);
         }
     }
     public class SoloWinOption

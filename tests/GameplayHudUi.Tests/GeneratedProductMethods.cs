@@ -69,6 +69,13 @@ public static void UpdateButtonVisibility()
 
 
 
+        if (bugReportFrameRenderer != null)
+        {
+            var bugButton = bugReportFrameRenderer.transform.parent.gameObject;
+            bool showBug = shouldShow && IsBugReportLobby();
+            if (bugButton.activeSelf != showBug) bugButton.SetActive(showBug);
+        }
+
         if (!shouldShow && isPanelOpen) ClosePanel();
 
     }
@@ -83,15 +90,28 @@ internal static bool TryGetHeaderRightOffset(out float offset)
         // Convert HUD-local geometry to a normalized viewport coordinate, without world-camera translation.
         return HudHeaderLayout.TryRightOffset(width, .5f + left / width, out offset);
     }
+private static bool IsBugReportLobby()
+        => AmongUsClient.Instance != null && GameStates.IsLobby && !GameStates.IsInGame && !GameStates.IsFreePlay;
+private static void OpenBugReport(HudManager hud)
+    {
+        if (hud == null || !IsBugReportLobby() || GameSettingMenu.Instance || GameplayHudVisibilityPatch.OptionsOpen(hud))
+            return;
+
+        OpenBugReportPanel(hud);
+    }
+private static bool IsVisibleFrame(SpriteRenderer frame)
+        => frame != null && frame.enabled && frame.gameObject.activeInHierarchy;
 internal static bool TryGetHeaderLeftEdge(Transform space, out float left)
     {
         left = float.PositiveInfinity;
-        if (space == null || !HasGuideButton || guideFrameRenderer == null || !guideFrameRenderer.enabled
-            || !guideFrameRenderer.gameObject.activeInHierarchy) return false;
+        if (space == null || !HasGuideButton) return false;
+
+        var frame = IsVisibleFrame(bugReportFrameRenderer) ? bugReportFrameRenderer : guideFrameRenderer;
+        if (!IsVisibleFrame(frame)) return false;
         // Renderer.bounds is world-space and can be refreshed at a different point in the frame.
         // Use stable local sprite bounds and current transforms within the same HUD instead.
-        var bounds = guideFrameRenderer.localBounds;
-        var transform = guideFrameRenderer.transform;
+        var bounds = frame.localBounds;
+        var transform = frame.transform;
         for (int i = 0; i < 4; i++)
         {
             var point = new Vector3((i & 2) == 0 ? bounds.min.x : bounds.max.x,

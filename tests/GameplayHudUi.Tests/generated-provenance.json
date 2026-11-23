@@ -1,5 +1,5 @@
 {
-  "role_sha256": "9ef8c8851ef5cccfccb37223165d56e89d1a81aa6019d8960a74f255900d5ed3",
+  "role_sha256": "506854505d38d4dbbee3565d6da77b428d6c52d655d3594bdf57e5a0e14a1abb",
   "credentials_sha256": "9a301b98102ecca849f4df6a57782ef84dd97b7aaa4f93ee12abb0e53f21b0e2",
   "method_signatures": [
     "public static void UpdateTopRightButtonLayout()",
@@ -10,6 +10,9 @@
     "private static void KeepHeaderClearOfGuide(bool refreshMesh = false)",
     "private static void HeaderLateLayout()",
     "private static class HeaderAnchorAdjustedPatch",
-    "private static class HeaderAnchorAspectAdjustedPatch"
+    "private static class HeaderAnchorAspectAdjustedPatch",
+    "private static bool IsBugReportLobby()",
+    "private static void OpenBugReport(HudManager hud)",
+    "private static bool IsVisibleFrame(SpriteRenderer frame)"
   ]
 }

@@ -809,7 +809,7 @@ namespace TownOfHost.Modules
             TownOfHost.Roles.Crewmate.Tuner.ApplyCooldown(player, opt);
 
             Ruler.ApplyVisionRule(player, opt);
-            if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tigerVision) tigerVision.ApplyPredationVision(opt);
+            if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tigerOptions) tigerOptions.ApplyPredationOptions(opt);
 
 
 

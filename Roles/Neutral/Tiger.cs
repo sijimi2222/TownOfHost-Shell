@@ -18,6 +18,7 @@ public sealed class Tiger : RoleBase, IKiller, IUsePhantomButton
         assignInfo: new RoleAssignInfo(CustomRoles.Tiger, CustomRoleTypes.Neutral)
         { AssignCountRule = new(1, 1, 1) });
 
+    const float PredationReadyCooldown = 0.005f;
     static OptionItem KillCooldown, AbilityCooldown, Duration, Speed, Vision;
     // 死亡情報は残し、捕食された死体だけを検知・対象選択から除外する。
     static readonly HashSet<byte> PredatedBodyIds = new();
@@ -83,10 +84,14 @@ public sealed class Tiger : RoleBase, IKiller, IUsePhantomButton
         AURoleOptions.PhantomCooldown = AbilityCooldown.GetFloat();
     }
 
-    // 個別設定の最後で適用するため、他役職や共通の基本視界を変更しない。
-    public void ApplyPredationVision(IGameOptions opt)
+    public void ApplyPredationOptions(IGameOptions opt)
     {
         if (!hunting || !Player.IsAlive()) return;
+        // 捕食開始時の解除は、ルーラー・チューナー適用後に復元する。
+        // SetKillCooldown は FailedProtected 用に秒数を2倍で設定へ渡す。
+        if (Main.AllPlayerKillCooldown.TryGetValue(Player.PlayerId, out var cooldown)
+            && cooldown == PredationReadyCooldown * 2f)
+            opt.SetFloat(FloatOptionNames.KillCooldown, cooldown);
         opt.SetFloat(FloatOptionNames.CrewLightMod, opt.GetFloat(FloatOptionNames.CrewLightMod) * Vision.GetFloat());
         opt.SetFloat(FloatOptionNames.ImpostorLightMod, opt.GetFloat(FloatOptionNames.ImpostorLightMod) * Vision.GetFloat());
     }
@@ -101,13 +106,13 @@ public sealed class Tiger : RoleBase, IKiller, IUsePhantomButton
         int token = ++generation;
         AdjustKillCooldown = false;
         ResetCooldown = true;
-        Player.SetKillCooldown(0.005f, force: true, delay: false);
+        Player.SetKillCooldown(PredationReadyCooldown, force: true, delay: false);
         // Vanilla向けPhantom復帰のSetRoleの後にも解除を反映する。
         _ = new LateTask(() =>
         {
             if (Player != null && hunting && generation == token && Player.IsAlive()
                 && GameStates.IsInTask && !GameStates.IsMeeting)
-                Player.SetKillCooldown(0.005f, force: true, delay: false);
+                Player.SetKillCooldown(PredationReadyCooldown, force: true, delay: false);
         }, 0.1f, "TigerReadyToKill", true);
         Player.SyncSettings();
     }

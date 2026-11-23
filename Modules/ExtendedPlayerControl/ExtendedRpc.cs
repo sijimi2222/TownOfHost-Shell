@@ -1003,6 +1003,9 @@ namespace TownOfHost
         }
 
         public static void RpcMurderPlayerV2(this PlayerControl killer, PlayerControl target)
+            => RpcMurderPlayerV2(killer, target, SuccessFlags);
+
+        internal static void RpcMurderPlayerV2(this PlayerControl killer, PlayerControl target, MurderResultFlags resultFlags)
 
         {
 
@@ -1012,7 +1015,7 @@ namespace TownOfHost
 
             {
 
-                killer.MurderPlayer(target, SuccessFlags);
+                killer.MurderPlayer(target, resultFlags);
 
             }
 
@@ -1020,7 +1023,7 @@ namespace TownOfHost
 
             messageWriter.WriteNetObject(target);
 
-            messageWriter.Write((int)SuccessFlags);
+            messageWriter.Write((int)resultFlags);
 
             AmongUsClient.Instance.FinishRpcImmediately(messageWriter);
 

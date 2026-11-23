@@ -246,6 +246,8 @@ namespace TownOfHost
         private static void SendToFile(string text, LogLevel level = LogLevel.Info, string tag = "", bool escapeCRLF = true, int lineNumber = 0, string fileName = "")
         {
             if (!isEnable || disableList.Contains(tag)) return;
+            if (level is LogLevel.Warning or LogLevel.Error or LogLevel.Fatal)
+                BugReportRoundLog.RecordWarning(level, fileName, lineNumber);
             var logger = Main.Logger;
             string t = DateTime.Now.ToString("HH:mm:ss:ff");
             if (sendToGameList.Contains(tag) || isAlsoInGame) seeingame($"[{tag}]{text}");
