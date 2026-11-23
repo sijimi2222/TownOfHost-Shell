@@ -21,8 +21,9 @@ git diff --cached --stat
 ## 現行開発元のGit状態
 
 - ブランチ `codex/mad-alternate`。
-- HEAD `20d1fd9f398b9d62b35692fa594dd7892d3d0975`（`Release: TOH-Shell v2.2.4 [skip ci]`）。ローカルの公開タグも同コミットを指す。このブランチに追跡先は設定されていない。
-- 未ステージ変更16ファイル、ステージ済み0、未追跡14ファイル。本節のファイル数は、引き継ぎ文書2ファイルを含む。
+- v2.2.4 の公開コミットは `20d1fd9f398b9d62b35692fa594dd7892d3d0975`（`Release: TOH-Shell v2.2.4 [skip ci]`）で、ローカルの公開タグも同コミットを指す。
+- 2026-11-24、ユーザーの「Gitして」指示で下表の未公開変更30ファイルをすべてコミット `cc2abd2`（マッドアルターネイト追加、バグ報告フォーム、配信コメント枠のタスク中固定ほか）。同日「pushして」の指示で GitHub に新規ブランチ `codex/mad-alternate` として push し、追跡先を `origin/codex/mad-alternate` に設定（リモートとローカルが `cc2abd2` で一致を確認）。GitHub の `main` は v2.2.4 の `20d1fd9` のまま変更していない。HEADは `cc2abd2`、その親が v2.2.4 の `20d1fd9`。
+- 同日「Gitとプッシュどっちもして」の指示で、タイガー捕食死体の会議表示修正（`Patches/PlayerContorols/ReportDeadBodyPatch.cs`）とこの文書を `cc2abd2` の次のコミットとして記録し、`origin/codex/mad-alternate` へ push。コミットIDは `git log -1` で確認する。
 - 公開時のGitHub `main` とタグを参照する保存用コピーは別にあり、今回も作業ツリーはクリーン。今回リモートは取得していない。
 
 ### 未公開の変更
@@ -37,6 +38,7 @@ git diff --cached --stat
 | 報告フォームのIME確定 | 入力表示修正版で「テスト用」の「テスト」がEnterや欄切り替えで消えるとユーザー報告。フォーム独自の下書きで確定済み文字と変換中の文字を保持し、ネイティブの確定結果を優先しつつ、確定通知が欠けた場合に画面上の変換文字を保存する。Tabまたはクリックで欄を切り替える。PC回帰テストにこの操作、IME結果の二重反映防止、取消を追加。 |
 | 報告送信・診断ログ | `Modules/BugReportSubmission.cs` からHTTPS中継へ明示的に送信。`Modules/BugReportRoundLog.cs` と `Modules/Debugger.cs` は直近の1試合の状態・警告の箇所を最大160行保持。添付は初期状態でオフ。ゲームコード・全文ログ・認証情報はリクエストに含めない。 |
 | Discordフォーラム中継 | `tools/bug-report-relay/` にWorker、運用手順、オフラインテストを追加。認可・レート制限の後、固定のフォーラムを照合し、既存Shell バグ修正Bot名義で新規スレッドを作る設計。Botの設定と自動修正のコードは変更していない。 |
+| タイガー捕食死体の会議表示（`cc2abd2` の次のコミット） | 捕食された死体が会議画面に出るとユーザー報告。インセンダー等の自動通報 `ExReportDeadBody`（Cancelcheck=false で `CheckMeeting` を通らない）とその先の `WaitMeeting` に捕食死体の除外がなく、マッドクリーナーと同じ位置に `Tiger.IsPredatedBody` の除外を追加。捕食死体への自動通報では会議自体が始まらない（既存の通常通報の扱いと同じ）。変更 `Patches/PlayerContorols/ReportDeadBodyPatch.cs` |
 | 配信コメント枠のドラッグ固定 | タスクなどのミニゲーム画面（`Minigame.Instance`）が開いている間は、コメント枠をつかんで動かせない。ドラッグ中にタスク画面が開いた場合は、その位置で止めて保存する。変更 `Modules/Streamer/StreamCommentFrame.cs` |
 | 検証コード | 未追跡の `tests/MadAlternate.Runtime.Tests/` 内のプロジェクト・`Program.cs`・`Stubs.cs`、計3ファイル |
 | HUD回帰テスト | `tests/GameplayHudUi.Tests/` にバグ報告の回帰テストを追加。製品コードの抽出・由来情報、ログとHTTPクライアントの参照、スタブを更新。 |
@@ -48,7 +50,7 @@ git diff --cached --stat
 | --- | --- |
 | Windowsの最終Releaseビルド | エラー0件、既存警告19件 |
 | 戦闘・タスク関連の自動テスト | 最終DLLの作成時にタイガーのPC模擬テスト11件、マッドアルターネイトのPCテスト33件成功。タスク上限の変更時に設定IDの回帰テスト41件成功 |
-| Steam配置済みDLL | 現在はコメント枠ドラッグ固定版（下の「コメント枠ドラッグ固定の検証」参照）。以下はその前の記録: IME確定修正版を `C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` に配置。現行SHA-256はビルド品と同じ `DAB3644E819CE296AD615AEAEDE4CF698910FF1AC9875309D5480F9C492D7828`。旧DLLと一致する `bug-report-input-20261124/release/TownOfHost-Shell.dll` を復元用に保持（SHA-256 `0EEB620A913770DEA704E3470BA703D937CF8A78A0C4B9FB0F61BCA3D501441F`）。報告用設定ファイルのハッシュは配置前後で一致。 |
+| Steam配置済みDLL | 現在はタイガー捕食死体の会議表示修正版（下の「タイガー捕食死体の会議表示の検証」参照、コメント枠固定も含む）。以下はその前の記録: IME確定修正版を `C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` に配置。現行SHA-256はビルド品と同じ `DAB3644E819CE296AD615AEAEDE4CF698910FF1AC9875309D5480F9C492D7828`。旧DLLと一致する `bug-report-input-20261124/release/TownOfHost-Shell.dll` を復元用に保持（SHA-256 `0EEB620A913770DEA704E3470BA703D937CF8A78A0C4B9FB0F61BCA3D501441F`）。報告用設定ファイルのハッシュは配置前後で一致。 |
 | 公開済みv2.2.4 | 正式版を公開済み。Steam版・Epic版のZIPとDLL単体を配布。公開DLLのSHA-256は `CC5020B79BC9BBE689E15743966271B5AC99CADAAEB8A6F42BBECF228FDAAAE9` |
 | 引き継ぎ環境 | Gitとソース差分を読み取り、正本を現行開発元に設定。別ツールでの読み取りと `git status --short --branch` の実行をユーザー報告で確認。 |
 | ロビーHUDのPCテスト | 209件成功。新規5件で表示条件、クリック時の遷移、ヘッダー余白を確認。 |
@@ -56,6 +58,7 @@ git diff --cached --stat
 | ゲーム内フォーム版の検証 | Release成功、エラー0件・既存警告19件。PCのHUD・送信・ログテスト213件成功、Discordを模擬した中継テスト7件成功。親フォルダーの `bug-report-form-20261124/` にビルド・テストログとDLLを保存。ゲーム内操作は未確認。 |
 | 入力表示修正版の検証 | Release成功、エラー0件・既存警告19件。ビルドログとDLLは親の `bug-report-input-20261124/`。Steam配置済み。実ゲームでのカーソルの位置、長文の表示、入力後の再送信は未確認。 |
 | IME確定修正版の検証 | Release成功、エラー0件・既存警告19件。PC HUDテスト222件成功。ビルドとテストのログおよびDLLは親の `bug-report-ime-20261124/`。Steam配置済み。Windows IMEの実ゲームでの再確認は未実施。 |
+| タイガー捕食死体の会議表示の検証 | Releaseビルド成功（`-p:CopyToAmongUs=false`、一時フォルダー出力）、エラー0件・既存警告19件。`tests/Camouflage.EndGame.Tests` 54件、`tests/Hamo44002.Completion.Tests` 169件、`tests/Hamo44004.Runtime.Tests` 138件、親の `tiger-predation-20261123-165246-303/regression` 11件すべて成功。その後、親の `tiger-meeting-body-20261124/` に再ビルド（エラー0件・既存警告19件、ログ `build.log`）し、Steamの `BepInEx/plugins/TownOfHost-Shell.dll` へ配置。配置後のSHA-256はビルド品と同じ `13C77B63C7DB19707E9C21BA60C2E05BA03442B64E9E2B533577C2F4D65671ED`。配置前のコメント枠固定版（`771F010D…2E4E`）は同フォルダーの `backup/` に保存。実ゲームでインセンダー等を捕食した時の確認は未実施。 |
 | コメント枠ドラッグ固定の検証 | Releaseビルド成功（`-p:CopyToAmongUs=false`、出力は一時フォルダー）、エラー0件・既存警告19件。配信テスト `tests/Streaming43505.Tests` 341件成功。その後、親フォルダーの `comment-drag-lock-20261124/` に再ビルド（エラー0件・既存警告19件、ログ `build.log`）し、Steamの `BepInEx/plugins/TownOfHost-Shell.dll` へ配置。配置後のSHA-256はビルド品と同じ `771F010DB76A0D426F25CED641F40135115D44CACA4136126E3BD5CFD7EC2E4E`。配置前のIME確定修正版（`DAB3644E…7828`）は同フォルダーの `backup/` に保存。実ゲームでタスク中に枠が動かないことは未確認。 |
 | DiscordとCloudflareの実運用確認 | 許可されたアカウントに公式Workers APIで専用Worker `toh-shell-bug-report-relay` を作成し、既存BotとSteam版のフォームを接続。受付キーなしの匿名通信はHTTP 401、受付キー付きの読取診断はHTTP 200。初回はWorkersが対応しない `redirect: "error"` によりDiscordへの送信前に停止。投稿が0件であることを読み取り確認後、`manual` に修正。中継テスト8件成功。実フォーラムで投稿は1件のみ。Bot名義、本文、「その他」タグ、架空ログ添付を確認済み。[テスト投稿](https://discord.com/channels/1543630978218721412/1574454979136065556) |
 

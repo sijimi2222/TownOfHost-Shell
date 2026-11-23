@@ -242,6 +242,8 @@ namespace TownOfHost
 
 
             if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId)) return;
+            // タイガーに捕食された死体は、自動通報(インセンダー等)でも会議に出さない
+            if (target != null && Tiger.IsPredatedBody(target.PlayerId)) return;
 
             Logger.Info($"{reporter.GetNameWithRole().RemoveHtmlTags()} => {target?.Object?.GetNameWithRole()?.RemoveHtmlTags() ?? "null"}", "ExReportDeadBody");
 
@@ -649,7 +651,7 @@ namespace TownOfHost
 
 
             // Also guard forced/queued reports that bypass CheckMeeting.
-            if (target != null && Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId))
+            if (target != null && (Roles.Madmate.MadCleaner.IsCleaned(target.PlayerId) || Tiger.IsPredatedBody(target.PlayerId)))
             {
                 GameStates.CalledMeeting = false;
                 return;
