@@ -24,10 +24,10 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**現在のバージョン v2.2.4**<br>
-製品バージョン: `2.2.4`<br>
-[v2.2.4 リリースノート](docs/releases/v2.2.4.md) / [配布ページ](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.4)<br>
-オンラインメニュー・コード入力UIの更新と、安定性・処理負荷の改善を含みます。<br>
+**現在のバージョン v2.2.5**<br>
+製品バージョン: `2.2.5`<br>
+[v2.2.5 リリースノート](docs/releases/v2.2.5.md) / [配布ページ](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.5)<br>
+新役職マッドアルターネイト、ロビーのバグ報告フォーム、役職の修正と処理負荷の改善を含みます。<br>
 過去の変更記録は既存のリリースノートを参照してください。<br>
 マッチメイキング機能は現在メンテナンス中です。<re><br>
 過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>

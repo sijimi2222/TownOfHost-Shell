@@ -43,7 +43,7 @@ def build(dll, verification, output, root=ROOT):
     record = next((r for r in records if r.get('Configuration') == 'ShellDevelopment'), None)
     data = dll.read_bytes()
     digest = hashlib.sha256(data).hexdigest().upper()
-    if not record or record.get('Version') != '2.2.4.0' or record.get('SHA256') != digest or not record.get('DevelopmentMarker') or not record.get('DebugRuntimeIncluded'):
+    if not record or record.get('Version') != '2.2.5.0' or record.get('SHA256') != digest or not record.get('DevelopmentMarker') or not record.get('DebugRuntimeIncluded'):
         raise PackageError('DevelopmentBuildVerificationFailed')
     if not record.get('SourceChecks') or any(not s.get('Matches') for s in record['SourceChecks']):
         raise PackageError('SourceVerificationFailed')
@@ -56,7 +56,7 @@ def build(dll, verification, output, root=ROOT):
         payload[name] = (root / path).read_bytes()
     for data in payload.values():
         inspect_bytes(data)
-    manifest = dict(version='2.2.4', configuration='ShellDevelopment',
+    manifest = dict(version='2.2.5', configuration='ShellDevelopment',
                     status='REVIEW_ONLY_NOT_READY_FOR_DISTRIBUTION',
                     blockers=['credential-provisioning-permission', 'individual-Google-test-user-approval',
                               'external-PC-validation', 'known-lobby-exit-crash'],

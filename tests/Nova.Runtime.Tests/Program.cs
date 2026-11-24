@@ -27,6 +27,7 @@ static partial class Program {
  static void AssertPool(Nova n){int count=Get<List<NovaBeamTile>>(n,"tiles").Count;Eq(Get<int>(n,"plannedTileCount"),count);Check(count>=2&&count<=NovaVisualPoolRules.Count(TownOfHost.Main.NormalOptions?.MapId==5,TownOfHost.Main.NormalOptions?.MapId==4));}
  static string Source(string relative,[CallerFilePath]string file="")=>File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"../..",relative)));
  static void Main(string[] args){
+  if(args.Contains("--idle-bench")){IdleBench();return;}
   if(args.Contains("--pool-bench")){PoolBench();return;}
   if(args.Contains("--airship-diagnostic")){AirshipDiagnostic();return;}
   if(args.Contains("--stretch-repro")){StretchRepro();return;}

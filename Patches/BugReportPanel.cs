@@ -11,6 +11,9 @@ public static partial class RoleGuideButtonPatch
 {
     private static BugReportView bugReportView;
     private static bool bugReportSending;
+    private static readonly Color ReportButtonColor = new(0.23f, 0.33f, 0.46f);
+    private static readonly Color AttachmentOnColor = new(0.12f, 0.36f, 0.27f);
+    private static readonly Color AttachmentUnavailableColor = new(0.20f, 0.23f, 0.28f);
 
     private sealed class BugReportView
     {
@@ -18,7 +21,7 @@ public static partial class RoleGuideButtonPatch
         internal GameObject Root;
         internal BugReportField Title, Description;
         internal TextMeshPro Status, AttachmentLabel, SubmitLabel;
-        internal PassiveButton Submit;
+        internal PassiveButton Attachment, Submit;
         internal string Diagnostics;
         internal string AccessKey;
         internal Uri Endpoint;
@@ -211,13 +214,12 @@ public static partial class RoleGuideButtonPatch
         ReportLabel(root, "DescriptionLabel", "本文（1700文字まで）　発生したこと・再現手順など", 0, 0.60f, 7f, 0.26f, 1.18f);
         view.Description = new BugReportField(root, "Description", -0.05f, 1.0f, BugReportSubmission.MaxDescription,
             multiline: true, () => view.Title.Unfocus());
-        ReportButton(root, "Attachment", -1.6f, -0.83f, 3.65f, "", () =>
+        view.Attachment = ReportButton(root, "Attachment", -1.6f, -0.83f, 3.65f, "", () =>
         {
             if (view.Diagnostics == null || view.Submitted || bugReportSending) return;
             view.Attach = !view.Attach;
-            UpdateAttachmentLabel(view);
+            RefreshReportAttachment(view);
         }, out view.AttachmentLabel);
-        UpdateAttachmentLabel(view);
         ReportLabel(root, "AttachmentInfo", "ログには試合の状態と警告の発生箇所が含まれます。", 0, -1.18f, 7.1f, 0.3f, 1.08f);
         view.Status = ReportLabel(root, "Status", view.Endpoint == null
             ? "報告先は未設定です。送信はまだ利用できません。"
@@ -226,16 +228,19 @@ public static partial class RoleGuideButtonPatch
         ReportButton(root, "Close", -2.25f, -2.02f, 2.05f, "閉じる", CloseBugReportPanel, out _);
         view.Submit = ReportButton(root, "Submit", 1.87f, -2.02f, 3f, "バグを報告する",
             () => SendBugReport(view), out view.SubmitLabel);
-        RefreshReportSubmit(view);
+        RefreshReportControls(view);
         BlockVanillaUi(root.transform);
         UpdateBugReportPanel();
     }
 
-    private static void UpdateAttachmentLabel(BugReportView view)
+    private static void RefreshReportAttachment(BugReportView view)
     {
-        view.AttachmentLabel.text = view.Diagnostics == null
-            ? "試合ログなし"
-            : view.Attach ? "☑ 直近の試合ログを添付" : "□ 直近の試合ログを添付";
+        bool available = view.Diagnostics != null;
+        view.Attachment.enabled = available && !view.Submitted && !bugReportSending;
+        view.AttachmentLabel.text = !available ? "添付できる試合ログなし"
+            : view.Attach ? "試合ログの添付：オン" : "試合ログの添付：オフ";
+        view.Attachment.GetComponent<SpriteRenderer>().color = !available ? AttachmentUnavailableColor
+            : view.Attach ? AttachmentOnColor : ReportButtonColor;
     }
 
     internal static void UpdateBugReportPanel()
@@ -283,8 +288,9 @@ public static partial class RoleGuideButtonPatch
         RestoreVanillaUi();
     }
 
-    private static void RefreshReportSubmit(BugReportView view)
+    private static void RefreshReportControls(BugReportView view)
     {
+        RefreshReportAttachment(view);
         view.Submit.enabled = view.Endpoint != null && !bugReportSending && !view.Submitted;
         view.SubmitLabel.color = view.Submit.enabled ? Color.white : new Color(0.57f, 0.60f, 0.64f);
     }
@@ -306,7 +312,7 @@ public static partial class RoleGuideButtonPatch
             return;
         }
         bugReportSending = true;
-        RefreshReportSubmit(view);
+        RefreshReportControls(view);
         view.Status.text = "送信中…";
         _ = DeliverAsync(view, title, description, Main.PluginShowVersion, view.Attach ? view.Diagnostics : null);
     }
@@ -325,7 +331,9 @@ public static partial class RoleGuideButtonPatch
             {
                 // A lost response may mean the post already exists. Keep this submission disabled.
                 active.Submitted = result.Success || (int)result.Status == 0 || (int)result.Status >= 500;
-                active.Status.text = result.Success ? $"投稿しました　ID {result.ThreadId}" : result.Status switch
+                active.Status.text = result.Success
+                    ? (diagnostics != null ? "投稿しました（ログ添付あり）" : "投稿しました（ログ添付なし）")
+                    : result.Status switch
                 {
                     HttpStatusCode.Unauthorized => "受付キーが無効です。",
                     HttpStatusCode.TooManyRequests => "送信間隔を空けてから、もう一度お試しください。",
@@ -334,14 +342,14 @@ public static partial class RoleGuideButtonPatch
                     _ => "投稿結果を確認できません。再送信する前にDiscordを確認してください。"
                 };
             }
-            RefreshReportSubmit(active);
+            RefreshReportControls(active);
         });
     }
 
     private static PassiveButton ReportButton(GameObject parent, string name, float x, float y, float width,
         string caption, Action click, out TextMeshPro label)
     {
-        var button = ReportSurface(parent, name, x, y, width, 0.46f, new Color(0.23f, 0.33f, 0.46f), 62);
+        var button = ReportSurface(parent, name, x, y, width, 0.46f, ReportButtonColor, 62);
         label = ReportLabel(button, "Label", caption, 0, 0, width, 0.42f, 1.33f);
         return ReportClick(button, width, 0.46f, click);
     }

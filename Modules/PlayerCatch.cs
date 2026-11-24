@@ -76,9 +76,17 @@ namespace TownOfHost
 
 
 
-        public static NetworkedPlayerInfo GetPlayerInfoById(int PlayerId) =>
-
-            GameData.Instance.AllPlayers.ToArray().Where(info => info.PlayerId == PlayerId).FirstOrDefault();
+        // 軽量化: 一覧を丸ごとコピーせず、前から順に探す(最初に見つかったものを返すのは今まで通り)
+        public static NetworkedPlayerInfo GetPlayerInfoById(int PlayerId)
+        {
+            var players = GameData.Instance.AllPlayers;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var info = players[i];
+                if (info.PlayerId == PlayerId) return info;
+            }
+            return null;
+        }
 
 
 
@@ -236,9 +244,28 @@ namespace TownOfHost
 
         public static Dictionary<byte, CustomRoleTypes> AllPlayerFirstTypes = new();
 
-        public static IEnumerable<PlayerControl> AllPlayerControls => PlayerControl.AllPlayerControls.ToArray().Where(p => p != null && p.PlayerId <= 15);
+        public static IEnumerable<PlayerControl> AllPlayerControls => PlayerSnapshot().Where(p => p != null && p.PlayerId <= 15);
 
-        public static IEnumerable<PlayerControl> AllAlivePlayerControls => PlayerControl.AllPlayerControls.ToArray().Where(p => p != null && p.IsAlive() && p.PlayerId <= 15);
+        public static IEnumerable<PlayerControl> AllAlivePlayerControls => PlayerSnapshot().Where(p => p != null && p.IsAlive() && p.PlayerId <= 15);
+
+        // 軽量化: ゲーム側のプレイヤー一覧(Il2Cpp のリスト)のコピーを、同じフレームの間は使い回す。
+        // 以前は呼ばれるたびに全員分をコピーしており(1フレームに何百回も呼ばれる)、重かった。
+        // 生存・null・PlayerId の判定は今まで通り毎回その場で行うので、結果は変わらない。
+        // リスト本体(Pointer)・人数・リストの変更回数(_version)のどれかが変わったら、同じフレーム内でもすぐ作り直す
+        // (途中のプレイヤーだけが入れ替わった場合も、変更回数が増えるので古い一覧は返さない)。
+        private static readonly FrameSnapshotCache<PlayerControl> playerSnapshot = new();
+        private static readonly System.Func<Il2CppSystem.Collections.Generic.List<PlayerControl>, int, PlayerControl> playerAt = (list, i) => list[i];
+
+        private static PlayerControl[] PlayerSnapshot()
+        {
+            var list = PlayerControl.AllPlayerControls;
+            if (list == null) return System.Array.Empty<PlayerControl>();
+            int count = list.Count;
+            int frame;
+            try { frame = UnityEngine.Time.frameCount; }
+            catch { return FrameSnapshotCache<PlayerControl>.Copy(count, list, playerAt); } // メインスレッド以外からは、今まで通り毎回コピーする
+            return playerSnapshot.Get(frame, list.Pointer, count, list._version, list, playerAt);
+        }
 
         //1ターン前に生きてた人達のリスト
 

@@ -73,10 +73,32 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
     bool Phase => NetworkActive && Player.IsAlive() && Player.Data != null && !Player.Data.Disconnected
         && GameStates.IsInTask && !GameStates.Intro && GameStates.AfterIntro
         && !GameStates.IsMeeting && !GameStates.CalledMeeting && MeetingHud.Instance == null;
+    // 毎フレーム呼ばれるので、LINQ やラムダを使わずにループで調べる(ゴミを出さない)
     bool TilesReady => tilesSpawned && restSpawnAt < 0f && !poolPlanFailed && plannedTileCount >= 2 && tiles.Count >= plannedTileCount
-        && tiles.All(t => t.Ready);
-    bool RenderingCommitted => tiles.All(t => t.Committed);
-    byte VisualStatus => poolPlanFailed || tiles.Any(t => t.Failed) ? (byte)2 : TilesReady && Phase ? (byte)1 : (byte)0;
+        && AllTilesReady();
+    bool RenderingCommitted
+    {
+        get
+        {
+            for (int i = 0; i < tiles.Count; i++) if (!tiles[i].Committed) return false;
+            return true;
+        }
+    }
+    byte VisualStatus => poolPlanFailed || AnyTileFailed() ? (byte)2 : TilesReady && Phase ? (byte)1 : (byte)0;
+    bool AllTilesReady()
+    {
+        for (int i = 0; i < tiles.Count; i++) if (!tiles[i].Ready) return false;
+        return true;
+    }
+    bool AnyTileFailed()
+    {
+        for (int i = 0; i < tiles.Count; i++) if (tiles[i].Failed) return true;
+        return false;
+    }
+    // ダミーが「まだ使ってよいか」を聞くための関数。ダミーごとに作らず、1 つを使い回す
+    Func<bool> tileOwnerCurrent;
+    Func<bool> TileOwnerCurrent => tileOwnerCurrent ??= () => Phase && !poolPlanFailed && !AnyTileFailed();
+    NovaBeamTile NewTile() => new(render, TileOwnerCurrent, gameId);
 
     public enum FireMode { Free, LeftRight, FourWay }
     private static readonly string[] FireModeKeys = { "NovaFireModeFree", "NovaFireModeLeftRight", "NovaFireModeFourWay" };
@@ -337,7 +359,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
             return;
         }
         // A failed visual retires this owner's queued pool once, not every tick.
-        if (!poolPlanFailed && tiles.Any(t => t.Failed))
+        if (!poolPlanFailed && AnyTileFailed())
             AbortVisualPool();
         if (!tilesSpawned && !VisualStartupReady())
         {
@@ -356,7 +378,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
             if (Time.time < tileSpawnAt) return;
             tilesSpawned = true;
 
-            tiles.Add(new NovaBeamTile(render, () => Phase && !poolPlanFailed && !tiles.Any(t => t.Failed), gameId));
+            tiles.Add(NewTile());
             restSpawnAt = Time.time + 2f;
         }
         // Measure only the star first. Preflight the same final mesh/name planner
@@ -385,17 +407,18 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
             if (!poolPlanFailed && poolProbe == PoolProbeAngles.Length)
             {
                 restSpawnAt = -1f;
-                for (var i = tiles.Count; i < plannedTileCount; i++) tiles.Add(new NovaBeamTile(render, () => Phase && !poolPlanFailed && !tiles.Any(t => t.Failed), gameId));
+                for (var i = tiles.Count; i < plannedTileCount; i++) tiles.Add(NewTile());
                 Logger.Info($"NOVA_PREPARE_QUEUED playerId={ownerId} tiles={plannedTileCount} ceiling={TileCount()} width={beamSize:F2} (measured pool, not firing)", "NovaTraffic");
             }
         }
-        if (lastVisualStatus != VisualStatus)
+        var visualStatus = VisualStatus;
+        if (lastVisualStatus != visualStatus)
         {
-            lastVisualStatus = VisualStatus; SendRpc(); UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
+            lastVisualStatus = visualStatus; SendRpc(); UtilsNotifyRoles.NotifyRoles(SpecifySeer: Player);
             Logger.Info($"NOVA_VISUAL_STATUS playerId={ownerId} status={lastVisualStatus} tiles={tiles.Count}", "NovaTraffic");
         }
         if ((charging || waiting || beaming) && !TilesReady
-            && (pendingBeamNames == null || tiles.Any(t => t.Failed))) { Stop(); return; }
+            && (pendingBeamNames == null || AnyTileFailed())) { Stop(); return; }
         // チャージ中・発射待ちに梯子などへ乗ったら、取り消す
         if ((charging || waiting) && OnLadder())
         {
@@ -601,7 +624,7 @@ public sealed class Nova : RoleBase, IImpostor, IUsePhantomButton
             plannedTileCount = names.Count + 1;
             pendingBeamNames = names;
             visualDeadline = Time.time + 30f;
-            for (int i = tiles.Count; i < plannedTileCount; i++) tiles.Add(new NovaBeamTile(render, () => Phase && !poolPlanFailed && !tiles.Any(t => t.Failed), gameId));
+            for (int i = tiles.Count; i < plannedTileCount; i++) tiles.Add(NewTile());
             Logger.Info($"NOVA_POOL_GROW tiles={plannedTileCount} ceiling={TileCount()}; waiting before visible beam/hits", "NovaTraffic");
             return true;
         }
@@ -759,6 +782,25 @@ public sealed class NovaBeamTile : CustomNetObject
         var rot = Mathf.RoundToInt(Mathf.DeltaAngle(0f, angle));
         return $"<font=\"{smoothFont}\"><size={barSize}%><rotate={rot}><#7FEFFF>{BarChar}</color></rotate></size></font>";
     }
+        private bool UseSmoothFont(TMPro.TMP_FontAsset font, string name)
+        {
+            if (!font.characterLookupTable.TryGetValue(BarChar, out var ch) || ch?.glyph == null) return false;
+            var m = ch.glyph.metrics;
+            var face = font.faceInfo;
+            var unit = face.scale / face.pointSize;
+            var width = m.width * unit;
+            var height = m.height * unit;
+            if (width <= 0f || height <= 0f) return false;
+            barSize = Mathf.Clamp(Mathf.RoundToInt(setupBeamSize / height / emAt100 * 100f), 50, 20000);
+            var em = emAt100 * barSize / 100f;
+            BarLength = width * em * BarLengthFix;
+            var centerX = (m.horizontalBearingX + m.width * 0.5f - m.horizontalAdvance * 0.5f) * unit;
+            var centerY = (m.horizontalBearingY - m.height * 0.5f) * unit - (face.ascentLine + face.descentLine) * 0.5f * unit;
+            barShift = new Vector2(centerX, centerY) * em - new Vector2(0f, BarRaise);
+            smoothFont = name;
+            Logger.Info($"なめらかなビーム: {name} 文字={barSize}% 長さ={BarLength:F2} 文字のずれ={barShift}", "Nova");
+            return true;
+        }
         private void FindSmoothFont()
     {
         var basePath = "Fonts & Materials/";
@@ -777,24 +819,8 @@ public sealed class NovaBeamTile : CustomNetObject
                 var mat = font.material;
                 var outline = mat != null && mat.HasProperty("_OutlineWidth") ? mat.GetFloat("_OutlineWidth") : 0f;
                 if (outline > 0.01f) continue;
-                if (!font.characterLookupTable.TryGetValue(BarChar, out var ch) || ch?.glyph == null) continue;
-                var m = ch.glyph.metrics;
-                var face = font.faceInfo;
-                // フォントの数値を、1em あたりの長さに直す
-                var unit = face.scale / face.pointSize;
-                var width = m.width * unit;
-                var height = m.height * unit;
-                if (width <= 0f || height <= 0f) continue;
-                // 「-」の高さがビームの太さになる大きさ
-                barSize = Mathf.Clamp(Mathf.RoundToInt(setupBeamSize / height / emAt100 * 100f), 50, 20000);
-                var em = emAt100 * barSize / 100f;
-                BarLength = width * em * BarLengthFix;
-                // 文字の真ん中が、名前の行の真ん中からどれだけずれるか(文字は自分の真ん中で回るので、回しても同じ)
-                var centerX = (m.horizontalBearingX + m.width * 0.5f - m.horizontalAdvance * 0.5f) * unit;
-                var centerY = (m.horizontalBearingY - m.height * 0.5f) * unit - (face.ascentLine + face.descentLine) * 0.5f * unit;
-                barShift = new Vector2(centerX, centerY) * em - new Vector2(0f, BarRaise);
-                smoothFont = name;
-                Logger.Info($"なめらかなビーム: {name} 文字={barSize}% 長さ={BarLength:F2} 文字のずれ={barShift}", "Nova");
+                // フォントの「-」の大きさから、ビームの太さ・長さ・ずれを決める
+                if (!UseSmoothFont(font, name)) continue;
                 return;
             }
             catch (System.Exception e) { Logger.Warn($"{name} を使えませんでした: {e.Message}", "Nova"); }
