@@ -477,8 +477,9 @@ public class CustomNetObject
 
                 sender.EndMessage();
                 // Complete GameDataTo envelopes retain each recipient and the original RPC ordering.
-                // At most eight small assignment envelopes per reliable packet (well below 1000 bytes).
-                if (++pending >= (capturedSelf.BatchSpawnAssignments ? 8 : 1))
+                // 2026-11-25: ノヴァだけ最大8人分を1パケットにまとめて送っていたが、15人部屋でホストが
+                // サーバーに「Hacking」で切断された直前の処理がこれだったため、他の役と同じ1人ずつの送信に戻す。
+                if (++pending >= 1)
                 {
                     sender.SendMessage(); sender.Dispose(); sender = null; pending = 0;
                 }
