@@ -678,6 +678,19 @@ namespace TownOfHost
 
                 if (CustomRoles.Amnesiac.IsPresent()) adjustedNumImpostors--;
 
+                // 「通常インポスターを配役する」がOFFの時は、インポスター陣営の人数を役職の数までにして、通常インポスターが余らないようにする
+                if (RoleAssignManager.BlockVanillaImpostor)
+                {
+                    int roleCount = RoleAssignManager.CountVanillaImpostorTeamRoles();
+                    if (roleCount <= 0)
+                        Logger.Warn("通常インポスターを配役しない設定ですが、配役できるインポスター役職が無いため、インポスター数は変更しません", "AssignVanillaImpostor");
+                    else if (adjustedNumImpostors > roleCount)
+                    {
+                        Logger.Info($"通常インポスターを配役しない設定のため、インポスター数を{adjustedNumImpostors}→{roleCount}に変更", "AssignVanillaImpostor");
+                        adjustedNumImpostors = roleCount;
+                    }
+                }
+
 
 
                 GameManager.Instance.LogicRoleSelection.AssignRolesForTeam(playerInfos, currentGameOptions, RoleTeamTypes.Impostor, adjustedNumImpostors, new Il2CppSystem.Nullable<RoleTypes>(RoleTypes.Impostor));

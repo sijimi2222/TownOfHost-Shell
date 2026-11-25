@@ -290,6 +290,7 @@ namespace TownOfHost
         public static float DefaultKillCooldown = Main.NormalOptions?.KillCooldown ?? 20;
 
         public static OptionItem DoubleTriggerThreshold;
+        public static OptionItem AssignVanillaImpostor;
 
         public static OptionItem DefaultShapeshiftCooldown;
 
@@ -1794,6 +1795,10 @@ namespace TownOfHost
             DefaultShapeshiftDuration = FloatOptionItem.Create(102502, "DefaultShapeshiftDuration", new(1, 300, 1f), 10, TabGroup.ImpostorRoles, false)
 
                 .SetValueFormat(OptionFormat.Seconds).SetParentRole(CustomRoles.Shapeshifter);
+
+            // 通常インポスターを配役する(インポスター欄の一番下)。OFFの時は通常インポスターを配役しない(RoleAssignManager / SelectRolesPatch)
+            AssignVanillaImpostor = BooleanOptionItem.Create(102505, "AssignVanillaImpostor", true, TabGroup.ImpostorRoles, false)
+                .SetHeader(true);
 
 
 

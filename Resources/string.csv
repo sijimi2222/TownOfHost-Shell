@@ -9256,3 +9256,4 @@
 "MadSeerInfo","A moment brings chaos","刹那が混乱を呼ぶ","","","","",""
 "MadSeerInfoLong","(Madmate)\nA Crewmate who helps the Impostors.\nFalse sign: When you enter a vent, every other living player sees a kill flash. You are kicked out of the vent immediately.\nTrue sign: When someone dies, you see a kill flash.\nYou cannot enter vents during Comms sabotage.","(マッドメイト)\nクルーだが、インポスターの味方をする。\n・間違った兆候\nベントに入ると、他の全プレイヤーにキルフラッシュを見せる。ベントからは即座に追い出される。\n・正しい兆候\n誰かが死亡すると、自身がキルフラッシュを見る。\n通信妨害中はベントに入れない。","","","","",""
 "MadSeerCanSeeKillFlashInComms","Can See Kill Flash During Comms","通信妨害中にキルフラッシュを見れる","","","","",""
+"AssignVanillaImpostor","Assign Normal Impostor","通常インポスターを配役する","","","","",""

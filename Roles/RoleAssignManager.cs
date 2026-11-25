@@ -348,6 +348,8 @@ namespace TownOfHost.Roles
                     break;
             }
 
+            FillImpostorSlotsWithRoles();
+
             if (AssignRoleList.Contains(CustomRoles.LoversBreaker)
                 && LoversBreaker.ShouldRemoveFromAssignment(AssignRoleList))
             {
@@ -405,6 +407,47 @@ namespace TownOfHost.Roles
             }
             Logger.Info($"{string.Join(", ", AssignCount)}", "AssignCount");
             Logger.Info($"{string.Join(", ", AssignRoleList)}", "AssignRoleList");
+        }
+        /// <summary>「通常インポスターを配役する」がOFFか(サドンデス等の特殊な配役は対象外)</summary>
+        public static bool BlockVanillaImpostor
+            => Options.AssignVanillaImpostor?.GetBool() == false && GameModeManager.IsStandardClass()
+            && !SuddenDeathMode.NowSuddenDeathMode && !SuddenDeathMode.SuddenSharingRoles.GetBool();
+
+        /// <summary>バニラのインポスター陣営の枠(インポスター/シェイプシフター/ファントム/ヴァイパー)を使う役職か。判定は SelectRolesPatch.GetRoleTypesCount と同じ</summary>
+        public static bool UsesVanillaImpostorSlot(CustomRoles role)
+        {
+            if (role is CustomRoles.Impostor or CustomRoles.NotAssigned || role.IsAddOn() || role.IsGhostRole() || role.IsLovers()) return false;
+            if (CustomRoleManager.GetRoleInfo(role)?.IsDesyncImpostor == true) return false;
+            if (role.IsMadmate() || role is CustomRoles.Amnesiac) return false;
+            if (role.IsNeutral() && role is not CustomRoles.Egoist) return false;
+            if (role == CustomRoles.Egoist && Main.NormalOptions.GetInt(Int32OptionNames.NumImpostors) <= 1) return false;
+            return role.GetRoleTypes() is RoleTypes.Impostor or RoleTypes.Shapeshifter or RoleTypes.Phantom or RoleTypes.Viper;
+        }
+
+        /// <summary>今回の配役リストのうち、バニラのインポスター陣営の枠を使う役職の数</summary>
+        public static int CountVanillaImpostorTeamRoles() => AssignRoleList.Count(UsesVanillaImpostorSlot);
+
+        /// <summary>
+        /// 「通常インポスターを配役する」がOFFの時、インポスターの枠が余らないよう、
+        /// 有効な(確率0%でない)インポスター役職を、それぞれの設定数の範囲で追加する。
+        /// それでも足りない分は SelectRolesPatch でインポスター数を減らす。
+        /// </summary>
+        private static void FillImpostorSlotsWithRoles()
+        {
+            if (!BlockVanillaImpostor) return;
+            int numImpostors = Math.Min(GameData.Instance.PlayerCount, Main.RealOptionsData.GetInt(Int32OptionNames.NumImpostors));
+            var rand = IRandom.Instance;
+            while (CountVanillaImpostorTeamRoles() < numImpostors)
+            {
+                var candidates = AllMainRoles.Where(role => Event.CheckRole(role) && role.IsAssignable() && role.GetChance() > 0
+                    && role.GetCustomRoleTypes() == CustomRoleTypes.Impostor && UsesVanillaImpostorSlot(role)
+                    && role.GetAssignUnitRolesArray().Length == 1 && role.GetRealCount() < role.GetCount()).ToArray();
+                if (candidates.Length == 0) break;
+                var pick = candidates[rand.Next(candidates.Length)];
+                AssignRoleList.Add(pick);
+                if (AssignCount.ContainsKey(CustomRoleTypes.Impostor)) AssignCount[CustomRoleTypes.Impostor]++;
+                Logger.Info($"通常インポスターを配役しない設定のため、余ったインポスター枠に{pick}を追加", "AssignRoleList");
+            }
         }
         ///<summary>
         ///役職の固定アサイン抽選
