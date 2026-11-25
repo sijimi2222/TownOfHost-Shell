@@ -4,7 +4,7 @@ namespace AmongUs.GameOptions {public enum RoleTypes {Crewmate,Impostor}}
 namespace Il2CppInterop.Runtime.InteropTypes.Arrays {public class Il2CppStructArray<T>:List<T>{}}
 namespace UnityEngine {
  public class Object {public string name="synthetic";public bool Destroyed;public int DestroyCalls;public static implicit operator bool(Object o)=>o!=null&&!o.Destroyed;public static void Destroy(Object o){o.DestroyCalls++;o.Destroyed=true;}public static T Instantiate<T>(T p,Vector2 v,Quaternion q) where T:PlayerControl{var pc=new PlayerControl();PlayerControl.AllPlayerControls.Add(pc);return pc as T;}}
- public class GameObject:Object {public bool activeInHierarchy=true;public Transform transform=new();public T GetComponent<T>()where T:new()=>new();public void SetActive(bool b)=>activeInHierarchy=b;}
+ public class GameObject:Object {public GameObject(){}public GameObject(string n){name=n;}public bool activeInHierarchy=true;public Transform transform=new();readonly Dictionary<Type,object> components=new();public T AddComponent<T>()where T:new(){var c=new T();components[typeof(T)]=c;return c;}public T GetComponent<T>()where T:new()=>components.TryGetValue(typeof(T),out var c)?(T)c:new();public void SetActive(bool b)=>activeInHierarchy=b;}
  public class Transform:Object {public Vector3 position;public GameObject gameObject=>new();public Transform FindChild(string n)=>new();}
  public struct Quaternion {public static Quaternion identity=>new();}
  public struct Vector3 {public float x,y,z;public Vector3(float x,float y,float z=0){this.x=x;this.y=y;this.z=z;}public static implicit operator Vector2(Vector3 p)=>new(p.x,p.y);}
@@ -30,13 +30,15 @@ public class PlayerControl:InnerNet.InnerNetObject {public static PlayerControl 
 public class GameData {public static GameData Instance=new();public List<NetworkedPlayerInfo> AllPlayers=new();}
 public class AmongUsClient:UnityEngine.Object {public enum GameStates{NotJoined,Joined,Started,Ended}public static AmongUsClient Instance;public bool AmHost=true,AmConnected=true;public int GameId=7;public uint NetIdCnt=20;public GameStates GameState=GameStates.Ended;public PlayerControl PlayerPrefab=new();public UnityEngine.AddressableAssets.AssetReference[] ShipPrefabs=Array.Empty<UnityEngine.AddressableAssets.AssetReference>();public void Awake(){}public void OnGameJoined(){}public void StartCoroutine(System.Collections.IEnumerator e){}public static Action BeforeSend;public static bool ThrowSend;public static int Sends;public static List<string[]> Packets=new();public void SendOrDisconnect(Hazel.MessageWriter w){Sends++;BeforeSend?.Invoke();if(ThrowSend)throw new InvalidOperationException("synthetic send");Packets.Add(w.Trace.ToArray());}public List<InnerNet.InnerNetObject> Removed=new();public bool ThrowRemove;public void RemoveNetObject(InnerNet.InnerNetObject o){Removed.Add(o);if(ThrowRemove)throw new InvalidOperationException("synthetic local unregister");}public AmongUs.InnerNet.GameDataMessages.SpawnGameDataMessage CreateSpawnMessage(PlayerControl p,int id,SpawnFlags f)=>new();public Hazel.MessageWriter StartRpcImmediately(uint n,byte rpc,Hazel.SendOption o)=>Hazel.MessageWriter.Get(o);public void FinishRpcImmediately(Hazel.MessageWriter w){SendOrDisconnect(w);w.Recycle();}}
 namespace AmongUs.InnerNet.GameDataMessages {public class SpawnGameDataMessage {public void SerializeValues(Hazel.MessageWriter w)=>w.Trace.Add("spawn");}}
-public class EndGameManager:UnityEngine.Object {public UnityEngine.GameObject gameObject=new();public void ShowButtons(){}}
+public class EndGameManager:UnityEngine.Object {public UnityEngine.GameObject gameObject=new();public EndGameNavigation Navigation=new();public void ShowButtons(){}}
+namespace TMPro {public enum TextAlignmentOptions {Center}public class TextMeshPro {public string text;public TextAlignmentOptions alignment;public float fontSize;}}
 public class EndGameNavigation {public int Calls;public void NextGame(){Calls++;}}
 public class DestroyableSingleton<T> where T:new(){public static bool InstanceExists=true;public static int Gets;public static T Value=new();public static T Instance{get{Gets++;return Value;}}}
 namespace TownOfHost {
  public static class Logger {public static List<string> Errors=new();public static void Error(string s,string c,bool b=true)=>Errors.Add(c);public static void Warn(string s,string c){}public static void Info(string s,string c){}}
  public static class Main {public static bool DebugVersion,SetRoleOverride;public static Toggle PreloadMapAssets=new();}
  public static class GameStates {public static bool IsLobby,IsEnded;}
+ public static class Translator {public static string GetString(string s)=>s=="AutoReturnRoomCountdown"?"back in {0}":s;}
  public class Toggle{public bool Value;public bool GetBool()=>Value;}
  public static class Options {public static Toggle OptionAutoReturnRoom=new(){Value=true},OptionAutoReturnRoomGM=new(),EnableGM=new();}
  public static class GameModeManager {public static bool IsStandardClass()=>true;}
