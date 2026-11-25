@@ -918,6 +918,7 @@ namespace TownOfHost
 
     {
         Informant = CustomRoles.Informant,
+        Germaphobia = CustomRoles.Germaphobia,
 
 
         Draw = -1,

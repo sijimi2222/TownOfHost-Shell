@@ -40,7 +40,7 @@ class Faction
 
         List<CustomRoles> AddWinners = [CustomRoles.Amanojaku];
 
-        foreach (var role in EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsNeutral() && role != CustomRoles.LessThan && role is not CustomRoles.Romeo and not CustomRoles.Juliet and not CustomRoles.Eliminator and not CustomRoles.Informant and not CustomRoles.LifeSaver).OrderBy(x => x.GetRoleInfo()?.ConfigId ?? 100000))
+        foreach (var role in EnumHelper.GetAllValues<CustomRoles>().Where(role => role.IsNeutral() && role != CustomRoles.LessThan && role is not CustomRoles.Romeo and not CustomRoles.Juliet and not CustomRoles.Eliminator and not CustomRoles.Informant and not CustomRoles.LifeSaver and not CustomRoles.Germaphobia).OrderBy(x => x.GetRoleInfo()?.ConfigId ?? 100000))
 
         {
 
@@ -118,7 +118,7 @@ class Faction
         eliminatorOption.ReplacementDictionary = new Dictionary<string, string>
             { { "%roletype%", UtilsRoleText.GetRoleColorAndtext(CustomRoles.Eliminator) } };
         OptionRole.TryAdd(CustomRoles.Eliminator, eliminatorOption);
-        foreach (var (newRole, optionId) in new[] { (CustomRoles.Informant, 994390), (CustomRoles.LifeSaver, 994490) })
+        foreach (var (newRole, optionId) in new[] { (CustomRoles.Informant, 994390), (CustomRoles.LifeSaver, 994490), (CustomRoles.Germaphobia, 996090) })
         {
             var newOption = BooleanOptionItem.Create(optionId, "AssingroleType", true, TabGroup.Addons, false)
                 .SetSubRoleOptionItem(CustomRoles.Faction).SetEnabled(() => newRole.IsEnable());

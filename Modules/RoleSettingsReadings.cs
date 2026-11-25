@@ -12,6 +12,7 @@ internal static class RoleSettingsReadings
 {
     private static readonly Dictionary<string, string> Readings = new()
     {
+        ["Germaphobia"] = "じゃーまふぉびあ",
         ["Pusher"] = "つきおとしし",
         ["Cleaner"] = "くりーなー",
         ["Gimlet"] = "ぎむれっと",

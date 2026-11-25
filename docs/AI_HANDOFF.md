@@ -1,6 +1,6 @@
 # TOH-Shell 共通引き継ぎ
 
-更新日 2026-11-24（JST）
+更新日 2026-11-25（JST）
 
 ## 最初に確認すること
 
@@ -20,7 +20,10 @@ git diff --cached --stat
 
 ## 現行開発元のGit状態
 
-- v2.2.5 のリリース対象は、v2.2.4以降のWindows版の役職・フォーム・軽量化の変更。バージョン表記を更新し、公開用の変更点を [v2.2.5 リリースノート](releases/v2.2.5.md) に記載。以下の版や未公開という表記は、各作業時点の記録。
+- v2.2.5 を GitHub Releases の正式な最新版として公開済み。公開コミット `a86434ea545921fa63c790cdf40bff0f8075eb77` はローカル・GitHub の `main` とタグ `v2.2.5` で一致。配布先は [v2.2.5](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.5)。Steam ZIP、Epic ZIP、DLL単体の3点を公開し、GitHubのSHA-256をローカル配布物と照合済み。以下の未公開・未コミット表記は作業当時の記録。
+- 公開品はクリーンな `main` からReleaseビルド（エラー0・既存警告19件）。バージョン38件、プレイヤー一覧10件、ノヴァ1324件、マッドアルターネイト33件、HUD222件、配信341件、中継8件、補助ツール13件成功。検証結果と配布物のローカル保存先は `../release-v225-20261124/`。今回の操作は配布の公開までで、Steamのローカル配置は前回の報告フォーム修正版。
+- 作業ブランチは `codex/mad-alternate`。v2.2.5 からの次の開発変更をここに保存する。
+- 2026-11-24 夜に新規ニュートラル役職「ジャーマフォビア」を追加し、Steamに配置。2026-11-25 に役職・設定・翻訳とこのメモを開発ブランチのコミットに記録。ゲーム内の動作確認は未実施。
 
 - ブランチ `codex/mad-alternate`。
 - v2.2.4 の公開コミットは `20d1fd9f398b9d62b35692fa594dd7892d3d0975`（`Release: TOH-Shell v2.2.4 [skip ci]`）で、ローカルの公開タグも同コミットを指す。
@@ -49,6 +52,7 @@ git diff --cached --stat
 | ノヴァのベンチマーク | 既存の未コミット変更として `tests/Nova.Runtime.Tests/Program.cs` の `--idle-bench` 分岐と、未追跡の `IdleBench.cs` があった（作者は不明。今回は変更せず利用のみ） |
 | 検証コード | 未追跡の `tests/MadAlternate.Runtime.Tests/` 内のプロジェクト・`Program.cs`・`Stubs.cs`、計3ファイル |
 | HUD回帰テスト | `tests/GameplayHudUi.Tests/` にバグ報告の回帰テストを追加。製品コードの抽出・由来情報、ログとHTTPクライアントの参照、スタブを更新。 |
+| ジャーマフォビア（2026-11-24・Steam配置済み・Releaseビルド済み） | 新規ニュートラル役職 Germaphobia（イントロ「私の船を汚さないでっ」、クルーメイトベース、タスクなし）。視界内に死体が写ると死亡（ホストで0.1秒ごとに判定。死体が `ShipStatus.CalculateLightRadius` 以内で、`ShadowMask` の壁に遮られていない場合。判定方法はアイドルの視界判定と同じ。マッドクリーナーの掃除済み・タイガーの捕食済み死体と自分の死体は除外。死因は自殺で、タイガーの自滅と同じ `OnCheckMurder` 経路）。生存していると単独勝利（`IAdditionalWinner` と `ResetAndSetAndChWinner`。インフォーマントの単独勝利と同じ仕組み。勝利優先度が高ければ単独勝利、同値なら共に勝利、低ければ勝利しない）。設定：勝利優先度1〜50・刻み1・既定15（オプションID 996009）、サボを直せない（既定ON、ID 996010。プランクスターと同じ `ISystemTypeUpdateHook`）。Role ID は `CustomRoles.Germaphobia = 391`、ConfigId は 996000、`OptionSort (0, -7)` でニュートラル一覧のライフセーバー（-6）より上。設定画面「新しく追加した役職」欄は `RecentRank` 0 で先頭。既存の連番IDをずらさないよう、ファクションの汎用ループから除外して固定ID 996090、シェリフ 996091、スイッチシェリフ 996092 を割り当てた（インフォーマント・ライフセーバーと同じ方式）。新規 `Roles/Neutral/Germaphobia.cs`。変更 `Roles/Core/CustomRoleManager.cs`、`main.cs`（`CustomWinner.Germaphobia`）、`Roles/AddOns/Neutral/Faction.cs`、`Roles/Crewmate/Sheriff.cs`、`Roles/Crewmate/SwitchSheriff.cs`、`Patches/GameOptions/RoleSettingsDisplay.cs`、`Modules/RoleSettingsReadings.cs`、`Resources/string.csv`（日本語・英語）。役職色 `#7FD8E8`、チャットコマンド `gmp`。Releaseビルド（`-p:CopyToAmongUs=false`）：エラー0、既存警告19件（新しい警告なし）。`bin/Release/net6.0/TownOfHost-Shell.dll` の SHA-256 は `3985B93B888BD9C0708525469DAFE940337DD2448FE7788F3B79A0951EF8934A`。自動テストは追加していない。**ゲーム内での確認（設定画面の表示、配役、死体を見た時の死亡、壁越しの扱い、停電中の視界、単独勝利、サボ修理不可）はすべて未確認。** 配置前にRelease DLLに役職の型が含まれることを確認し、ユーザー指示でゲーム終了中にSteamへコピー。配置済みDLLのSHA-256はビルド品と一致。 |
 | 引き継ぎ文書 | 追跡済みで変更ありの `AGENTS.md` と、未追跡の `docs/AI_HANDOFF.md` |
 
 ## 完了済みの検証と配布
@@ -57,7 +61,7 @@ git diff --cached --stat
 | --- | --- |
 | Windowsの最終Releaseビルド | エラー0件、既存警告19件 |
 | 戦闘・タスク関連の自動テスト | 最終DLLの作成時にタイガーのPC模擬テスト11件、マッドアルターネイトのPCテスト33件成功。タスク上限の変更時に設定IDの回帰テスト41件成功 |
-| Steam配置済みDLL | 現在はバグ報告フォームのログ添付表示修正版。Steam版 `BepInEx/plugins/TownOfHost-Shell.dll` のSHA-256はビルド品と一致し、`01C79D6830EBEF406274C432C52A7A557F1B0DCE0D445782870AD7324FC82ABB`。直前のDLLは `../bug-report-attachment-ui-20261124/backup/TownOfHost-Shell.dll` に復元用として保存し、SHA-256の一致を確認。 直前はPlayerCatch一覧キャッシュ修正版（ノヴァ軽量化を含む）。`C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` のSHA-256はビルド品と一致し、`D7346B642FFFCD0BDA713F5EC902385191B70762694D4F2ECA11F09BDDA209F0`。PlayerCatch配置前のノヴァ軽量化版は `../playercatch-20261124/backup/TownOfHost-Shell.dll` に保存（SHA-256 `794D017FA2D5148D0E2AF2FCFA0715A9D2987C985DF2A72F65246737832E56D1`）。実ゲームでは、入退室、試合開始、生存一覧の更新、軽量化の効果が未確認。 過去の記録。IME確定修正版を `C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` に配置。当時のSHA-256はビルド品と同じ `DAB3644E819CE296AD615AEAEDE4CF698910FF1AC9875309D5480F9C492D7828`。旧DLLと一致する `bug-report-input-20261124/release/TownOfHost-Shell.dll` を復元用に保持（SHA-256 `0EEB620A913770DEA704E3470BA703D937CF8A78A0C4B9FB0F61BCA3D501441F`）。報告用設定ファイルのハッシュは配置前後で一致。 |
+| Steam配置済みDLL | 現在はジャーマフォビア入りの開発版。Steamの `BepInEx/plugins/TownOfHost-Shell.dll` はビルド品と同じSHA-256 `3985B93B888BD9C0708525469DAFE940337DD2448FE7788F3B79A0951EF8934A`。直前のDLLの復元用コピーは `../bug-report-attachment-ui-20261124/release/TownOfHost-Shell.dll` にあり、配置前に一致を確認済み。 直前はバグ報告フォームのログ添付表示修正版。Steam版 `BepInEx/plugins/TownOfHost-Shell.dll` のSHA-256はビルド品と一致し、`01C79D6830EBEF406274C432C52A7A557F1B0DCE0D445782870AD7324FC82ABB`。直前のDLLは `../bug-report-attachment-ui-20261124/backup/TownOfHost-Shell.dll` に復元用として保存し、SHA-256の一致を確認。 直前はPlayerCatch一覧キャッシュ修正版（ノヴァ軽量化を含む）。`C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` のSHA-256はビルド品と一致し、`D7346B642FFFCD0BDA713F5EC902385191B70762694D4F2ECA11F09BDDA209F0`。PlayerCatch配置前のノヴァ軽量化版は `../playercatch-20261124/backup/TownOfHost-Shell.dll` に保存（SHA-256 `794D017FA2D5148D0E2AF2FCFA0715A9D2987C985DF2A72F65246737832E56D1`）。実ゲームでは、入退室、試合開始、生存一覧の更新、軽量化の効果が未確認。 過去の記録。IME確定修正版を `C:/Program Files (x86)/Steam/steamapps/common/Among Us/BepInEx/plugins/TownOfHost-Shell.dll` に配置。当時のSHA-256はビルド品と同じ `DAB3644E819CE296AD615AEAEDE4CF698910FF1AC9875309D5480F9C492D7828`。旧DLLと一致する `bug-report-input-20261124/release/TownOfHost-Shell.dll` を復元用に保持（SHA-256 `0EEB620A913770DEA704E3470BA703D937CF8A78A0C4B9FB0F61BCA3D501441F`）。報告用設定ファイルのハッシュは配置前後で一致。 |
 | 公開済みv2.2.4 | 正式版を公開済み。Steam版・Epic版のZIPとDLL単体を配布。公開DLLのSHA-256は `CC5020B79BC9BBE689E15743966271B5AC99CADAAEB8A6F42BBECF228FDAAAE9` |
 | 引き継ぎ環境 | Gitとソース差分を読み取り、正本を現行開発元に設定。別ツールでの読み取りと `git status --short --branch` の実行をユーザー報告で確認。 |
 | ロビーHUDのPCテスト | 209件成功。新規5件で表示条件、クリック時の遷移、ヘッダー余白を確認。 |
@@ -108,6 +112,7 @@ Git履歴はローカルオブジェクトで比較し、差分の重複は実�
 
 ## 未確認事項と次の作業
 
+- ジャーマフォビア（未確認）：ゲーム内で、(1) ニュートラルタブと「新しく追加した役職」欄の先頭に表示されるか、(2) 配役されるか、(3) 視界内の死体で死亡し、壁越しでは死亡しないか、(4) 停電中は視界が狭まり判定範囲も狭まるか、(5) 生存時に単独勝利し、勝利優先度が反映されるか、(6) 設定ONでリアクター・O2・停電・通信を直せないかを確認する。視界半径はホストの `CalculateLightRadius(Player.Data)` で計算しており、ホスト以外のプレイヤーの実際の視界（MODが個別に送る視界設定）と完全には一致しない可能性がある（アイドルと同じ近似）。既存の仕様として、マッドアルターネイトの身代わりは自殺も対象にしているため、マッドアルターネイトがジャーマフォビアを守っている時にジャーマフォビアが死体を見ると、マッドアルターネイトが代わりに死ぬ可能性がある（タイガーの自滅も同様。未修正）。
 - ノヴァ（2026-11-24 21:14〜21:19のホストLogOutput.logを調査）：非ホストのAndroid（「あ」）がノヴァだった試合（21:14:09開始）で、21:14:32.98に `NOVA_VISUAL_STATUS status=1`（準備完了）となった後、21:15:01に「あ」が `ExitGame` で切断した。その28秒間、ホストには `PhantomButton Use` / `CheckVanishRPC` / `NOVA_CHARGE` が一度も届いていない（正常だった21:16:47開始の試合では、押すたびにこの3つが記録される）。ホストのノヴァ処理もその間は何も送っていない。つまり、ボタンを押した時の障害は**Android側でホストへ届く前に起きた**もので、ホスト側の処理量は直接の原因ではない。次は、Android側の画面に出たエラー文と、可能なら端末のログ（logcat）を入手して調べる。ホスト側ノヴァのさらなる軽量化は、この根拠がないため保留した。軽量化版のDLLは配置済み。Android側の表示は「通信エラーが発生しました」（ユーザー確認）。USB接続のPixel 10aのlogcatを読み取りだけで確認した（端末の操作・変更なし）。結果：Among Usのプロセス（pid 7736）は21:11から21:15:16以降まで同じで、アプリ自体は落ちていない。21:14:30〜21:15:16にWi-Fi・接続の切断記録はなく、正規版はUnityのログを出さないため、ゲーム内の原因は端末ログからは特定できない。結論：アプリのクラッシュではなく通信の切断。原因はホスト・端末の両ログで特定できていない。再発したら、押した時刻と画面の状態を記録し、直後にlogcatとホストのログを保存する。
 - ノヴァ：配役時にホストが落ちるかを実機で確認する。再発した場合は、その時刻の `LogOutput.log`（`NOVA_STARTUP_WAIT` / `NOVA_PREPARE_QUEUED` / `NOVA_VISUAL_STATUS` 付近）と Player.log を保存して原因を調べる。開始時の測定（`PreparePacked` と `PlanBeam`）の1フレームへの集中が残っている点は、ログで確認できてから対処する。
 

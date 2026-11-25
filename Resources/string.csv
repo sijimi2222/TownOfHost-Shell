@@ -9247,3 +9247,7 @@
 "MadAlternate.Cancel","Protection selection canceled.","身代わりの対象選択をキャンセルしました。","","","","",""
 "MadAlternate.Selected","You will protect {0} until the next meeting begins. Cast your regular vote now.","会議終了後から次の会議開始まで、{0}の身代わりになります。通常の投票を行ってください。","","","","",""
 "MadAlternate.Sacrifice","{0} sacrificed themselves to protect {1}.","{0}は{1}の身代わりとなり、殉死した。","","","","",""
+"Germaphobia","Germaphobia","ジャーマフォビア","","","","",""
+"GermaphobiaInfo","Don't you dare dirty my ship!","私の船を汚さないでっ","","","","",""
+"GermaphobiaInfoLong","(Neutral)\nYou die as soon as a dead body appears within your vision. Bodies behind walls do not count.\nWin alone if you are alive when the game ends.\nHigher victory priority wins.\nDepending on the settings, you cannot repair sabotage.","(ニュートラル)\n視界内に死体が写ると死亡する。壁の向こうの死体は対象外。\n試合終了時に生存していると単独勝利する。\n勝利優先度は大きい数値ほど優先。\n設定により、サボタージュを直せない。","","","","",""
+"GermaphobiaCantFixSabotage","Cannot repair sabotage","サボを直せない","","","","",""

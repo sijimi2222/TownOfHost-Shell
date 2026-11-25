@@ -2459,6 +2459,7 @@ public enum CustomRoles
     Bloodlust = 388,
     EvilButtoner = 389,
     MadAlternate = 390,
+    Germaphobia = 391,
     Notice = 1073,
     // Added without changing any existing Shell role/add-on IDs.
     MadKind = 377,
