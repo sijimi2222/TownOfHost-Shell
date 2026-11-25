@@ -2460,6 +2460,7 @@ public enum CustomRoles
     EvilButtoner = 389,
     MadAlternate = 390,
     Germaphobia = 391,
+    MadSeer = 392,
     Notice = 1073,
     // Added without changing any existing Shell role/add-on IDs.
     MadKind = 377,

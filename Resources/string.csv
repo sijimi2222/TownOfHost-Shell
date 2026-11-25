@@ -9252,3 +9252,7 @@
 "GermaphobiaInfoLong","(Neutral)\nYou die as soon as a dead body appears within your vision. Bodies behind walls do not count.\nWin alone if you are alive when the game ends.\nHigher victory priority wins.\nDepending on the settings, you cannot repair sabotage.","(ニュートラル)\n視界内に死体が写ると死亡する。壁の向こうの死体は対象外。\n試合終了時に生存していると単独勝利する。\n勝利優先度は大きい数値ほど優先。\n設定により、サボタージュを直せない。","","","","",""
 "GermaphobiaCantFixSabotage","Cannot repair sabotage","サボを直せない","","","","",""
 "AutoReturnRoomCountdown","Returning to the room in {0}s","{0}秒後に部屋に戻ります","","","","",""
+"MadSeer","Mad Seer","マッドシーア","","","","",""
+"MadSeerInfo","A moment brings chaos","刹那が混乱を呼ぶ","","","","",""
+"MadSeerInfoLong","(Madmate)\nA Crewmate who helps the Impostors.\nFalse sign: When you enter a vent, every other living player sees a kill flash. You are kicked out of the vent immediately.\nTrue sign: When someone dies, you see a kill flash.\nYou cannot enter vents during Comms sabotage.","(マッドメイト)\nクルーだが、インポスターの味方をする。\n・間違った兆候\nベントに入ると、他の全プレイヤーにキルフラッシュを見せる。ベントからは即座に追い出される。\n・正しい兆候\n誰かが死亡すると、自身がキルフラッシュを見る。\n通信妨害中はベントに入れない。","","","","",""
+"MadSeerCanSeeKillFlashInComms","Can See Kill Flash During Comms","通信妨害中にキルフラッシュを見れる","","","","",""
