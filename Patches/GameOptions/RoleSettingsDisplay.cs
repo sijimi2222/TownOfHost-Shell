@@ -163,7 +163,7 @@ internal static class RoleSettingsDisplay
     // order stay intact; newly added roles precede the previous Nova/Eliminator entries.
     private static int RecentRank(CustomRoles role) => role.ToString() switch
     {
-        "MadSeer" => -1, "Germaphobia" => 0, "Notice" => 0, "Cleaner" => 0, "EvilButtoner" => 1, "Bloodlust" => 2,
+        "EvilHermit" => -2, "NiceHermit" => -2, "MadSeer" => -1, "Germaphobia" => 0, "Notice" => 0, "Cleaner" => 0, "EvilButtoner" => 1, "Bloodlust" => 2,
         "LifeSaver" => 3, "Informant" => 4, "Gimlet" => 5, "Pusher" => 6,
         "Slugger" => 7, "Eliminator" => 8, "Nova" => 9, _ => int.MaxValue
     };
