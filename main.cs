@@ -124,13 +124,13 @@ namespace TownOfHost
 
         public const string PluginGuid = "com.rar006.TownOfHost-Shell";
 
-        public const string BepInExPluginVersion = "2.2.5";
+        public const string BepInExPluginVersion = "2.2.6";
 
         public const string PluginVersion = "4.00.40.00";//ほんとはx.y.z表記にしたかったけどx.y.z.km.ks表記だと警告だされる
 
-        public const string PluginShowVersion = "2.2.5";
+        public const string PluginShowVersion = "2.2.6";
 
-        public const string PluginReleaseVersion = "2.2.5";
+        public const string PluginReleaseVersion = "2.2.6";
 
         public const string ModVersion = ".00.21";//リリースver用バージョン変更dc9b79
 

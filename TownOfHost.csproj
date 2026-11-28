@@ -24,13 +24,13 @@
 
 		     生成し NETSDK1018 でビルドが失敗するため、明示的に固定バージョンを指定して上書きする -->
 
-		<Version>2.2.5</Version>
+		<Version>2.2.6</Version>
 
-		<AssemblyVersion>2.2.5.0</AssemblyVersion>
+		<AssemblyVersion>2.2.6.0</AssemblyVersion>
 
-		<FileVersion>2.2.5.0</FileVersion>
+		<FileVersion>2.2.6.0</FileVersion>
 
-		<InformationalVersion>2.2.5</InformationalVersion>
+		<InformationalVersion>2.2.6</InformationalVersion>
 
 		<Description>TOH-Shell based on legacy TOH-hamo（旧TOH-hamo）</Description>
 

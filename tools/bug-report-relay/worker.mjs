@@ -82,7 +82,7 @@ export async function handleReport(request, env, discordFetch = (url, options) =
     const url = `https://discord.com/api/v10/channels/${forumId}`;
     const headers = {
         Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
-        "User-Agent": "DiscordBot (https://github.com/sijimi2222/TownOfHost-Shell, 2.2.5)"
+        "User-Agent": "DiscordBot (https://github.com/sijimi2222/TownOfHost-Shell, 2.2.6)"
     };
     let creatingThread = false;
     try {

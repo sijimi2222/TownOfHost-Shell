@@ -20,7 +20,7 @@ class KitTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.dll = self.root / 'TownOfHost-Shell.dll'
         self.dll.write_bytes(b'MZ-synthetic-PE')
-        self.record = dict(Configuration='ShellDevelopment', Version='2.2.5.0',
+        self.record = dict(Configuration='ShellDevelopment', Version='2.2.6.0',
                            SHA256=hashlib.sha256(self.dll.read_bytes()).hexdigest().upper(),
                            DevelopmentMarker=True, DebugRuntimeIncluded=True,
                            SourceChecks=[dict(Matches=True)], DistributionSymbolsSanitized=True)

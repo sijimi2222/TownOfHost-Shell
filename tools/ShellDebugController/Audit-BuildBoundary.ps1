@@ -26,8 +26,8 @@ function IL($method){
 }
 try {
  $publicTypes=@(All-Types $pub.MainModule);$developmentTypes=@(All-Types $dev.MainModule)
- Assert-Test 'public product version remains 2.2.5' ((Get-Item -LiteralPath $PublicDll).VersionInfo.ProductVersion -eq '2.2.5')
- Assert-Test 'development product version remains 2.2.5' ((Get-Item -LiteralPath $DevelopmentDll).VersionInfo.ProductVersion -eq '2.2.5')
+ Assert-Test 'public product version remains 2.2.6' ((Get-Item -LiteralPath $PublicDll).VersionInfo.ProductVersion -eq '2.2.6')
+ Assert-Test 'development product version remains 2.2.6' ((Get-Item -LiteralPath $DevelopmentDll).VersionInfo.ProductVersion -eq '2.2.6')
  Assert-Test 'public has no controller namespace' (@($publicTypes | Where-Object {$_.FullName -match '^ShellDebugController\.|^TownOfHost\.Development\.'}).Count -eq 0)
  Assert-Test 'public has no controller metadata marker' (@($pub.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'AssemblyMetadataAttribute' -and $_.ConstructorArguments[0].Value -eq 'ShellDebugController'}).Count -eq 0)
  Assert-Test 'development has debug metadata marker' (@($dev.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'AssemblyMetadataAttribute' -and $_.ConstructorArguments[0].Value -eq 'ShellDebugController'}).Count -eq 1)

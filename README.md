@@ -24,10 +24,10 @@ TOH-Shellで起きたバグは本家や他MODには報告しないでまずはTO
 
 
 
-**現在のバージョン v2.2.5**<br>
-製品バージョン: `2.2.5`<br>
-[v2.2.5 リリースノート](docs/releases/v2.2.5.md) / [配布ページ](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.5)<br>
-新役職マッドアルターネイト、ロビーのバグ報告フォーム、役職の修正と処理負荷の改善を含みます。<br>
+**現在のバージョン v2.2.6**<br>
+製品バージョン: `2.2.6`<br>
+[v2.2.6 リリースノート](docs/releases/v2.2.6.md) / [配布ページ](https://github.com/sijimi2222/TownOfHost-Shell/releases/tag/v2.2.6)<br>
+新役職ジャーマフォビア・マッドシーア・ナイス/イビルハーミット・ブッチャー、試合後の自動で部屋に戻る機能の改善、通常インポスターを配役する設定、ノヴァ使用時の切断対策を含みます。<br>
 過去の変更記録は既存のリリースノートを参照してください。<br>
 マッチメイキング機能は現在メンテナンス中です。<re><br>
 過去バージョンは[こちら](https://github.com/sijimi2222/TownOfHost-Shell/releases)<re>
