@@ -2463,6 +2463,7 @@ public enum CustomRoles
     MadSeer = 392,
     EvilHermit = 393,
     NiceHermit = 394,
+    Butcher = 395,
     Notice = 1073,
     // Added without changing any existing Shell role/add-on IDs.
     MadKind = 377,

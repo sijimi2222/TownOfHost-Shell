@@ -14,6 +14,7 @@ internal static class RoleSettingsReadings
     {
         ["EvilHermit"] = "いびるはーみっと",
         ["NiceHermit"] = "ないすはーみっと",
+        ["Butcher"] = "ぶっちゃー",
         ["MadSeer"] = "まっどしーあ",
         ["Germaphobia"] = "じゃーまふぉびあ",
         ["Pusher"] = "つきおとしし",

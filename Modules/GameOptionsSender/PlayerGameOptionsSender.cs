@@ -778,6 +778,8 @@ namespace TownOfHost.Modules
                 if (player.GetRoleClass() is TownOfHost.Roles.Neutral.Tiger tiger) speed *= tiger.SpeedMultiplier;
                 speed = TownOfHost.Roles.Crewmate.Idol.ApplyMovement(player, speed);
                 if (state.CanMove is false) speed = Main.MinSpeed;
+                if (player.GetRoleClass() is TownOfHost.Roles.Impostor.Butcher { IsMovementLocked: true })
+                    speed = Main.MinSpeed;
 
                 AURoleOptions.PlayerSpeedMod = Mathf.Clamp(speed, Main.MinSpeed, 10f);
 
